@@ -1,13 +1,25 @@
+# Logs
+logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
 # Dependencies
+node_modules
 node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
 # Build outputs
+dist
 dist/
+dist-electron
+build
 build/
 *.tsbuildinfo
+*.local
 
 # Environment
 .env
@@ -16,18 +28,19 @@ build/
 
 # IDE
 .vscode/
+.vscode/*
+!.vscode/extensions.json
+.idea
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Testing
 coverage/
@@ -36,3 +49,11 @@ coverage/
 # Temp
 .tmp/
 temp/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Electron builder output
+release

@@ -1,0 +1,92 @@
+.navigator-panel {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  height: 100%;
+  overflow: hidden;
+}
+
+.navigator-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.navigator-panel-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.navigator-panel-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.navigator-panel-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.navigator-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 24px;
+}
+
+.navigator-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .navigator-panel {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .navigator-panel-header {
+    border-bottom-color: #374151;
+  }
+
+  .navigator-panel-title {
+    color: #f9fafb;
+  }
+
+  .navigator-panel-close {
+    color: #9ca3af;
+  }
+
+  .navigator-panel-close:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .navigator-panel-footer {
+    border-top-color: #374151;
+  }
+}

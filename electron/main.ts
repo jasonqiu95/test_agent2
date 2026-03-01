@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { registerPersistenceHandlers, registerStyleManagementHandlers, registerFileDialogHandlers } from './ipc'
+import { registerPersistenceHandlers, registerStyleManagementHandlers, registerFileDialogHandlers, registerMenuHandlers } from './ipc'
+import { setApplicationMenu } from './menu'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -38,6 +39,9 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Set up application menu
+  setApplicationMenu(mainWindow)
 }
 
 app.whenReady().then(() => {
@@ -45,6 +49,7 @@ app.whenReady().then(() => {
   registerPersistenceHandlers()
   registerStyleManagementHandlers()
   registerFileDialogHandlers()
+  registerMenuHandlers()
 
   createWindow()
 

@@ -27,25 +27,34 @@ export interface LoadResult {
   error?: string;
 }
 
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
+
 export interface ProjectInfo {
   filePath?: string;
   hasUnsavedChanges: boolean;
   lastSaved?: Date;
   autoSaveEnabled: boolean;
+  saveStatus: SaveStatus;
+  lastError?: string;
 }
 
 type ChangeListener = (hasChanges: boolean) => void;
 type SaveListener = (filePath: string) => void;
+type StatusListener = (status: SaveStatus) => void;
 
 export class PersistenceService {
   private currentProject: VellumProject | null = null;
   private currentFilePath: string | null = null;
   private hasUnsavedChanges: boolean = false;
   private autoSaveEnabled: boolean = true;
-  private autoSaveDebounceMs: number = 2000;
+  private autoSaveDebounceMs: number = 3000; // Default to 3 seconds as per requirements
   private autoSaveTimer: NodeJS.Timeout | null = null;
   private changeListeners: Set<ChangeListener> = new Set();
   private saveListeners: Set<SaveListener> = new Set();
+  private statusListeners: Set<StatusListener> = new Set();
+  private saveStatus: SaveStatus = 'idle';
+  private lastError: string | undefined = undefined;
+  private lastFileModTime: number | null = null;
 
   constructor() {
     this.setupBeforeUnloadHandler();
@@ -103,6 +112,20 @@ export class PersistenceService {
     }
 
     try {
+      // Check for conflicts if file exists
+      if (this.currentFilePath === targetPath && this.lastFileModTime !== null) {
+        const conflict = await this.checkForConflict(targetPath);
+        if (conflict) {
+          this.setSaveStatus('conflict', 'File has been modified externally');
+          return {
+            success: false,
+            error: 'File has been modified externally. Please reload or resolve conflicts.',
+          };
+        }
+      }
+
+      this.setSaveStatus('saving');
+
       this.currentProject.metadata.lastSaved = new Date().toISOString();
       this.currentProject.metadata.filePath = targetPath;
 
@@ -115,15 +138,28 @@ export class PersistenceService {
 
       if (result.success) {
         this.currentFilePath = targetPath;
+        await this.updateFileModTime(targetPath);
         this.setUnsavedChanges(false);
+        this.setSaveStatus('saved');
         this.notifySaveListeners(targetPath);
+
+        // Reset to idle after 2 seconds
+        setTimeout(() => {
+          if (this.saveStatus === 'saved') {
+            this.setSaveStatus('idle');
+          }
+        }, 2000);
+      } else {
+        this.setSaveStatus('error', result.error);
       }
 
       return result;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.setSaveStatus('error', errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       };
     }
   }
@@ -205,7 +241,9 @@ export class PersistenceService {
 
       this.currentProject = project;
       this.currentFilePath = filePath;
+      await this.updateFileModTime(filePath);
       this.setUnsavedChanges(false);
+      this.setSaveStatus('idle');
 
       return { success: true, project };
     } catch (error) {
@@ -259,6 +297,8 @@ export class PersistenceService {
         ? new Date(this.currentProject.metadata.lastSaved)
         : undefined,
       autoSaveEnabled: this.autoSaveEnabled,
+      saveStatus: this.saveStatus,
+      lastError: this.lastError,
     };
   }
 
@@ -305,6 +345,14 @@ export class PersistenceService {
   onSave(listener: SaveListener): () => void {
     this.saveListeners.add(listener);
     return () => this.saveListeners.delete(listener);
+  }
+
+  /**
+   * Register a listener for save status changes
+   */
+  onStatusChange(listener: StatusListener): () => void {
+    this.statusListeners.add(listener);
+    return () => this.statusListeners.delete(listener);
   }
 
   /**
@@ -389,6 +437,66 @@ export class PersistenceService {
         event.returnValue = '';
       }
     });
+  }
+
+  /**
+   * Set save status and notify listeners
+   */
+  private setSaveStatus(status: SaveStatus, error?: string): void {
+    this.saveStatus = status;
+    this.lastError = error;
+    this.notifyStatusListeners();
+  }
+
+  /**
+   * Notify status listeners
+   */
+  private notifyStatusListeners(): void {
+    this.statusListeners.forEach((listener) => {
+      listener(this.saveStatus);
+    });
+  }
+
+  /**
+   * Update the stored file modification time
+   */
+  private async updateFileModTime(filePath: string): Promise<void> {
+    try {
+      const stats = (await window.electron.invoke('persistence:getFileStats', {
+        filePath,
+      })) as { success: boolean; modTime?: number; error?: string };
+
+      if (stats.success && stats.modTime !== undefined) {
+        this.lastFileModTime = stats.modTime;
+      }
+    } catch (error) {
+      console.error('Failed to get file modification time:', error);
+    }
+  }
+
+  /**
+   * Check if file has been modified externally
+   */
+  private async checkForConflict(filePath: string): Promise<boolean> {
+    try {
+      const stats = (await window.electron.invoke('persistence:getFileStats', {
+        filePath,
+      })) as { success: boolean; modTime?: number; error?: string };
+
+      if (!stats.success || stats.modTime === undefined) {
+        return false;
+      }
+
+      // If file modification time has changed since we last saved/loaded
+      if (this.lastFileModTime !== null && stats.modTime > this.lastFileModTime) {
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Failed to check for conflicts:', error);
+      return false;
+    }
   }
 }
 

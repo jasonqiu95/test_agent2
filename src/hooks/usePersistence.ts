@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getPersistenceService } from '../services/persistence'
+import { getPersistenceService, SaveStatus } from '../services/persistence'
 import type { ProjectInfo, VellumProject } from '../services/persistence'
 import type { Book } from '../types/book'
 
@@ -16,6 +16,8 @@ export interface UsePersistenceReturn {
   }
   hasUnsavedChanges: boolean
   isAutoSaveEnabled: boolean
+  saveStatus: SaveStatus
+  lastError?: string
   save: (book: Book) => Promise<{
     success: boolean
     fileName?: string
@@ -75,6 +77,15 @@ export function usePersistence(
 
     return unsubscribeSave
   }, [persistence, options])
+
+  // Update project info on save status changes
+  useEffect(() => {
+    const unsubscribeStatus = persistence.onStatusChange(() => {
+      setProjectInfo(persistence.getProjectInfo())
+    })
+
+    return unsubscribeStatus
+  }, [persistence])
 
   const save = useCallback(
     async (book: Book) => {
@@ -178,6 +189,8 @@ export function usePersistence(
     },
     hasUnsavedChanges: projectInfo.hasUnsavedChanges,
     isAutoSaveEnabled: projectInfo.autoSaveEnabled,
+    saveStatus: projectInfo.saveStatus,
+    lastError: projectInfo.lastError,
     save,
     saveAs,
     load,

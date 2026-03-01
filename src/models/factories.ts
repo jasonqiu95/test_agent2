@@ -8,7 +8,6 @@ import {
   Chapter,
   Element,
   TextBlock,
-  TextFeature,
   Style,
   Author,
   Metadata,
@@ -21,7 +20,6 @@ import {
   Note,
   ElementType,
   MatterType,
-  TextFeatureType,
 } from '../types';
 
 /**

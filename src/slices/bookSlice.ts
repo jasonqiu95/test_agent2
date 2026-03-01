@@ -86,6 +86,97 @@ const bookSlice = createSlice({
         state.isDirty = true;
       }
     },
+    mergeChapters: (
+      state,
+      action: PayloadAction<{ chapterIds: string[]; title?: string }>
+    ) => {
+      if (state.currentBook && action.payload.chapterIds.length >= 2) {
+        const chapterIds = action.payload.chapterIds;
+        const chaptersToMerge = chapterIds
+          .map((id) => state.currentBook!.chapters.find((ch) => ch.id === id))
+          .filter((ch): ch is Chapter => ch !== undefined);
+
+        if (chaptersToMerge.length >= 2) {
+          // Create merged chapter from the first chapter
+          const mergedChapter: Chapter = {
+            ...chaptersToMerge[0],
+            id: uuidv4(),
+            title: action.payload.title || chaptersToMerge[0].title,
+            content: chaptersToMerge.flatMap((ch) => ch.content),
+            updatedAt: new Date(),
+          };
+
+          // Find the index of the first chapter to merge
+          const firstChapterIndex = state.currentBook.chapters.findIndex(
+            (ch) => ch.id === chapterIds[0]
+          );
+
+          // Remove all chapters to be merged and insert the merged chapter at the first position
+          state.currentBook.chapters = state.currentBook.chapters.filter(
+            (ch) => !chapterIds.includes(ch.id)
+          );
+          state.currentBook.chapters.splice(firstChapterIndex, 0, mergedChapter);
+          state.isDirty = true;
+        }
+      }
+    },
+    splitChapter: (
+      state,
+      action: PayloadAction<{ chapterId: string; splitPoints: number[] }>
+    ) => {
+      if (state.currentBook && action.payload.splitPoints.length > 0) {
+        const chapterIndex = state.currentBook.chapters.findIndex(
+          (ch) => ch.id === action.payload.chapterId
+        );
+
+        if (chapterIndex !== -1) {
+          const originalChapter = state.currentBook.chapters[chapterIndex];
+          const sortedSplitPoints = [...action.payload.splitPoints].sort((a, b) => a - b);
+
+          // Create new chapters by splitting at the specified points
+          const newChapters: Chapter[] = [];
+          let previousPoint = 0;
+
+          sortedSplitPoints.forEach((splitPoint, index) => {
+            if (splitPoint > previousPoint && splitPoint <= originalChapter.content.length) {
+              const chapterContent = originalChapter.content.slice(previousPoint, splitPoint);
+              if (chapterContent.length > 0) {
+                newChapters.push({
+                  ...originalChapter,
+                  id: uuidv4(),
+                  title: `${originalChapter.title} - Part ${index + 1}`,
+                  content: chapterContent,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                });
+              }
+              previousPoint = splitPoint;
+            }
+          });
+
+          // Add the remaining content as the last chapter
+          if (previousPoint < originalChapter.content.length) {
+            const remainingContent = originalChapter.content.slice(previousPoint);
+            if (remainingContent.length > 0) {
+              newChapters.push({
+                ...originalChapter,
+                id: uuidv4(),
+                title: `${originalChapter.title} - Part ${newChapters.length + 1}`,
+                content: remainingContent,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+            }
+          }
+
+          // Replace the original chapter with the new chapters
+          if (newChapters.length > 0) {
+            state.currentBook.chapters.splice(chapterIndex, 1, ...newChapters);
+            state.isDirty = true;
+          }
+        }
+      }
+    },
 
     // Element CRUD operations (for front/back matter)
     addElement: (
@@ -191,6 +282,8 @@ export const {
   updateChapter,
   deleteChapter,
   reorderChapters,
+  mergeChapters,
+  splitChapter,
   addElement,
   updateElement,
   deleteElement,

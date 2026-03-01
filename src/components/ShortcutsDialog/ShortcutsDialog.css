@@ -1,0 +1,196 @@
+.shortcuts-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.shortcuts-dialog {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.shortcuts-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shortcuts-dialog-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shortcuts-dialog-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.shortcuts-dialog-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.shortcuts-dialog-content {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shortcuts-table thead {
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.shortcuts-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shortcuts-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s;
+}
+
+.shortcuts-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.shortcuts-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.shortcuts-table td {
+  padding: 16px;
+}
+
+.shortcut-description {
+  color: #111827;
+  font-size: 0.9375rem;
+}
+
+.shortcut-keys {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.shortcut-keys kbd {
+  display: inline-block;
+  padding: 4px 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  color: #374151;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .shortcuts-dialog {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .shortcuts-dialog-header {
+    border-bottom-color: #374151;
+  }
+
+  .shortcuts-dialog-header h2 {
+    color: #f9fafb;
+  }
+
+  .shortcuts-dialog-close {
+    color: #9ca3af;
+  }
+
+  .shortcuts-dialog-close:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .shortcuts-table thead {
+    border-bottom-color: #374151;
+  }
+
+  .shortcuts-table th {
+    color: #d1d5db;
+  }
+
+  .shortcuts-table tbody tr {
+    border-bottom-color: #374151;
+  }
+
+  .shortcuts-table tbody tr:hover {
+    background-color: #374151;
+  }
+
+  .shortcut-description {
+    color: #f9fafb;
+  }
+
+  .shortcut-keys kbd {
+    color: #f9fafb;
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+}

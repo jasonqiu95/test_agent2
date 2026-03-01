@@ -34,11 +34,13 @@
     "cross-platform"
   ],
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
     "@types/xml2js": "^0.4.14",
     "jszip": "^3.10.1",
     "mammoth": "^1.11.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-redux": "^9.2.0",
     "uuid": "^9.0.0",
     "xml2js": "^0.6.2"
   },

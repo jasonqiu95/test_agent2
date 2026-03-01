@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { registerPersistenceHandlers } from './ipc'
+import { registerPersistenceHandlers, registerMenuHandlers } from './ipc'
+import { setApplicationMenu } from './menu'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -38,11 +39,15 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Set up application menu
+  setApplicationMenu(mainWindow)
 }
 
 app.whenReady().then(() => {
   // Register IPC handlers
   registerPersistenceHandlers()
+  registerMenuHandlers()
 
   createWindow()
 

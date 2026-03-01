@@ -3,3 +3,4 @@
  */
 
 export { registerPersistenceHandlers, unregisterPersistenceHandlers } from './persistence';
+export { registerMenuHandlers, unregisterMenuHandlers } from './menuActions';

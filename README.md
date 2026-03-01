@@ -18,6 +18,14 @@ A modern Electron application for book publishing built with React, TypeScript, 
 - 🎨 Dark mode support
 - 🔧 Fully customizable and extensible
 
+### Project Persistence
+- 💾 Save/Load projects in `.vellum` format (JSON-based)
+- 🔄 Auto-save with 3-second debouncing
+- ⚠️ Unsaved changes warnings
+- 📂 Native file dialogs (Open/Save/Save As)
+- 🔐 Secure IPC communication between renderer and main process
+- 📝 Project metadata tracking
+
 ### Electron Application
 - ⚡ Vite for fast development and building
 - ⚛️ React 18 with TypeScript

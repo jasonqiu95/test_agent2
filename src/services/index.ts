@@ -5,3 +5,5 @@ export type {
   LoadResult,
   ProjectInfo,
 } from './persistence'
+
+export { TemplateService, templateService } from './templateService'

@@ -1,13 +1,34 @@
-# Core Data Models
+# Book Publishing Application with Keyboard Shortcuts
 
-TypeScript data models for a book publishing application.
+TypeScript data models for a book publishing application with a comprehensive keyboard shortcuts system for React applications.
 
 ## Features
 
+### Core Data Models
 - **Comprehensive Type Definitions**: TypeScript interfaces for all book components
 - **Factory Functions**: Easy creation of model instances with sensible defaults
 - **Helper Utilities**: Functions for word counting, sorting, filtering, and more
 - **Metadata Support**: Built-in metadata tracking for all entities
+
+### Keyboard Shortcuts System
+- ⌨️ Global keyboard shortcuts with customizable actions
+- 🖥️ Cross-platform support (Cmd on Mac, Ctrl on Windows)
+- 📋 Built-in shortcuts cheat sheet dialog
+- ♿ Accessible and keyboard-friendly
+- 🎨 Dark mode support
+- 🔧 Fully customizable and extensible
+
+## Implemented Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Cmd/Ctrl + S` | Save | Save current work |
+| `Cmd/Ctrl + E` | Export | Export content |
+| `Cmd/Ctrl + N` | New Chapter | Create new chapter |
+| `Cmd/Ctrl + T` | Toggle Style Browser | Show/hide style browser |
+| `Cmd/Ctrl + P` | Toggle Preview | Show/hide preview |
+| `Cmd/Ctrl + F` | Find | Open find dialog |
+| `Cmd/Ctrl + /` | Shortcuts Cheat Sheet | Show keyboard shortcuts dialog |
 
 ## Types
 
@@ -81,38 +102,46 @@ const chapter1 = createChapter('The Beginning', {
 book.chapters.push(chapter1);
 ```
 
-### Creating Text Features
+### Using Keyboard Shortcuts
 
-```typescript
-import {
-  createTextBlock,
-  createQuote,
-  createList,
-  createNote,
-} from './models';
+```tsx
+import { useKeyboardShortcuts, KeyboardShortcut } from './hooks/useKeyboardShortcuts';
+import { ShortcutsDialog } from './components/ShortcutsDialog';
 
-const block = createTextBlock('This is a paragraph with features.', 'paragraph');
+function App() {
+  const [showDialog, setShowDialog] = useState(false);
 
-block.features = [
-  createQuote('To be or not to be', 'inline', {
-    attribution: 'Shakespeare',
-  }),
-  createNote('This is a footnote', 'footnote', { number: 1 }),
-];
-```
+  const shortcuts: KeyboardShortcut[] = [
+    {
+      key: 's',
+      ctrl: true,
+      description: 'Save',
+      action: () => {
+        console.log('Saving...');
+        // Your save logic
+      },
+    },
+    {
+      key: '/',
+      ctrl: true,
+      description: 'Show Shortcuts',
+      action: () => setShowDialog(true),
+    },
+  ];
 
-### Using Helper Functions
+  useKeyboardShortcuts({ shortcuts });
 
-```typescript
-import {
-  calculateBookWordCount,
-  generateTableOfContents,
-  sortChapters,
-} from './models';
-
-const wordCount = calculateBookWordCount(book);
-const toc = generateTableOfContents(book);
-const sortedChapters = sortChapters(book.chapters);
+  return (
+    <div>
+      <h1>My App</h1>
+      <ShortcutsDialog
+        isOpen={showDialog}
+        onClose={() => setShowDialog(false)}
+        shortcuts={shortcuts}
+      />
+    </div>
+  );
+}
 ```
 
 ## Development
@@ -127,8 +156,11 @@ npm run build
 # Watch mode
 npm run build:watch
 
-# Clean build
-npm run clean
+# Development server
+npm run dev
+
+# Preview build
+npm run preview
 ```
 
 ## License

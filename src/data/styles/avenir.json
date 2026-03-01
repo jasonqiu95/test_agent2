@@ -1,0 +1,76 @@
+{
+  "id": "avenir",
+  "name": "Avenir Light",
+  "description": "A geometric sans-serif with humanist influences, ideal for modern business and self-help books.",
+  "category": "sans-serif",
+  "fonts": {
+    "body": "'Avenir Next', 'Avenir', 'Montserrat'",
+    "heading": "'Avenir Next', 'Avenir', 'Montserrat'",
+    "fallback": "sans-serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.5em",
+      "fontWeight": "800",
+      "lineHeight": "1.15",
+      "marginTop": "1.5em",
+      "marginBottom": "0.7em",
+      "textTransform": "none",
+      "letterSpacing": "-0.01em"
+    },
+    "h2": {
+      "fontSize": "1.9em",
+      "fontWeight": "700",
+      "lineHeight": "1.25",
+      "marginTop": "1.4em",
+      "marginBottom": "0.6em",
+      "letterSpacing": "0"
+    },
+    "h3": {
+      "fontSize": "1.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.35",
+      "marginTop": "1.2em",
+      "marginBottom": "0.5em"
+    }
+  },
+  "body": {
+    "fontSize": "1.05em",
+    "lineHeight": "1.65",
+    "fontWeight": "400",
+    "textAlign": "left"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 2,
+    "fontSize": "3.5em",
+    "fontWeight": "800",
+    "marginRight": "0.08em",
+    "color": "#2c5aa0"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "• • •",
+    "spacing": "2em",
+    "fontSize": "1em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "textTransform": "uppercase",
+    "letterSpacing": "0.06em",
+    "fontSize": "0.85em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.1em",
+    "lineHeight": "1.65",
+    "sectionSpacing": "2.75em",
+    "chapterSpacing": "4.5em"
+  },
+  "colors": {
+    "text": "#2d2d2d",
+    "heading": "#1a1a1a",
+    "accent": "#2c5aa0",
+    "background": "#ffffff",
+    "dropCap": "#2c5aa0"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "id": "minion-pro",
+  "name": "Minion Pro Classic",
+  "description": "A versatile old-style serif with Adobe's renowned quality, ideal for academic and professional publications.",
+  "category": "serif",
+  "fonts": {
+    "body": "'Minion Pro', 'Crimson Text', 'Linux Libertine'",
+    "heading": "'Minion Pro', 'Crimson Text', 'Linux Libertine'",
+    "fallback": "serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.4em",
+      "fontWeight": "600",
+      "lineHeight": "1.2",
+      "marginTop": "2em",
+      "marginBottom": "0.8em",
+      "textTransform": "none",
+      "letterSpacing": "0.01em"
+    },
+    "h2": {
+      "fontSize": "1.9em",
+      "fontWeight": "600",
+      "lineHeight": "1.3",
+      "marginTop": "1.6em",
+      "marginBottom": "0.6em",
+      "letterSpacing": "0.005em"
+    },
+    "h3": {
+      "fontSize": "1.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.4",
+      "marginTop": "1.4em",
+      "marginBottom": "0.5em"
+    }
+  },
+  "body": {
+    "fontSize": "1.1em",
+    "lineHeight": "1.7",
+    "textAlign": "justify"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "4.2em",
+    "fontWeight": "600",
+    "marginRight": "0.1em",
+    "color": "#4a4a4a"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "✻",
+    "spacing": "2.5em",
+    "fontSize": "1.3em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "fontVariant": "small-caps",
+    "letterSpacing": "0.05em",
+    "fontSize": "0.95em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.2em",
+    "lineHeight": "1.7",
+    "sectionSpacing": "3em",
+    "chapterSpacing": "5em"
+  },
+  "colors": {
+    "text": "#2e2e2e",
+    "heading": "#1c1c1c",
+    "accent": "#7d5a50",
+    "background": "#fdfdfb",
+    "dropCap": "#4a4a4a"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "id": "caslon",
+  "name": "Caslon Heritage",
+  "description": "A distinguished old-style serif with historical charm, excellent for period fiction and historical narratives.",
+  "category": "serif",
+  "fonts": {
+    "body": "'Libre Caslon Text', 'Caslon', 'Big Caslon'",
+    "heading": "'Libre Caslon Text', 'Caslon', 'Big Caslon'",
+    "fallback": "serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.6em",
+      "fontWeight": "700",
+      "lineHeight": "1.2",
+      "marginTop": "2.5em",
+      "marginBottom": "0.8em",
+      "textTransform": "uppercase",
+      "letterSpacing": "0.05em"
+    },
+    "h2": {
+      "fontSize": "1.9em",
+      "fontWeight": "600",
+      "lineHeight": "1.3",
+      "marginTop": "2em",
+      "marginBottom": "0.6em",
+      "letterSpacing": "0.03em"
+    },
+    "h3": {
+      "fontSize": "1.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.4",
+      "marginTop": "1.5em",
+      "marginBottom": "0.5em",
+      "textTransform": "capitalize"
+    }
+  },
+  "body": {
+    "fontSize": "1.1em",
+    "lineHeight": "1.75",
+    "textAlign": "justify"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "4.2em",
+    "fontWeight": "700",
+    "marginRight": "0.1em",
+    "color": "#4a2511"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "※",
+    "spacing": "2em",
+    "fontSize": "1.8em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "textTransform": "uppercase",
+    "letterSpacing": "0.1em",
+    "fontSize": "0.9em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.25em",
+    "lineHeight": "1.75",
+    "sectionSpacing": "3.25em",
+    "chapterSpacing": "5.5em"
+  },
+  "colors": {
+    "text": "#2b2b2b",
+    "heading": "#1a1a1a",
+    "accent": "#4a2511",
+    "background": "#fdfdf8",
+    "dropCap": "#4a2511"
+  }
+}

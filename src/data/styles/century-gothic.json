@@ -1,0 +1,74 @@
+{
+  "id": "century-gothic",
+  "name": "Century Gothic Clean",
+  "description": "A geometric sans-serif with a clean, approachable feel, great for educational and children's books.",
+  "category": "modern",
+  "fonts": {
+    "body": "'Century Gothic', 'Futura', 'Avant Garde'",
+    "heading": "'Century Gothic', 'Futura', 'Avant Garde'",
+    "fallback": "sans-serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.6em",
+      "fontWeight": "700",
+      "lineHeight": "1.15",
+      "marginTop": "1.5em",
+      "marginBottom": "0.7em",
+      "textTransform": "capitalize",
+      "letterSpacing": "0.02em"
+    },
+    "h2": {
+      "fontSize": "2em",
+      "fontWeight": "700",
+      "lineHeight": "1.25",
+      "marginTop": "1.3em",
+      "marginBottom": "0.6em",
+      "letterSpacing": "0.01em"
+    },
+    "h3": {
+      "fontSize": "1.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.35",
+      "marginTop": "1.2em",
+      "marginBottom": "0.5em"
+    }
+  },
+  "body": {
+    "fontSize": "1.05em",
+    "lineHeight": "1.65",
+    "fontWeight": "400",
+    "textAlign": "left"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 2,
+    "fontSize": "3.5em",
+    "fontWeight": "700",
+    "marginRight": "0.1em",
+    "color": "#2a9d8f"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "○ ○ ○",
+    "spacing": "2em",
+    "fontSize": "0.9em"
+  },
+  "firstParagraph": {
+    "enabled": false,
+    "textTransform": "none"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.1em",
+    "lineHeight": "1.65",
+    "sectionSpacing": "2.75em",
+    "chapterSpacing": "4.5em"
+  },
+  "colors": {
+    "text": "#333333",
+    "heading": "#1a1a1a",
+    "accent": "#2a9d8f",
+    "background": "#ffffff",
+    "dropCap": "#2a9d8f"
+  }
+}

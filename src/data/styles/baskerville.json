@@ -1,0 +1,76 @@
+{
+  "id": "baskerville",
+  "name": "Baskerville Classic",
+  "description": "A refined transitional serif typeface with elegant proportions, perfect for literary fiction and classic literature.",
+  "category": "serif",
+  "fonts": {
+    "body": "'Baskerville', 'Libre Baskerville', 'Georgia'",
+    "heading": "'Baskerville', 'Libre Baskerville', 'Georgia'",
+    "fallback": "serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.2",
+      "marginTop": "2em",
+      "marginBottom": "0.75em",
+      "textTransform": "none",
+      "letterSpacing": "0.02em"
+    },
+    "h2": {
+      "fontSize": "1.8em",
+      "fontWeight": "600",
+      "lineHeight": "1.3",
+      "marginTop": "1.5em",
+      "marginBottom": "0.5em",
+      "letterSpacing": "0.01em"
+    },
+    "h3": {
+      "fontSize": "1.4em",
+      "fontWeight": "600",
+      "lineHeight": "1.4",
+      "marginTop": "1.25em",
+      "marginBottom": "0.5em",
+      "fontStyle": "italic"
+    }
+  },
+  "body": {
+    "fontSize": "1.1em",
+    "lineHeight": "1.7",
+    "textAlign": "justify"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "4em",
+    "fontWeight": "600",
+    "marginRight": "0.1em",
+    "color": "#2c2c2c"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "❦",
+    "spacing": "2em",
+    "fontSize": "1.5em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "textTransform": "small-caps",
+    "letterSpacing": "0.05em",
+    "fontSize": "0.95em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.2em",
+    "lineHeight": "1.7",
+    "sectionSpacing": "3em",
+    "chapterSpacing": "5em"
+  },
+  "colors": {
+    "text": "#2c2c2c",
+    "heading": "#1a1a1a",
+    "accent": "#8b7355",
+    "background": "#fefefe",
+    "dropCap": "#2c2c2c"
+  }
+}

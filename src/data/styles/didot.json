@@ -1,0 +1,77 @@
+{
+  "id": "didot",
+  "name": "Didot Refined",
+  "description": "An elegant neoclassical serif with high contrast, perfect for fashion, art, and luxury publications.",
+  "category": "modern",
+  "fonts": {
+    "body": "'Didot', 'Bodoni MT', 'Playfair Display'",
+    "heading": "'Didot', 'Bodoni MT', 'Playfair Display'",
+    "fallback": "serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "3.2em",
+      "fontWeight": "400",
+      "lineHeight": "1.1",
+      "marginTop": "2em",
+      "marginBottom": "0.8em",
+      "textTransform": "uppercase",
+      "letterSpacing": "0.15em"
+    },
+    "h2": {
+      "fontSize": "2.4em",
+      "fontWeight": "400",
+      "lineHeight": "1.2",
+      "marginTop": "1.75em",
+      "marginBottom": "0.7em",
+      "letterSpacing": "0.1em"
+    },
+    "h3": {
+      "fontSize": "1.8em",
+      "fontWeight": "400",
+      "lineHeight": "1.3",
+      "marginTop": "1.5em",
+      "marginBottom": "0.6em",
+      "fontStyle": "italic"
+    }
+  },
+  "body": {
+    "fontSize": "1.05em",
+    "lineHeight": "1.75",
+    "fontWeight": "400",
+    "textAlign": "justify"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "5em",
+    "fontWeight": "400",
+    "marginRight": "0.12em",
+    "color": "#1a1a1a"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "◇",
+    "spacing": "3em",
+    "fontSize": "1.5em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "textTransform": "uppercase",
+    "letterSpacing": "0.15em",
+    "fontSize": "0.9em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.2em",
+    "lineHeight": "1.75",
+    "sectionSpacing": "3.5em",
+    "chapterSpacing": "6em"
+  },
+  "colors": {
+    "text": "#2a2a2a",
+    "heading": "#1a1a1a",
+    "accent": "#c4a57b",
+    "background": "#ffffff",
+    "dropCap": "#1a1a1a"
+  }
+}

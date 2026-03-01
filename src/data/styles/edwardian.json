@@ -1,0 +1,79 @@
+{
+  "id": "edwardian",
+  "name": "Edwardian Script",
+  "description": "An elegant calligraphic script typeface for invitations, dedications, and special decorative elements.",
+  "category": "script",
+  "fonts": {
+    "body": "'Georgia', 'Palatino', 'Times New Roman'",
+    "heading": "'Edwardian Script ITC', 'Brush Script MT', 'Lucida Handwriting'",
+    "script": "'Edwardian Script ITC', 'Brush Script MT', 'Lucida Handwriting'",
+    "fallback": "cursive"
+  },
+  "headings": {
+    "h1": {
+      "fontFamily": "'Edwardian Script ITC', 'Brush Script MT', 'Lucida Handwriting', cursive",
+      "fontSize": "3.5em",
+      "fontWeight": "400",
+      "lineHeight": "1.3",
+      "marginTop": "2em",
+      "marginBottom": "1em",
+      "textTransform": "capitalize",
+      "letterSpacing": "0.02em"
+    },
+    "h2": {
+      "fontFamily": "'Edwardian Script ITC', 'Brush Script MT', 'Lucida Handwriting', cursive",
+      "fontSize": "2.5em",
+      "fontWeight": "400",
+      "lineHeight": "1.4",
+      "marginTop": "1.75em",
+      "marginBottom": "0.8em"
+    },
+    "h3": {
+      "fontSize": "1.6em",
+      "fontWeight": "600",
+      "lineHeight": "1.5",
+      "marginTop": "1.5em",
+      "marginBottom": "0.6em",
+      "fontStyle": "italic"
+    }
+  },
+  "body": {
+    "fontSize": "1.1em",
+    "lineHeight": "1.8",
+    "textAlign": "justify"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "4em",
+    "fontFamily": "'Edwardian Script ITC', 'Brush Script MT', cursive",
+    "fontWeight": "400",
+    "marginRight": "0.15em",
+    "color": "#5d3a1a"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "✾",
+    "spacing": "2.5em",
+    "fontSize": "2em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "fontVariant": "small-caps",
+    "letterSpacing": "0.06em",
+    "fontSize": "0.95em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.3em",
+    "lineHeight": "1.8",
+    "sectionSpacing": "3.5em",
+    "chapterSpacing": "6em"
+  },
+  "colors": {
+    "text": "#3d3d3d",
+    "heading": "#5d3a1a",
+    "accent": "#8b6f47",
+    "background": "#fffef7",
+    "dropCap": "#5d3a1a"
+  }
+}

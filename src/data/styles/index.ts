@@ -58,6 +58,7 @@ export const stylesByCategory = {
   'sans-serif': [helvetica, avenir, gillSans, optima],
   script: [edwardian],
   modern: [futura, didot, centuryGothic],
+  custom: [], // Custom styles are loaded dynamically via styleService
 };
 
 // Style lookup by ID

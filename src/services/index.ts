@@ -5,3 +5,11 @@ export type {
   LoadResult,
   ProjectInfo,
 } from './persistence'
+
+export {
+  saveCustomStyle,
+  loadCustomStyles,
+  updateCustomStyle,
+  deleteCustomStyle,
+  getAllStyles,
+} from './styleService'

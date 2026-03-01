@@ -1,0 +1,76 @@
+{
+  "id": "optima",
+  "name": "Optima Elegant",
+  "description": "A humanist sans-serif with flared strokes, bridging serif and sans worlds for sophisticated narratives.",
+  "category": "sans-serif",
+  "fonts": {
+    "body": "'Optima', 'Segoe UI', 'Candara'",
+    "heading": "'Optima', 'Segoe UI', 'Candara'",
+    "fallback": "sans-serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.8em",
+      "fontWeight": "600",
+      "lineHeight": "1.15",
+      "marginTop": "1.8em",
+      "marginBottom": "0.75em",
+      "textTransform": "capitalize",
+      "letterSpacing": "0.02em"
+    },
+    "h2": {
+      "fontSize": "2.1em",
+      "fontWeight": "600",
+      "lineHeight": "1.25",
+      "marginTop": "1.5em",
+      "marginBottom": "0.65em",
+      "letterSpacing": "0.01em"
+    },
+    "h3": {
+      "fontSize": "1.6em",
+      "fontWeight": "600",
+      "lineHeight": "1.35",
+      "marginTop": "1.3em",
+      "marginBottom": "0.55em"
+    }
+  },
+  "body": {
+    "fontSize": "1.08em",
+    "lineHeight": "1.7",
+    "fontWeight": "400",
+    "textAlign": "left"
+  },
+  "dropCap": {
+    "enabled": true,
+    "lines": 3,
+    "fontSize": "4em",
+    "fontWeight": "600",
+    "marginRight": "0.1em",
+    "color": "#2c3e50"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "◈",
+    "spacing": "2.5em",
+    "fontSize": "1.2em"
+  },
+  "firstParagraph": {
+    "enabled": true,
+    "textTransform": "uppercase",
+    "letterSpacing": "0.06em",
+    "fontSize": "0.9em"
+  },
+  "spacing": {
+    "paragraphSpacing": "1.2em",
+    "lineHeight": "1.7",
+    "sectionSpacing": "3em",
+    "chapterSpacing": "5em"
+  },
+  "colors": {
+    "text": "#34495e",
+    "heading": "#2c3e50",
+    "accent": "#3498db",
+    "background": "#ffffff",
+    "dropCap": "#2c3e50"
+  }
+}

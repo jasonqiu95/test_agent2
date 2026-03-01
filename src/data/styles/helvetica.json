@@ -1,0 +1,72 @@
+{
+  "id": "helvetica",
+  "name": "Helvetica Modern",
+  "description": "Clean and minimalist sans-serif design, perfect for contemporary non-fiction and technical writing.",
+  "category": "sans-serif",
+  "fonts": {
+    "body": "'Helvetica Neue', 'Helvetica', 'Arial'",
+    "heading": "'Helvetica Neue', 'Helvetica', 'Arial'",
+    "fallback": "sans-serif"
+  },
+  "headings": {
+    "h1": {
+      "fontSize": "2.8em",
+      "fontWeight": "700",
+      "lineHeight": "1.1",
+      "marginTop": "1.5em",
+      "marginBottom": "0.6em",
+      "textTransform": "uppercase",
+      "letterSpacing": "0.02em"
+    },
+    "h2": {
+      "fontSize": "2em",
+      "fontWeight": "600",
+      "lineHeight": "1.2",
+      "marginTop": "1.25em",
+      "marginBottom": "0.5em",
+      "letterSpacing": "0.01em"
+    },
+    "h3": {
+      "fontSize": "1.5em",
+      "fontWeight": "600",
+      "lineHeight": "1.3",
+      "marginTop": "1em",
+      "marginBottom": "0.4em"
+    }
+  },
+  "body": {
+    "fontSize": "1.05em",
+    "lineHeight": "1.6",
+    "fontWeight": "400",
+    "textAlign": "left"
+  },
+  "dropCap": {
+    "enabled": false,
+    "lines": 2,
+    "fontSize": "3em",
+    "fontWeight": "700"
+  },
+  "ornamentalBreak": {
+    "enabled": true,
+    "symbol": "◆ ◆ ◆",
+    "spacing": "2em",
+    "fontSize": "0.8em"
+  },
+  "firstParagraph": {
+    "enabled": false,
+    "textTransform": "none"
+  },
+  "spacing": {
+    "paragraphSpacing": "1em",
+    "lineHeight": "1.6",
+    "sectionSpacing": "2.5em",
+    "chapterSpacing": "4em"
+  },
+  "colors": {
+    "text": "#333333",
+    "heading": "#000000",
+    "accent": "#0066cc",
+    "background": "#ffffff",
+    "dropCap": "#000000"
+  }
+}

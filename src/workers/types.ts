@@ -1,0 +1,204 @@
+/**
+ * Worker message protocol for communication between main thread and workers
+ */
+
+import { Book } from '../types/book';
+import { BookStyle, Style } from '../types/style';
+
+/**
+ * Message types for worker communication
+ */
+export enum WorkerMessageType {
+  // Main thread to worker messages
+  INITIALIZE = 'INITIALIZE',
+  CANCEL = 'CANCEL',
+
+  // Worker to main thread messages
+  PROGRESS = 'PROGRESS',
+  ERROR = 'ERROR',
+  COMPLETE = 'COMPLETE',
+  READY = 'READY',
+}
+
+/**
+ * Base message interface
+ */
+export interface BaseWorkerMessage {
+  type: WorkerMessageType;
+  timestamp: number;
+}
+
+/**
+ * Image data for initialization
+ */
+export interface ImageData {
+  id: string;
+  url: string;
+  buffer?: ArrayBuffer;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Initialization message from main thread to worker
+ * Contains all data needed to start processing
+ */
+export interface InitializeMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.INITIALIZE;
+  data: {
+    book: Book;
+    styles: BookStyle[];
+    images: ImageData[];
+    options?: {
+      format?: 'epub' | 'pdf' | 'docx';
+      quality?: 'draft' | 'standard' | 'high';
+      includeMetadata?: boolean;
+      includeToc?: boolean;
+      pageSize?: string;
+      margin?: string;
+    };
+  };
+}
+
+/**
+ * Progress update from worker to main thread
+ */
+export interface ProgressMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.PROGRESS;
+  data: {
+    percentage: number; // 0-100
+    currentChapter?: number;
+    currentChapterTitle?: string;
+    currentPage?: number;
+    totalPages?: number;
+    status: string;
+    details?: string;
+  };
+}
+
+/**
+ * Error message from worker to main thread
+ */
+export interface ErrorMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.ERROR;
+  data: {
+    code: string;
+    message: string;
+    details?: string;
+    stack?: string;
+    recoverable?: boolean;
+    chapterNumber?: number;
+    elementId?: string;
+  };
+}
+
+/**
+ * Completion message from worker to main thread
+ * Contains the generated file buffer
+ */
+export interface CompleteMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.COMPLETE;
+  data: {
+    buffer: ArrayBuffer;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    metadata?: {
+      pageCount?: number;
+      wordCount?: number;
+      processingTimeMs?: number;
+      warnings?: string[];
+    };
+  };
+}
+
+/**
+ * Cancellation message from main thread to worker
+ */
+export interface CancelMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.CANCEL;
+  data: {
+    reason?: string;
+  };
+}
+
+/**
+ * Ready message from worker to main thread
+ * Indicates worker is initialized and ready to receive tasks
+ */
+export interface ReadyMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.READY;
+  data: {
+    workerId: string;
+    capabilities?: string[];
+  };
+}
+
+/**
+ * Union type of all messages from main thread to worker
+ */
+export type MainToWorkerMessage = InitializeMessage | CancelMessage;
+
+/**
+ * Union type of all messages from worker to main thread
+ */
+export type WorkerToMainMessage =
+  | ReadyMessage
+  | ProgressMessage
+  | ErrorMessage
+  | CompleteMessage;
+
+/**
+ * Union type of all worker messages
+ */
+export type WorkerMessage = MainToWorkerMessage | WorkerToMainMessage;
+
+/**
+ * Type guard for message types
+ */
+export function isInitializeMessage(
+  message: WorkerMessage
+): message is InitializeMessage {
+  return message.type === WorkerMessageType.INITIALIZE;
+}
+
+export function isProgressMessage(
+  message: WorkerMessage
+): message is ProgressMessage {
+  return message.type === WorkerMessageType.PROGRESS;
+}
+
+export function isErrorMessage(message: WorkerMessage): message is ErrorMessage {
+  return message.type === WorkerMessageType.ERROR;
+}
+
+export function isCompleteMessage(
+  message: WorkerMessage
+): message is CompleteMessage {
+  return message.type === WorkerMessageType.COMPLETE;
+}
+
+export function isCancelMessage(
+  message: WorkerMessage
+): message is CancelMessage {
+  return message.type === WorkerMessageType.CANCEL;
+}
+
+export function isReadyMessage(message: WorkerMessage): message is ReadyMessage {
+  return message.type === WorkerMessageType.READY;
+}
+
+/**
+ * Helper function to create a typed worker message
+ */
+export function createWorkerMessage<T extends WorkerMessage>(
+  type: T['type'],
+  data: T['data']
+): T {
+  return {
+    type,
+    data,
+    timestamp: Date.now(),
+  } as T;
+}

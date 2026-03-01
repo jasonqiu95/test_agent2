@@ -2,10 +2,16 @@ import React from 'react';
 import { KeyboardShortcut, formatShortcut } from '../../hooks/useKeyboardShortcuts';
 import './ShortcutsDialog.css';
 
+export interface ShortcutCategory {
+  name: string;
+  shortcuts: KeyboardShortcut[];
+}
+
 export interface ShortcutsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  shortcuts: KeyboardShortcut[];
+  shortcuts?: KeyboardShortcut[];
+  categories?: ShortcutCategory[];
   title?: string;
 }
 
@@ -13,6 +19,7 @@ export const ShortcutsDialog: React.FC<ShortcutsDialogProps> = ({
   isOpen,
   onClose,
   shortcuts,
+  categories,
   title = 'Keyboard Shortcuts',
 }) => {
   if (!isOpen) return null;
@@ -28,6 +35,9 @@ export const ShortcutsDialog: React.FC<ShortcutsDialogProps> = ({
       onClose();
     }
   };
+
+  // Use categories if provided, otherwise create a single category from shortcuts
+  const displayCategories: ShortcutCategory[] = categories || (shortcuts ? [{ name: '', shortcuts }] : []);
 
   return (
     <div
@@ -50,24 +60,33 @@ export const ShortcutsDialog: React.FC<ShortcutsDialogProps> = ({
           </button>
         </div>
         <div className="shortcuts-dialog-content">
-          <table className="shortcuts-table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Shortcut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shortcuts.map((shortcut, index) => (
-                <tr key={index}>
-                  <td className="shortcut-description">{shortcut.description}</td>
-                  <td className="shortcut-keys">
-                    <kbd>{formatShortcut(shortcut)}</kbd>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {displayCategories.map((category, categoryIndex) => (
+            <div key={categoryIndex} className="shortcuts-category">
+              {category.name && (
+                <h3 className="shortcuts-category-title">{category.name}</h3>
+              )}
+              <table className="shortcuts-table">
+                {!category.name && (
+                  <thead>
+                    <tr>
+                      <th>Action</th>
+                      <th>Shortcut</th>
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {category.shortcuts.map((shortcut, index) => (
+                    <tr key={index}>
+                      <td className="shortcut-description">{shortcut.description}</td>
+                      <td className="shortcut-keys">
+                        <kbd>{formatShortcut(shortcut)}</kbd>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -3,6 +3,8 @@
  */
 
 export { DocxParser as default, DocxParser } from './parser';
+export { FormatConverter, convertDocxToInternalFormat } from './formatConverter';
+export type { ConversionOptions, ConvertedDocument } from './formatConverter';
 export type {
   DocxParseResult,
   DocxParseOptions,

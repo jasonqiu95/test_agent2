@@ -9,5 +9,16 @@ export type {
   DocxMessage,
   DocxImage,
   DocxBuffer,
-  MammothAPI
+  MammothAPI,
+  StructuredParseResult,
+  StructuredDocument,
+  DocumentElement,
+  Paragraph,
+  ParagraphContent,
+  TextRun,
+  Break,
+  Tab,
+  ParagraphStyle,
+  InlineFormatting,
+  SectionBreak
 } from './types';

@@ -38,6 +38,12 @@ function verifyExports(): void {
   if (typeof DocxParser.hasWarnings !== 'function') {
     throw new Error('DocxParser.hasWarnings is not a function');
   }
+  if (typeof DocxParser.parseStructured !== 'function') {
+    throw new Error('DocxParser.parseStructured is not a function');
+  }
+  if (typeof DocxParser.parseStructuredFromBuffer !== 'function') {
+    throw new Error('DocxParser.parseStructuredFromBuffer is not a function');
+  }
 
   console.log('  ✓ DocxParser class exported');
   console.log('  ✓ parseToHtml method available');
@@ -46,6 +52,8 @@ function verifyExports(): void {
   console.log('  ✓ extractTextFromBuffer method available');
   console.log('  ✓ hasErrors method available');
   console.log('  ✓ hasWarnings method available');
+  console.log('  ✓ parseStructured method available');
+  console.log('  ✓ parseStructuredFromBuffer method available');
 }
 
 /**

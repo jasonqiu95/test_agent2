@@ -5,3 +5,11 @@ export type {
   LoadResult,
   ProjectInfo,
 } from './persistence'
+
+export { MemoryManager, memoryManager } from './memory-manager'
+export type {
+  MemoryStats,
+  MemoryBudget,
+  MemoryMonitorOptions,
+  CleanupHandler,
+} from './memory-manager'

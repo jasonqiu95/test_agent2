@@ -3,6 +3,7 @@
  */
 
 import { Book } from '../types/book';
+import { memoryManager } from './memory-manager';
 
 export interface VellumProject {
   version: string;
@@ -46,9 +47,20 @@ export class PersistenceService {
   private autoSaveTimer: NodeJS.Timeout | null = null;
   private changeListeners: Set<ChangeListener> = new Set();
   private saveListeners: Set<SaveListener> = new Set();
+  private beforeUnloadHandler: ((event: BeforeUnloadEvent) => void) | null = null;
 
   constructor() {
     this.setupBeforeUnloadHandler();
+
+    // Register with memory manager
+    memoryManager.registerDisposable(this);
+
+    // Register cleanup handler for memory optimization
+    memoryManager.registerCleanupHandler({
+      name: 'persistence-cleanup',
+      priority: 30,
+      cleanup: () => this.cleanup(),
+    });
   }
 
   /**
@@ -382,13 +394,76 @@ export class PersistenceService {
    * Setup handler for before unload (window close)
    */
   private setupBeforeUnloadHandler(): void {
-    window.addEventListener('beforeunload', (event) => {
+    this.beforeUnloadHandler = (event: BeforeUnloadEvent) => {
       if (this.hasUnsavedChanges) {
         event.preventDefault();
         // Modern browsers require returnValue to be set
         event.returnValue = '';
       }
-    });
+    };
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+  }
+
+  /**
+   * Cleanup method for memory optimization
+   * Clears non-essential data but keeps project state
+   */
+  private cleanup(): void {
+    // Clear auto-save timer
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+
+    // Trim listener sets (no actual clearing since they're needed)
+    // This is just to ensure no zombie listeners
+    console.log(
+      `[PersistenceService] Cleanup: ${this.changeListeners.size} change listeners, ` +
+      `${this.saveListeners.size} save listeners`
+    );
+  }
+
+  /**
+   * Dispose the persistence service and clean up all resources
+   * WARNING: This will clear all project data and listeners
+   */
+  public dispose(): void {
+    // Clear auto-save timer
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+
+    // Clear all listeners
+    this.changeListeners.clear();
+    this.saveListeners.clear();
+
+    // Remove event listener
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
+    }
+
+    // Clear project data
+    this.currentProject = null;
+    this.currentFilePath = null;
+    this.hasUnsavedChanges = false;
+
+    // Unregister from memory manager
+    memoryManager.unregisterDisposable(this);
+    memoryManager.unregisterCleanupHandler('persistence-cleanup');
+
+    console.log('[PersistenceService] Disposed');
+  }
+
+  /**
+   * Get listener count for debugging/monitoring
+   */
+  public getListenerCount(): { changeListeners: number; saveListeners: number } {
+    return {
+      changeListeners: this.changeListeners.size,
+      saveListeners: this.saveListeners.size,
+    };
   }
 }
 

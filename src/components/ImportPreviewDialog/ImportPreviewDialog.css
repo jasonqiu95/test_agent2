@@ -1,0 +1,473 @@
+.import-preview-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.import-preview-dialog {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  max-width: 900px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.import-preview-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.import-preview-dialog-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.import-preview-dialog-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.import-preview-dialog-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.import-preview-dialog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.import-preview-stats {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.import-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.import-preview-action-btn {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.import-preview-action-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.import-preview-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-preview-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.import-preview-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6b7280;
+}
+
+.import-preview-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chapter-preview-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: white;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.chapter-preview-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.chapter-preview-card.selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.chapter-preview-card.excluded {
+  opacity: 0.5;
+  background-color: #f9fafb;
+}
+
+.chapter-preview-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chapter-preview-checkbox {
+  padding-top: 4px;
+}
+
+.chapter-preview-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.chapter-preview-title-section {
+  flex: 1;
+}
+
+.chapter-preview-title {
+  margin: 0 0 8px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chapter-preview-edit-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chapter-preview-title:hover .chapter-preview-edit-btn {
+  opacity: 1;
+}
+
+.chapter-preview-edit-btn:hover {
+  color: #111827;
+}
+
+.chapter-preview-title-edit {
+  margin-bottom: 8px;
+}
+
+.chapter-preview-title-input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  outline: none;
+}
+
+.chapter-preview-metadata {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+.chapter-preview-type,
+.chapter-preview-heading,
+.chapter-preview-confidence,
+.chapter-preview-number {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.chapter-preview-type {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.chapter-preview-heading {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.chapter-preview-confidence {
+  font-weight: 600;
+}
+
+.chapter-preview-confidence.high {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.chapter-preview-confidence.medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.chapter-preview-confidence.low {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.chapter-preview-number {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.chapter-preview-split-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 1.25rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.chapter-preview-split-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+.chapter-preview-content {
+  margin: 12px 0;
+}
+
+.chapter-preview-text {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.chapter-preview-line {
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.chapter-preview-line:last-child {
+  margin-bottom: 0;
+}
+
+.chapter-preview-empty-text {
+  margin: 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.chapter-preview-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.import-preview-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.import-preview-btn-secondary,
+.import-preview-btn-primary {
+  padding: 10px 20px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.import-preview-btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.import-preview-btn-secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.import-preview-btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.import-preview-btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.import-preview-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .import-preview-dialog {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .import-preview-dialog-header {
+    border-bottom-color: #374151;
+  }
+
+  .import-preview-dialog-header h2 {
+    color: #f9fafb;
+  }
+
+  .import-preview-dialog-close {
+    color: #9ca3af;
+  }
+
+  .import-preview-dialog-close:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .import-preview-dialog-toolbar {
+    border-bottom-color: #374151;
+    background-color: #374151;
+  }
+
+  .import-preview-action-btn {
+    background: #1f2937;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .import-preview-action-btn:hover:not(:disabled) {
+    background-color: #374151;
+  }
+
+  .chapter-preview-card {
+    border-color: #374151;
+    background: #1f2937;
+  }
+
+  .chapter-preview-card:hover {
+    border-color: #4b5563;
+  }
+
+  .chapter-preview-card.selected {
+    border-color: #3b82f6;
+    background-color: #1e3a5f;
+  }
+
+  .chapter-preview-card.excluded {
+    background-color: #111827;
+  }
+
+  .chapter-preview-title {
+    color: #f9fafb;
+  }
+
+  .chapter-preview-edit-btn:hover {
+    color: #f9fafb;
+  }
+
+  .chapter-preview-title-input {
+    background: #374151;
+    color: #f9fafb;
+  }
+
+  .chapter-preview-text {
+    background-color: #111827;
+    border-color: #374151;
+  }
+
+  .chapter-preview-line {
+    color: #d1d5db;
+  }
+
+  .import-preview-dialog-footer {
+    border-top-color: #374151;
+  }
+
+  .import-preview-btn-secondary {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .import-preview-btn-secondary:hover {
+    background-color: #4b5563;
+  }
+}

@@ -3,19 +3,49 @@ import { getPersistenceService } from '../services/persistence'
 import type { ProjectInfo, VellumProject } from '../services/persistence'
 import type { Book } from '../types/book'
 
+export interface UsePersistenceOptions {
+  onSave?: (filePath: string) => void
+  onChange?: (hasChanges: boolean) => void
+}
+
 export interface UsePersistenceReturn {
-  projectInfo: ProjectInfo
-  currentProject: VellumProject | null
-  saveProject: () => Promise<boolean>
-  saveProjectAs: () => Promise<boolean>
-  openProject: () => Promise<VellumProject | null>
-  newProject: (book: Book) => Promise<boolean>
-  closeProject: () => Promise<boolean>
-  updateProject: (book: Book) => void
+  currentProject: {
+    fileName: string | null
+    filePath: string | null
+    data: VellumProject | null
+  }
+  hasUnsavedChanges: boolean
+  isAutoSaveEnabled: boolean
+  save: (book: Book) => Promise<{
+    success: boolean
+    fileName?: string
+    error?: string
+    canceled?: boolean
+  }>
+  saveAs: (book: Book) => Promise<{
+    success: boolean
+    fileName?: string
+    error?: string
+    canceled?: boolean
+  }>
+  load: () => Promise<{
+    success: boolean
+    data?: VellumProject
+    fileName?: string
+    error?: string
+    canceled?: boolean
+  }>
+  newProject: () => Promise<{
+    success: boolean
+    needsSave: boolean
+  }>
+  markModified: (book: Book) => void
   setAutoSaveEnabled: (enabled: boolean) => void
 }
 
-export function usePersistence(): UsePersistenceReturn {
+export function usePersistence(
+  options: UsePersistenceOptions = {}
+): UsePersistenceReturn {
   const persistence = getPersistenceService()
   const [projectInfo, setProjectInfo] = useState<ProjectInfo>(
     persistence.getProjectInfo()
@@ -26,75 +56,106 @@ export function usePersistence(): UsePersistenceReturn {
 
   // Update project info when changes occur
   useEffect(() => {
-    const unsubscribe = persistence.onChangeStatusChange(() => {
+    const unsubscribeChange = persistence.onChangeStatusChange((hasChanges) => {
       setProjectInfo(persistence.getProjectInfo())
+      setCurrentProject(persistence.getCurrentProject())
+      options.onChange?.(hasChanges)
     })
 
-    return unsubscribe
-  }, [persistence])
+    return unsubscribeChange
+  }, [persistence, options])
 
   // Update current project on save
   useEffect(() => {
-    const unsubscribe = persistence.onSave(() => {
+    const unsubscribeSave = persistence.onSave((filePath) => {
       setProjectInfo(persistence.getProjectInfo())
       setCurrentProject(persistence.getCurrentProject())
+      options.onSave?.(filePath)
     })
 
-    return unsubscribe
-  }, [persistence])
+    return unsubscribeSave
+  }, [persistence, options])
 
-  const saveProject = useCallback(async (): Promise<boolean> => {
-    const result = await persistence.saveProject()
-    if (result.success) {
-      setProjectInfo(persistence.getProjectInfo())
-      setCurrentProject(persistence.getCurrentProject())
-    }
-    return result.success
-  }, [persistence])
-
-  const saveProjectAs = useCallback(async (): Promise<boolean> => {
-    const result = await persistence.saveProjectAs()
-    if (result.success) {
-      setProjectInfo(persistence.getProjectInfo())
-      setCurrentProject(persistence.getCurrentProject())
-    }
-    return result.success
-  }, [persistence])
-
-  const openProject = useCallback(async (): Promise<VellumProject | null> => {
-    const result = await persistence.openProject()
-    if (result.success && result.project) {
-      setProjectInfo(persistence.getProjectInfo())
-      setCurrentProject(result.project)
-      return result.project
-    }
-    return null
-  }, [persistence])
-
-  const newProject = useCallback(
-    async (book: Book): Promise<boolean> => {
-      const success = await persistence.newProject(book)
-      if (success) {
-        setProjectInfo(persistence.getProjectInfo())
-        setCurrentProject(persistence.getCurrentProject())
+  const save = useCallback(
+    async (book: Book) => {
+      const currentProj = persistence.getCurrentProject()
+      if (currentProj) {
+        persistence.updateProject(book)
+      } else {
+        persistence.createProject(book)
       }
-      return success
+
+      const result = await persistence.saveProject()
+      setProjectInfo(persistence.getProjectInfo())
+      setCurrentProject(persistence.getCurrentProject())
+
+      return {
+        success: result.success,
+        fileName: result.filePath ? result.filePath.split('/').pop() : undefined,
+        error: result.error,
+        canceled: !result.success && !result.error,
+      }
     },
     [persistence]
   )
 
-  const closeProject = useCallback(async (): Promise<boolean> => {
-    const success = await persistence.closeProject()
-    if (success) {
+  const saveAs = useCallback(
+    async (book: Book) => {
+      const currentProj = persistence.getCurrentProject()
+      if (currentProj) {
+        persistence.updateProject(book)
+      } else {
+        persistence.createProject(book)
+      }
+
+      const result = await persistence.saveProjectAs()
       setProjectInfo(persistence.getProjectInfo())
-      setCurrentProject(null)
+      setCurrentProject(persistence.getCurrentProject())
+
+      return {
+        success: result.success,
+        fileName: result.filePath ? result.filePath.split('/').pop() : undefined,
+        error: result.error,
+        canceled: !result.success && !result.error,
+      }
+    },
+    [persistence]
+  )
+
+  const load = useCallback(async () => {
+    const result = await persistence.openProject()
+    setProjectInfo(persistence.getProjectInfo())
+    setCurrentProject(result.project || null)
+
+    return {
+      success: result.success,
+      data: result.project,
+      fileName: result.project
+        ? persistence.getProjectInfo().filePath?.split('/').pop()
+        : undefined,
+      error: result.error,
+      canceled: !result.success && !result.error,
     }
-    return success
   }, [persistence])
 
-  const updateProject = useCallback(
-    (book: Book): void => {
-      persistence.updateProject(book)
+  const newProject = useCallback(async () => {
+    const hasChanges = persistence.getProjectInfo().hasUnsavedChanges
+
+    if (hasChanges) {
+      return { success: false, needsSave: true }
+    }
+
+    return { success: true, needsSave: false }
+  }, [persistence])
+
+  const markModified = useCallback(
+    (book: Book) => {
+      const currentProj = persistence.getCurrentProject()
+      if (currentProj) {
+        persistence.updateProject(book)
+      } else {
+        persistence.createProject(book)
+      }
       setProjectInfo(persistence.getProjectInfo())
       setCurrentProject(persistence.getCurrentProject())
     },
@@ -102,7 +163,7 @@ export function usePersistence(): UsePersistenceReturn {
   )
 
   const setAutoSaveEnabled = useCallback(
-    (enabled: boolean): void => {
+    (enabled: boolean) => {
       persistence.setAutoSaveEnabled(enabled)
       setProjectInfo(persistence.getProjectInfo())
     },
@@ -110,14 +171,18 @@ export function usePersistence(): UsePersistenceReturn {
   )
 
   return {
-    projectInfo,
-    currentProject,
-    saveProject,
-    saveProjectAs,
-    openProject,
+    currentProject: {
+      fileName: projectInfo.filePath?.split('/').pop() || null,
+      filePath: projectInfo.filePath || null,
+      data: currentProject,
+    },
+    hasUnsavedChanges: projectInfo.hasUnsavedChanges,
+    isAutoSaveEnabled: projectInfo.autoSaveEnabled,
+    save,
+    saveAs,
+    load,
     newProject,
-    closeProject,
-    updateProject,
+    markModified,
     setAutoSaveEnabled,
   }
 }

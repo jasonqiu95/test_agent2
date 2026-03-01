@@ -28,7 +28,7 @@ export interface StyleReference {
   overrides?: Partial<Style>;
 }
 
-export type BookStyleCategory = 'serif' | 'sans-serif' | 'script' | 'modern';
+export type BookStyleCategory = 'serif' | 'sans-serif' | 'script' | 'modern' | 'custom';
 
 export interface DropCapStyle {
   enabled: boolean;

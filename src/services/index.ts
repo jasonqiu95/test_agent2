@@ -11,6 +11,11 @@ export {
   getStyleService,
   applyStyleToBook,
   generateStylePreview,
+  saveCustomStyle,
+  loadCustomStyles,
+  updateCustomStyle,
+  deleteCustomStyle,
+  getAllStyles,
 } from './styleService'
 export type {
   StyleApplicationResult,

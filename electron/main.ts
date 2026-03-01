@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { registerPersistenceHandlers, registerStyleManagementHandlers } from './ipc'
+import { registerPersistenceHandlers, registerStyleManagementHandlers, registerFileDialogHandlers } from './ipc'
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -44,6 +44,7 @@ app.whenReady().then(() => {
   // Register IPC handlers
   registerPersistenceHandlers()
   registerStyleManagementHandlers()
+  registerFileDialogHandlers()
 
   createWindow()
 

@@ -1,0 +1,457 @@
+/* Preview Panel Container */
+.preview-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+/* Header */
+.preview-panel-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 16px;
+}
+
+.preview-panel-header-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.preview-panel-header-center {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+}
+
+.preview-panel-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.preview-panel-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Device Switcher */
+.preview-device-switcher {
+  display: flex;
+  gap: 4px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.preview-device-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  font-size: 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-device-btn:hover {
+  background: #e5e7eb;
+}
+
+.preview-device-btn.active {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.preview-device-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Zoom Controls */
+.preview-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.preview-zoom-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  padding: 4px 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+  min-width: 32px;
+}
+
+.preview-zoom-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
+.preview-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.preview-zoom-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.preview-zoom-display {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* Close Button */
+.preview-panel-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.preview-panel-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.preview-panel-close:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Main Content Area */
+.preview-panel-content {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f3f4f6;
+}
+
+.preview-content-wrapper {
+  transition: transform 0.2s ease;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.preview-content-area {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  min-height: 600px;
+  transition: all 0.3s ease;
+}
+
+/* Device-specific widths */
+.preview-content-wrapper.device-desktop .preview-content-area {
+  width: 1024px;
+}
+
+.preview-content-wrapper.device-tablet .preview-content-area {
+  width: 768px;
+}
+
+.preview-content-wrapper.device-mobile .preview-content-area {
+  width: 375px;
+}
+
+.preview-content-display {
+  padding: 40px;
+}
+
+.preview-content-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 600px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.preview-content-empty p {
+  margin: 0 0 8px 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.preview-content-empty-hint {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* Footer */
+.preview-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Page Navigation */
+.preview-page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-page-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+  font-weight: 600;
+}
+
+.preview-page-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.preview-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.preview-page-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.preview-page-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.preview-page-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-align: center;
+  font-weight: 500;
+  color: #111827;
+}
+
+.preview-page-input:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 0;
+  border-color: #3b82f6;
+}
+
+/* Remove spinner buttons from number input */
+.preview-page-input::-webkit-inner-spin-button,
+.preview-page-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.preview-page-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.preview-page-separator {
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.preview-page-total {
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Footer Info */
+.preview-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.preview-device-indicator strong {
+  color: #111827;
+  text-transform: capitalize;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .preview-panel-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .preview-panel-header-left,
+  .preview-panel-header-center,
+  .preview-panel-header-right {
+    justify-content: center;
+  }
+
+  .preview-panel-header-right {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .preview-panel-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .preview-content-wrapper.device-desktop .preview-content-area,
+  .preview-content-wrapper.device-tablet .preview-content-area {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .preview-panel {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .preview-panel-header,
+  .preview-panel-footer {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .preview-panel-title {
+    color: #f9fafb;
+  }
+
+  .preview-device-switcher,
+  .preview-zoom-controls {
+    background: #374151;
+  }
+
+  .preview-device-btn {
+    color: #f9fafb;
+  }
+
+  .preview-device-btn:hover {
+    background: #4b5563;
+  }
+
+  .preview-device-btn.active {
+    background: #1f2937;
+  }
+
+  .preview-zoom-btn {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .preview-zoom-btn:hover:not(:disabled) {
+    background: #374151;
+    border-color: #6b7280;
+  }
+
+  .preview-zoom-display {
+    color: #d1d5db;
+  }
+
+  .preview-panel-close {
+    color: #9ca3af;
+  }
+
+  .preview-panel-close:hover {
+    background: #374151;
+    color: #f9fafb;
+  }
+
+  .preview-panel-content {
+    background: #0f172a;
+  }
+
+  .preview-content-area {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .preview-page-btn {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .preview-page-btn:hover:not(:disabled) {
+    background: #374151;
+  }
+
+  .preview-page-input {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .preview-page-input:focus {
+    border-color: #3b82f6;
+  }
+
+  .preview-page-total {
+    color: #d1d5db;
+  }
+
+  .preview-device-indicator strong {
+    color: #f9fafb;
+  }
+}

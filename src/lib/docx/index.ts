@@ -22,3 +22,12 @@ export type {
   InlineFormatting,
   SectionBreak
 } from './types';
+export {
+  detectChapters,
+  getChapterContent,
+  getChapterStats
+} from './chapterDetection';
+export type {
+  DetectedChapter,
+  ChapterDetectionOptions
+} from './chapterDetection';

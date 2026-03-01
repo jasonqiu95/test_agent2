@@ -86,6 +86,24 @@
   overflow-y: auto;
 }
 
+.shortcuts-category {
+  margin-bottom: 24px;
+}
+
+.shortcuts-category:last-child {
+  margin-bottom: 0;
+}
+
+.shortcuts-category-title {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+}
+
 .shortcuts-table {
   width: 100%;
   border-collapse: collapse;
@@ -192,5 +210,9 @@
     color: #f9fafb;
     background-color: #374151;
     border-color: #4b5563;
+  }
+
+  .shortcuts-category-title {
+    color: #d1d5db;
   }
 }

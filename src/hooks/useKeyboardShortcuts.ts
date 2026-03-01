@@ -103,7 +103,17 @@ export const formatShortcut = (shortcut: KeyboardShortcut): string => {
     parts.push(isMac ? '⌘' : 'Meta');
   }
 
-  parts.push(shortcut.key.toUpperCase());
+  // Handle special keys
+  const keyName = shortcut.key.toLowerCase();
+  const keyDisplayMap: Record<string, string> = {
+    arrowup: '↑',
+    arrowdown: '↓',
+    arrowleft: '←',
+    arrowright: '→',
+    ' ': 'Space',
+  };
+
+  parts.push(keyDisplayMap[keyName] || shortcut.key.toUpperCase());
 
   return parts.join(isMac ? '' : '+');
 };

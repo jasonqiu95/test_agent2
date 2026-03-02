@@ -413,6 +413,7 @@ const mockHelveticaStyle: BookStyle = {
 
 /**
  * ===========================================================================
+<<<<<<< HEAD
  * COMPREHENSIVE PREVIEW PANEL EDGE CASE AND ERROR HANDLING TESTS
  * ===========================================================================
  */
@@ -1562,11 +1563,53 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
         cancelPendingUpdates: cancelPendingUpdatesMock,
       });
 
+=======
+ * COMPREHENSIVE PREVIEW CONTENT RENDERING TESTS
+ * ===========================================================================
+ *
+ * Tests for basic preview content rendering with sample book fixtures:
+ * - Component renders without crashing
+ * - Displays chapter content correctly
+ * - Renders formatted text (bold, italic, headings)
+ * - Shows inline images
+ * - Renders block quotes and verse formatting
+ * - Displays scene breaks and ornamental breaks
+ */
+
+import { PreviewPanel } from './PreviewPanel';
+import {
+  simpleChapter,
+  chapterWithSceneBreaks,
+  chapterWithBlockQuotes,
+  chapterWithVerse,
+  chapterWithHeadings,
+} from '../../__tests__/fixtures';
+import { __setMockPreviewState, __resetMockPreviewState } from '../../hooks/__mocks__/usePreviewUpdate';
+
+describe('Preview Content Rendering', () => {
+  // Reset mock state before each test
+  beforeEach(() => {
+    __resetMockPreviewState();
+  });
+
+  describe('Basic Rendering', () => {
+    it('should render without crashing', () => {
+      __setMockPreviewState('<p>Test content</p>');
+      const { container } = renderWithProviders(<PreviewPanel content="<p>Test content</p>" />);
+
+      const previewPanel = container.querySelector('.preview-panel');
+      expect(previewPanel).toBeInTheDocument();
+    });
+
+    it('should render preview panel with header', () => {
+      __setMockPreviewState('<p>Test content</p>');
+>>>>>>> agent/test-preview-content-rendering
       renderWithProviders(<PreviewPanel content="<p>Test content</p>" />);
 
       expect(screen.getByText('Preview')).toBeInTheDocument();
     });
 
+<<<<<<< HEAD
     it('should apply custom className', () => {
       mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Test</p>',
@@ -1575,11 +1618,31 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
         cancelPendingUpdates: cancelPendingUpdatesMock,
       });
 
+=======
+    it('should display placeholder when no content provided', () => {
+      __setMockPreviewState('');
+      renderWithProviders(<PreviewPanel content="" />);
+
+      expect(screen.getByText('No content to preview')).toBeInTheDocument();
+    });
+
+    it('should have accessible heading', () => {
+      __setMockPreviewState('<p>Test</p>');
+      renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
+
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Preview');
+    });
+
+    it('should apply custom className', () => {
+      __setMockPreviewState('<p>Test</p>');
+>>>>>>> agent/test-preview-content-rendering
       const { container } = renderWithProviders(
         <PreviewPanel content="<p>Test</p>" className="custom-preview" />
       );
 
       const previewPanel = container.querySelector('.preview-panel');
+<<<<<<< HEAD
       expect(previewPanel).toHaveClass('preview-panel', 'custom-preview');
     });
 
@@ -2270,3 +2333,479 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
   });
 });
 
+=======
+      expect(previewPanel).toHaveClass('preview-panel');
+      expect(previewPanel).toHaveClass('custom-preview');
+    });
+  });
+
+  describe('Chapter Content Display', () => {
+    it('should display simple chapter content correctly', () => {
+      // Convert chapter to HTML-like content for preview
+      const content = `
+        <h1>${simpleChapter.title}</h1>
+        ${simpleChapter.content.map(block => {
+          if (block.blockType === 'heading') {
+            return `<h${block.level}>${block.content}</h${block.level}>`;
+          }
+          return `<p>${block.content}</p>`;
+        }).join('')}
+      `;
+
+      __setMockPreviewState(content);
+      renderWithProviders(<PreviewPanel content={content} />);
+
+      // Check that chapter title is rendered
+      expect(screen.getByText('The Beginning')).toBeInTheDocument();
+
+      // Check that content blocks are present
+      expect(screen.getByText('Chapter One')).toBeInTheDocument();
+      expect(screen.getByText(/It was a bright cold day in April/)).toBeInTheDocument();
+    });
+
+    it('should render multiple paragraphs', () => {
+      const content = simpleChapter.content
+        .filter(block => block.blockType === 'paragraph')
+        .map(block => `<p>${block.content}</p>`)
+        .join('');
+
+      __setMockPreviewState(content);
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const paragraphs = container.querySelectorAll('p');
+      expect(paragraphs.length).toBeGreaterThan(0);
+    });
+
+    it('should display chapter with correct DOM structure', () => {
+      const content = '<div class="chapter"><h1>Test Chapter</h1><p>Content</p></div>';
+
+      __setMockPreviewState(content);
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const previewContent = container.querySelector('.preview-panel__content');
+      expect(previewContent).toBeInTheDocument();
+      expect(previewContent?.querySelector('.preview-panel__text')).toBeInTheDocument();
+    });
+  });
+
+  describe('Formatted Text Rendering', () => {
+    it('should render bold text', () => {
+      const content = '<p>This is <strong>bold text</strong> in a paragraph.</p>';
+
+      __setMockPreviewState(content);
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const strongElement = container.querySelector('strong');
+      expect(strongElement).toBeInTheDocument();
+      expect(strongElement?.textContent).toBe('bold text');
+    });
+
+    it('should render italic text', () => {
+      const content = '<p>This is <em>italic text</em> in a paragraph.</p>';
+
+      __setMockPreviewState(content);
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const emElement = container.querySelector('em');
+      expect(emElement).toBeInTheDocument();
+      expect(emElement?.textContent).toBe('italic text');
+    });
+
+    it('should render combined bold and italic', () => {
+      const content = '<p>Text with <strong>bold</strong> and <em>italic</em> and <strong><em>both</em></strong>.</p>';
+
+      __setMockPreviewState(content);
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      expect(container.querySelector('strong')).toBeInTheDocument();
+      expect(container.querySelector('em')).toBeInTheDocument();
+      expect(container.querySelector('strong em')).toBeInTheDocument();
+    });
+
+    it('should render multiple heading levels', () => {
+      const content = chapterWithHeadings.content
+        .filter(block => block.blockType === 'heading')
+        .map(block => `<h${block.level}>${block.content}</h${block.level}>`)
+        .join('');
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      // Check for different heading levels
+      expect(container.querySelector('h1')).toBeInTheDocument();
+      expect(container.querySelector('h2')).toBeInTheDocument();
+      expect(container.querySelector('h3')).toBeInTheDocument();
+
+      // Verify heading content
+      expect(screen.getByText('Chapter Six: A Structured Approach')).toBeInTheDocument();
+      expect(screen.getByText('First Principles')).toBeInTheDocument();
+      expect(screen.getByText('Core Assumptions')).toBeInTheDocument();
+    });
+
+    it('should preserve heading hierarchy', () => {
+      const content = `
+        <h1>Main Title</h1>
+        <h2>Section Title</h2>
+        <h3>Subsection Title</h3>
+        <p>Content</p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const headings = container.querySelectorAll('h1, h2, h3');
+      expect(headings).toHaveLength(3);
+      expect(headings[0].tagName).toBe('H1');
+      expect(headings[1].tagName).toBe('H2');
+      expect(headings[2].tagName).toBe('H3');
+    });
+  });
+
+  describe('Inline Images', () => {
+    it('should render inline image with src attribute', () => {
+      const content = '<p>Text before <img src="/images/test.png" alt="Test image" /> text after.</p>';
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const imgElement = container.querySelector('img');
+      expect(imgElement).toBeInTheDocument();
+      expect(imgElement?.getAttribute('src')).toBe('/images/test.png');
+      expect(imgElement?.getAttribute('alt')).toBe('Test image');
+    });
+
+    it('should render multiple images in content', () => {
+      const content = `
+        <p>First paragraph with <img src="/image1.png" alt="Image 1" /></p>
+        <p>Second paragraph with <img src="/image2.png" alt="Image 2" /></p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const images = container.querySelectorAll('img');
+      expect(images).toHaveLength(2);
+      expect(images[0].getAttribute('src')).toBe('/image1.png');
+      expect(images[1].getAttribute('src')).toBe('/image2.png');
+    });
+
+    it('should render image with proper alt text for accessibility', () => {
+      const content = '<img src="/diagram.png" alt="Architecture diagram showing system components" />';
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const imgElement = container.querySelector('img');
+      expect(imgElement?.getAttribute('alt')).toBe('Architecture diagram showing system components');
+    });
+  });
+
+  describe('Block Quotes', () => {
+    it('should render block quote content', () => {
+      const quoteBlock = chapterWithBlockQuotes.content.find(
+        block => block.features?.some(f => f.type === 'quote')
+      );
+      const quoteFeature = quoteBlock?.features?.find(f => f.type === 'quote');
+
+      if (quoteFeature && quoteFeature.type === 'quote') {
+        const content = `
+          <blockquote>
+            <p>${quoteFeature.content}</p>
+            ${quoteFeature.attribution ? `<cite>${quoteFeature.attribution}</cite>` : ''}
+          </blockquote>
+        `;
+
+        __setMockPreviewState(content);
+        const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+        const blockquote = container.querySelector('blockquote');
+        expect(blockquote).toBeInTheDocument();
+        expect(blockquote?.textContent).toContain('To know oneself is the beginning of wisdom');
+      }
+    });
+
+    it('should render quote attribution', () => {
+      const content = `
+        <blockquote>
+          <p>To know oneself is the beginning of wisdom.</p>
+          <cite>Master Li</cite>
+        </blockquote>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const cite = container.querySelector('cite');
+      expect(cite).toBeInTheDocument();
+      expect(cite?.textContent).toBe('Master Li');
+    });
+
+    it('should display quote with source attribution', () => {
+      const content = `
+        <blockquote>
+          <p>The unexamined life is not worth living.</p>
+          <footer>
+            <cite>Socrates</cite>, from <cite>Apology</cite>
+          </footer>
+        </blockquote>
+      `;
+
+      renderWithProviders(<PreviewPanel content={content} />);
+
+      expect(screen.getByText(/The unexamined life is not worth living/)).toBeInTheDocument();
+      expect(screen.getByText(/Socrates/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Verse Formatting', () => {
+    it('should render verse with line breaks', () => {
+      const verseBlock = chapterWithVerse.content.find(
+        block => block.features?.some(f => f.type === 'verse')
+      );
+      const verseFeature = verseBlock?.features?.find(f => f.type === 'verse');
+
+      if (verseFeature && verseFeature.type === 'verse') {
+        const content = `
+          <div class="verse">
+            ${verseFeature.lines.map(line => `<div class="verse-line">${line}</div>`).join('')}
+          </div>
+        `;
+
+        __setMockPreviewState(content);
+        const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+        const verseContainer = container.querySelector('.verse');
+        expect(verseContainer).toBeInTheDocument();
+
+        const lines = container.querySelectorAll('.verse-line');
+        expect(lines.length).toBe(verseFeature.lines.length);
+        expect(lines[0].textContent).toContain('In moonlit halls where shadows play');
+      }
+    });
+
+    it('should render multiple stanzas', () => {
+      const content = `
+        <div class="verse">
+          <div class="stanza">
+            <div class="verse-line">First line of stanza one</div>
+            <div class="verse-line">Second line of stanza one</div>
+          </div>
+          <div class="stanza">
+            <div class="verse-line">First line of stanza two</div>
+            <div class="verse-line">Second line of stanza two</div>
+          </div>
+        </div>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const stanzas = container.querySelectorAll('.stanza');
+      expect(stanzas).toHaveLength(2);
+    });
+
+    it('should preserve verse indentation', () => {
+      const content = `
+        <div class="verse">
+          <div class="verse-line">No indent</div>
+          <div class="verse-line" style="padding-left: 2em;">Indented line</div>
+          <div class="verse-line">No indent</div>
+          <div class="verse-line" style="padding-left: 2em;">Indented line</div>
+        </div>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const lines = container.querySelectorAll('.verse-line');
+      expect(lines).toHaveLength(4);
+      expect(lines[1].getAttribute('style')).toContain('padding-left');
+    });
+  });
+
+  describe('Scene Breaks and Ornamental Breaks', () => {
+    it('should render scene break with symbol', () => {
+      const breakBlock = chapterWithSceneBreaks.content.find(
+        block => block.features?.some(f => f.type === 'break')
+      );
+      const breakFeature = breakBlock?.features?.find(f => f.type === 'break');
+
+      if (breakFeature && breakFeature.type === 'break' && breakFeature.symbol) {
+        const content = `
+          <p>Content before break</p>
+          <div class="scene-break">${breakFeature.symbol}</div>
+          <p>Content after break</p>
+        `;
+
+        __setMockPreviewState(content);
+        const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+        const sceneBreak = container.querySelector('.scene-break');
+        expect(sceneBreak).toBeInTheDocument();
+        expect(sceneBreak?.textContent).toBe(breakFeature.symbol);
+      }
+    });
+
+    it('should render asterisk scene break (* * *)', () => {
+      const content = `
+        <p>Section one content</p>
+        <div class="scene-break">* * *</div>
+        <p>Section two content</p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      expect(screen.getByText('* * *')).toBeInTheDocument();
+      const sceneBreak = container.querySelector('.scene-break');
+      expect(sceneBreak).toBeInTheDocument();
+    });
+
+    it('should render ornamental break with decorative symbol', () => {
+      const content = `
+        <p>Content before</p>
+        <div class="ornamental-break">
+          <span class="ornament">❦</span>
+        </div>
+        <p>Content after</p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const ornamentalBreak = container.querySelector('.ornamental-break');
+      expect(ornamentalBreak).toBeInTheDocument();
+      expect(screen.getByText('❦')).toBeInTheDocument();
+    });
+
+    it('should render multiple scene breaks in chapter', () => {
+      // Build content from chapterWithSceneBreaks fixture
+      const content = chapterWithSceneBreaks.content.map(block => {
+        if (block.blockType === 'heading') {
+          return `<h${block.level}>${block.content}</h${block.level}>`;
+        }
+
+        const breakFeature = block.features?.find(f => f.type === 'break');
+        const breakHTML = breakFeature && breakFeature.type === 'break' && breakFeature.symbol
+          ? `<div class="scene-break">${breakFeature.symbol}</div>`
+          : '';
+
+        return `<p>${block.content}</p>${breakHTML}`;
+      }).join('');
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const sceneBreaks = container.querySelectorAll('.scene-break');
+      expect(sceneBreaks.length).toBeGreaterThan(0);
+    });
+
+    it('should render page break', () => {
+      const content = `
+        <p>Content on page 1</p>
+        <div class="page-break"></div>
+        <p>Content on page 2</p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const pageBreak = container.querySelector('.page-break');
+      expect(pageBreak).toBeInTheDocument();
+    });
+  });
+
+  describe('Complex Content Combinations', () => {
+    it('should render content with multiple formatting types', () => {
+      const content = `
+        <h1>Chapter Title</h1>
+        <p>This is <strong>bold</strong> and <em>italic</em> text.</p>
+        <blockquote>
+          <p>A wise quote here.</p>
+          <cite>Author Name</cite>
+        </blockquote>
+        <div class="scene-break">* * *</div>
+        <p>Text after scene break.</p>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      // Check all elements are present
+      expect(container.querySelector('h1')).toBeInTheDocument();
+      expect(container.querySelector('strong')).toBeInTheDocument();
+      expect(container.querySelector('em')).toBeInTheDocument();
+      expect(container.querySelector('blockquote')).toBeInTheDocument();
+      expect(container.querySelector('.scene-break')).toBeInTheDocument();
+    });
+
+    it('should render chapter with all special features', () => {
+      const content = `
+        <article>
+          <h1>The Complete Chapter</h1>
+          <h2>Section One</h2>
+          <p>Opening paragraph with <strong>bold</strong> text.</p>
+          <img src="/test.png" alt="Test" />
+          <blockquote><p>Quote text</p></blockquote>
+          <div class="scene-break">***</div>
+          <h3>Subsection</h3>
+          <div class="verse">
+            <div class="verse-line">Poetry line 1</div>
+            <div class="verse-line">Poetry line 2</div>
+          </div>
+        </article>
+      `;
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      // Verify all features render
+      expect(container.querySelector('h1')).toBeInTheDocument();
+      expect(container.querySelector('h2')).toBeInTheDocument();
+      expect(container.querySelector('h3')).toBeInTheDocument();
+      expect(container.querySelector('strong')).toBeInTheDocument();
+      expect(container.querySelector('img')).toBeInTheDocument();
+      expect(container.querySelector('blockquote')).toBeInTheDocument();
+      expect(container.querySelector('.scene-break')).toBeInTheDocument();
+      expect(container.querySelector('.verse')).toBeInTheDocument();
+    });
+  });
+
+  describe('Content Presence Assertions', () => {
+    it('should verify DOM structure is correct for chapter', () => {
+      const content = '<div class="chapter"><h1>Title</h1><p>Content</p></div>';
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const previewPanel = container.querySelector('.preview-panel');
+      expect(previewPanel).toBeInTheDocument();
+
+      const header = container.querySelector('.preview-panel__header');
+      expect(header).toBeInTheDocument();
+
+      const contentDiv = container.querySelector('.preview-panel__content');
+      expect(contentDiv).toBeInTheDocument();
+
+      const textDiv = container.querySelector('.preview-panel__text');
+      expect(textDiv).toBeInTheDocument();
+    });
+
+    it('should ensure content is properly rendered via dangerouslySetInnerHTML', () => {
+      const content = '<p class="custom-class">Custom content</p>';
+
+      __setMockPreviewState(content);
+      const { container } = renderWithProviders(<PreviewPanel content={content} />);
+
+      const customElement = container.querySelector('.custom-class');
+      expect(customElement).toBeInTheDocument();
+      expect(customElement?.textContent).toBe('Custom content');
+    });
+  });
+});
+>>>>>>> agent/test-preview-content-rendering

@@ -136,7 +136,25 @@ export class EpubGenerator {
     // This directory contains the actual content files (HTML, CSS, images, etc.)
     zip.folder('OEBPS');
 
+    // Add container.xml to META-INF directory
+    const containerXml = this.generateContainerXml();
+    zip.file('META-INF/container.xml', containerXml);
+
     return zip;
+  }
+
+  /**
+   * Generates the container.xml file content for EPUB
+   * This file is required by the EPUB specification and points to the package.opf file
+   * @returns The container.xml content as a string
+   */
+  private generateContainerXml(): string {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+    <rootfiles>
+        <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml"/>
+    </rootfiles>
+</container>`;
   }
 
   /**

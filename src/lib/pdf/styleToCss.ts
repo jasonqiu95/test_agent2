@@ -268,16 +268,65 @@ function formatHeadingRule(selector: string, style: BookStyle['headings'][keyof 
 
 /**
  * Generates drop cap CSS rules
+ *
+ * Creates CSS for drop cap styling using the ::first-letter pseudo-element.
+ * Applies to the first paragraph after chapter headings and supports
+ * different drop cap heights (2-5 lines).
+ *
+ * @param dropCaps - Drop cap configuration from BookStyle
+ * @returns CSS string for drop cap rules
  */
 function generateDropCapStyles(dropCaps: BookStyle['dropCaps']): string {
   if (!dropCaps) return '';
 
-  const rules: string[] = ['/* Drop cap styles */', '.drop-cap::first-letter {'];
+  const rules: string[] = ['/* Drop cap styles */'];
 
+  // Calculate font size based on number of lines (2-5 lines)
+  // Default to 3 lines if not specified
+  const lines = dropCaps.lines && dropCaps.lines >= 2 && dropCaps.lines <= 5
+    ? dropCaps.lines
+    : 3;
+
+  // Calculate appropriate font size for the drop cap
+  // Use custom fontSize if provided, otherwise calculate based on lines
+  const fontSize = dropCaps.fontSize
+    ? `${dropCaps.fontSize}pt`
+    : `${lines * 1.6}em`;
+
+  // Apply to first paragraph after chapter heading (.first-paragraph class)
+  rules.push('.first-paragraph::first-letter,');
+  rules.push('.drop-cap::first-letter {');
   rules.push(`  float: ${dropCaps.float || 'left'};`);
-  rules.push(`  font-size: ${dropCaps.fontSize || dropCaps.lines ? dropCaps.lines * 1.5 : 3}em;`);
-  rules.push(`  line-height: ${dropCaps.lines || 2};`);
+  rules.push(`  font-size: ${fontSize};`);
+  rules.push(`  line-height: ${lines === 2 ? 0.8 : lines === 3 ? 0.85 : lines === 4 ? 0.9 : 0.9};`);
   rules.push(`  margin-right: ${dropCaps.marginRight || 0.1}em;`);
+  rules.push(`  margin-top: ${lines === 2 ? '0.05em' : '0.08em'};`);
+
+  if (dropCaps.fontFamily) {
+    rules.push(`  font-family: ${dropCaps.fontFamily};`);
+  }
+
+  if (dropCaps.fontWeight) {
+    rules.push(`  font-weight: ${dropCaps.fontWeight};`);
+  }
+
+  if (dropCaps.color) {
+    rules.push(`  color: ${dropCaps.color};`);
+  }
+
+  rules.push('}');
+
+  // Apply to p:first-of-type (alternative selector for first paragraph after headings)
+  rules.push('');
+  rules.push('/* First paragraph after chapter heading */');
+  rules.push('h1 + p::first-letter,');
+  rules.push('h2 + p::first-letter,');
+  rules.push('.chapter-title + p::first-letter {');
+  rules.push(`  float: ${dropCaps.float || 'left'};`);
+  rules.push(`  font-size: ${fontSize};`);
+  rules.push(`  line-height: ${lines === 2 ? 0.8 : lines === 3 ? 0.85 : lines === 4 ? 0.9 : 0.9};`);
+  rules.push(`  margin-right: ${dropCaps.marginRight || 0.1}em;`);
+  rules.push(`  margin-top: ${lines === 2 ? '0.05em' : '0.08em'};`);
 
   if (dropCaps.fontFamily) {
     rules.push(`  font-family: ${dropCaps.fontFamily};`);

@@ -3,7 +3,7 @@
  *
  * Provides utilities for creating EPUB 3 compliant documents and structures,
  * including XHTML templates, block element conversion, inline formatting functions,
- * and scene break conversion.
+ * scene break conversion, and front/back matter conversion.
  */
 
 // XHTML Template exports
@@ -62,3 +62,26 @@ export {
   type ChapterConverterOptions,
   type ChapterConversionResult,
 } from './chapter-converter';
+
+// Matter Converter exports
+export {
+  convertTextBlock,
+  convertTextBlocks,
+  convertFrontMatter,
+  convertBackMatter,
+  convertMatterElement,
+  convertMatterElements,
+  convertFrontMatterBatch,
+  convertBackMatterBatch,
+  convertTitlePage,
+  convertCopyrightPage,
+  convertDedication,
+  convertAboutAuthor,
+  convertAlsoBy,
+  validateMatterElement,
+  getMatterFilename,
+  isFrontMatter,
+  isBackMatter,
+  type MatterConverterOptions,
+  type MatterConversionResult,
+} from './matter-converter';

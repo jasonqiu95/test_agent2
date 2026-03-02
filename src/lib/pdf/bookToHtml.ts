@@ -8,6 +8,34 @@ import { Chapter } from '../../types/chapter';
 import { Element, ElementType, MatterType } from '../../types/element';
 import { TextBlock } from '../../types/textBlock';
 import { BookStyle, Style } from '../../types/style';
+import { Break, TextFeature } from '../../types/textFeature';
+
+/**
+ * Ornamental break style options
+ */
+export type OrnamentalBreakStyle = 'asterisk' | 'symbol' | 'image' | 'custom';
+
+/**
+ * Ornamental break configuration
+ */
+export interface OrnamentalBreakConfig {
+  /** Break style type */
+  style: OrnamentalBreakStyle;
+  /** Symbol or character to use (for asterisk, symbol, or custom styles) */
+  symbol?: string;
+  /** Image URL (for image style) */
+  imageUrl?: string;
+  /** Image alt text */
+  imageAlt?: string;
+  /** Font size for symbol */
+  fontSize?: string;
+  /** Text alignment */
+  textAlign?: 'left' | 'center' | 'right';
+  /** Top margin */
+  marginTop?: string;
+  /** Bottom margin */
+  marginBottom?: string;
+}
 
 /**
  * Options for HTML conversion
@@ -35,6 +63,10 @@ export interface BookToHtmlOptions {
   includeChapterNumbers?: boolean;
   /** Custom template variables */
   templateVariables?: Record<string, string>;
+  /** Ornamental break configuration */
+  ornamentalBreakConfig?: OrnamentalBreakConfig;
+  /** Enable page break hints for print */
+  enablePageBreaks?: boolean;
 }
 
 /**
@@ -181,6 +213,81 @@ export class HtmlConverter {
   private convertTextBlock(block: TextBlock): string {
     // TODO: Implement text block conversion
     return '';
+  }
+
+  /**
+   * Convert a break to HTML
+   * Handles scene breaks, page breaks, and ornamental breaks
+   */
+  private convertBreak(
+    breakType: 'line' | 'section' | 'page' | 'scene',
+    symbol?: string
+  ): string {
+    const classPrefix = this.options.classPrefix || 'book';
+
+    switch (breakType) {
+      case 'page':
+        if (this.options.enablePageBreaks) {
+          return generatePageBreak(classPrefix);
+        }
+        return '';
+
+      case 'scene':
+      case 'section':
+        // Check if ornamental breaks are enabled in style config
+        if (this.context.styleConfig?.ornamentalBreak?.enabled) {
+          return generateOrnamentalBreakFromStyle(
+            this.context.styleConfig,
+            classPrefix
+          );
+        }
+        // Fallback to scene break with optional symbol
+        return generateSceneBreak(symbol, classPrefix);
+
+      case 'line':
+        // Line breaks are handled as <br> tags, not block breaks
+        return '<br />';
+
+      default:
+        return generateSceneBreak(symbol, classPrefix);
+    }
+  }
+
+  /**
+   * Convert ornamental break to HTML with custom configuration
+   */
+  private convertOrnamentalBreak(
+    style?: string,
+    symbol?: string
+  ): string {
+    const classPrefix = this.options.classPrefix || 'book';
+
+    // Use custom config if provided
+    if (this.options.ornamentalBreakConfig) {
+      return generateOrnamentalBreak(
+        this.options.ornamentalBreakConfig,
+        classPrefix
+      );
+    }
+
+    // Use BookStyle config if available
+    if (this.context.styleConfig?.ornamentalBreak?.enabled) {
+      return generateOrnamentalBreakFromStyle(
+        this.context.styleConfig,
+        classPrefix
+      );
+    }
+
+    // Fallback to default ornamental break
+    const config: OrnamentalBreakConfig = {
+      style: (style as OrnamentalBreakStyle) || 'symbol',
+      symbol: symbol || '❦',
+      textAlign: 'center',
+      marginTop: '2em',
+      marginBottom: '2em',
+    };
+
+    return generateOrnamentalBreak(config, classPrefix);
   }
 
   /**
@@ -391,6 +498,224 @@ export function matterTypeToSectionType(
     case 'back':
       return 'back-matter';
   }
+}
+
+// ============================================================================
+// Break Generation Functions
+// ============================================================================
+
+/**
+ * Generate HTML for a scene break
+ * Creates an <hr> element with custom classes for scene breaks
+ */
+export function generateSceneBreak(
+  symbol?: string,
+  classPrefix: string = 'book'
+): string {
+  const classes = [
+    generateClassName('scene-break', undefined, classPrefix),
+  ];
+
+  if (symbol && symbol.trim()) {
+    // Scene break with symbol (ornamental style)
+    classes.push(generateClassName('scene-break', 'ornamental', classPrefix));
+    return `<div class="${classes.join(' ')}">${escapeHtml(symbol)}</div>`;
+  } else {
+    // Simple scene break (horizontal rule)
+    return `<hr class="${classes.join(' ')}" />`;
+  }
+}
+
+/**
+ * Generate HTML for a page break hint
+ * Creates a <div> element with page-break class for print CSS
+ */
+export function generatePageBreak(
+  classPrefix: string = 'book'
+): string {
+  const classes = [
+    generateClassName('page-break', undefined, classPrefix),
+  ];
+
+  return `<div class="${classes.join(' ')}"></div>`;
+}
+
+/**
+ * Generate HTML for an ornamental break
+ * Creates a decorative break with configurable symbol, image, or custom content
+ */
+export function generateOrnamentalBreak(
+  config: OrnamentalBreakConfig,
+  classPrefix: string = 'book'
+): string {
+  const classes = [
+    generateClassName('ornamental-break', undefined, classPrefix),
+    generateClassName('ornamental-break', config.style, classPrefix),
+  ];
+
+  const inlineStyles: string[] = [];
+
+  // Apply styling from config
+  if (config.fontSize) {
+    inlineStyles.push(`font-size: ${config.fontSize}`);
+  }
+  if (config.textAlign) {
+    inlineStyles.push(`text-align: ${config.textAlign}`);
+  }
+  if (config.marginTop) {
+    inlineStyles.push(`margin-top: ${config.marginTop}`);
+  }
+  if (config.marginBottom) {
+    inlineStyles.push(`margin-bottom: ${config.marginBottom}`);
+  }
+
+  const styleAttr = inlineStyles.length > 0
+    ? ` style="${inlineStyles.join('; ')}"`
+    : '';
+
+  const classAttr = `class="${classes.join(' ')}"`;
+
+  // Generate content based on style type
+  let content = '';
+  switch (config.style) {
+    case 'asterisk':
+      content = escapeHtml(config.symbol || '* * *');
+      break;
+
+    case 'symbol':
+      content = escapeHtml(config.symbol || '❦');
+      break;
+
+    case 'image':
+      if (config.imageUrl) {
+        const alt = config.imageAlt ? escapeHtml(config.imageAlt) : 'Ornamental break';
+        // Don't escape URL - it's safe in attributes and escaping breaks URLs
+        const url = config.imageUrl.replace(/"/g, '&quot;');
+        content = `<img src="${url}" alt="${alt}" />`;
+      } else {
+        content = escapeHtml(config.symbol || '❦');
+      }
+      break;
+
+    case 'custom':
+      content = escapeHtml(config.symbol || '');
+      break;
+
+    default:
+      content = escapeHtml(config.symbol || '❦');
+  }
+
+  return `<div ${classAttr}${styleAttr}>${content}</div>`;
+}
+
+/**
+ * Generate ornamental break from BookStyle configuration
+ * Uses the ornamental break settings from BookStyle
+ */
+export function generateOrnamentalBreakFromStyle(
+  bookStyle: BookStyle | null,
+  classPrefix: string = 'book'
+): string {
+  if (!bookStyle?.ornamentalBreak?.enabled) {
+    // Fallback to simple scene break if ornamental breaks are disabled
+    return generateSceneBreak('* * *', classPrefix);
+  }
+
+  const obConfig = bookStyle.ornamentalBreak;
+
+  const config: OrnamentalBreakConfig = {
+    style: 'symbol',
+    symbol: obConfig.symbol || '❦',
+    fontSize: obConfig.fontSize,
+    textAlign: obConfig.textAlign,
+    marginTop: obConfig.marginTop,
+    marginBottom: obConfig.marginBottom,
+  };
+
+  return generateOrnamentalBreak(config, classPrefix);
+}
+
+/**
+ * Generate CSS for break elements
+ * Returns CSS rules for scene breaks, page breaks, and ornamental breaks
+ */
+export function generateBreakStyles(classPrefix: string = 'book'): string {
+  return `
+/* Scene Breaks */
+.${classPrefix}-scene-break {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 2em 0;
+  text-align: center;
+  position: relative;
+}
+
+.${classPrefix}-scene-break-ornamental {
+  border: none;
+  padding: 1em 0;
+  text-align: center;
+  font-size: 1.5em;
+}
+
+/* Page Breaks */
+.${classPrefix}-page-break {
+  page-break-before: always;
+  break-before: page;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  visibility: hidden;
+}
+
+@media screen {
+  .${classPrefix}-page-break {
+    display: none;
+  }
+}
+
+/* Ornamental Breaks */
+.${classPrefix}-ornamental-break {
+  text-align: center;
+  margin: 2em 0;
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+.${classPrefix}-ornamental-break-asterisk {
+  letter-spacing: 0.5em;
+  font-weight: normal;
+}
+
+.${classPrefix}-ornamental-break-symbol {
+  font-size: 2em;
+}
+
+.${classPrefix}-ornamental-break-image img {
+  max-width: 100px;
+  height: auto;
+  display: inline-block;
+}
+
+.${classPrefix}-ornamental-break-custom {
+  /* Custom styling can be applied inline */
+}
+
+/* Print-specific break handling */
+@media print {
+  .${classPrefix}-scene-break {
+    margin: 1.5em 0;
+  }
+
+  .${classPrefix}-ornamental-break {
+    margin: 1.5em 0;
+  }
+
+  .${classPrefix}-page-break {
+    display: block;
+    visibility: visible;
+  }
+}
+`.trim();
 }
 
 /**

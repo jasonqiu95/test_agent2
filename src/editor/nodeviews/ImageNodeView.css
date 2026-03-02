@@ -205,10 +205,50 @@
   cursor: nwse-resize;
 }
 
+/* Edge handles */
+.resize-handle-n {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-handle-s {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.resize-handle-e {
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resize-handle-w {
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
 .resize-handle:hover {
   background: #3182ce;
   transform: scale(1.2);
   transition: all 0.2s ease;
+}
+
+/* Maintain proper transform for edge handles on hover */
+.resize-handle-n:hover,
+.resize-handle-s:hover {
+  transform: translateX(-50%) scale(1.2);
+}
+
+.resize-handle-e:hover,
+.resize-handle-w:hover {
+  transform: translateY(-50%) scale(1.2);
 }
 
 /* Resizing state */
@@ -336,5 +376,21 @@
   .resize-handle-se {
     bottom: -8px;
     right: -8px;
+  }
+
+  .resize-handle-n {
+    top: -8px;
+  }
+
+  .resize-handle-s {
+    bottom: -8px;
+  }
+
+  .resize-handle-e {
+    right: -8px;
+  }
+
+  .resize-handle-w {
+    left: -8px;
   }
 }

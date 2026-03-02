@@ -62,12 +62,16 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
   };
 
   // Handle resize start
-  const handleResizeStart = (e: React.MouseEvent, direction: 'se' | 'sw' | 'ne' | 'nw') => {
+  const handleResizeStart = (e: React.MouseEvent, direction: 'n' | 's' | 'e' | 'w' | 'se' | 'sw' | 'ne' | 'nw') => {
     e.preventDefault();
     e.stopPropagation();
 
     const img = imageRef.current;
     if (!img) return;
+
+    // Get editor width for max constraint
+    const editorElement = view.dom.closest('.ProseMirror') as HTMLElement;
+    const maxWidth = editorElement ? editorElement.offsetWidth - 40 : 9999; // 40px for padding
 
     setIsResizing(true);
     resizeStartRef.current = {
@@ -78,32 +82,60 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!resizeStartRef.current) return;
+      if (!resizeStartRef.current || !img.naturalWidth || !img.naturalHeight) return;
 
       const deltaX = moveEvent.clientX - resizeStartRef.current.x;
       const deltaY = moveEvent.clientY - resizeStartRef.current.y;
 
       let newWidth = resizeStartRef.current.width;
       let newHeight = resizeStartRef.current.height;
+      const aspectRatio = img.naturalWidth / img.naturalHeight;
 
       // Calculate new dimensions based on resize direction
-      if (direction === 'se' || direction === 'ne') {
-        newWidth = Math.max(50, resizeStartRef.current.width + deltaX);
+      if (direction === 'e') {
+        // East: only width changes
+        newWidth = resizeStartRef.current.width + deltaX;
+      } else if (direction === 'w') {
+        // West: only width changes
+        newWidth = resizeStartRef.current.width - deltaX;
+      } else if (direction === 'n') {
+        // North: only height changes
+        newHeight = resizeStartRef.current.height - deltaY;
+      } else if (direction === 's') {
+        // South: only height changes
+        newHeight = resizeStartRef.current.height + deltaY;
+      } else if (direction === 'se' || direction === 'ne') {
+        // Southeast or Northeast corners
+        newWidth = resizeStartRef.current.width + deltaX;
       } else if (direction === 'sw' || direction === 'nw') {
-        newWidth = Math.max(50, resizeStartRef.current.width - deltaX);
+        // Southwest or Northwest corners
+        newWidth = resizeStartRef.current.width - deltaX;
       }
 
-      if (direction === 'se' || direction === 'sw') {
-        newHeight = Math.max(50, resizeStartRef.current.height + deltaY);
-      } else if (direction === 'ne' || direction === 'nw') {
-        newHeight = Math.max(50, resizeStartRef.current.height - deltaY);
-      }
+      // Apply constraints
+      newWidth = Math.max(50, Math.min(maxWidth, newWidth));
 
-      // Maintain aspect ratio if shift key is held
-      if (moveEvent.shiftKey && img.naturalWidth && img.naturalHeight) {
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
+      // Maintain aspect ratio by default, unless Shift key is held to override
+      if (!moveEvent.shiftKey) {
+        // Maintain aspect ratio (default behavior)
         newHeight = newWidth / aspectRatio;
+      } else {
+        // Shift key pressed: allow independent width/height changes
+        if (direction === 'se' || direction === 'sw') {
+          newHeight = resizeStartRef.current.height + deltaY;
+        } else if (direction === 'ne' || direction === 'nw') {
+          newHeight = resizeStartRef.current.height - deltaY;
+        } else if (direction === 'n' || direction === 's') {
+          // For edge handles, keep the height calculation as is
+          // (already set above)
+        } else {
+          // For east/west edge handles, maintain height when Shift is pressed
+          newHeight = resizeStartRef.current.height;
+        }
       }
+
+      // Apply minimum height constraint
+      newHeight = Math.max(50, newHeight);
 
       setDimensions({
         width: Math.round(newWidth),
@@ -191,6 +223,7 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
 
         {selected && !error && !loading && (
           <div className="image-node-resize-handles">
+            {/* Corner handles */}
             <div
               className="resize-handle resize-handle-nw"
               onMouseDown={(e) => handleResizeStart(e, 'nw')}
@@ -209,12 +242,33 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
             <div
               className="resize-handle resize-handle-se"
               onMouseDown={(e) => handleResizeStart(e, 'se')}
-              title="Resize from bottom-right corner (hold Shift to maintain aspect ratio)"
+              title="Resize from bottom-right corner"
+            />
+            {/* Edge handles */}
+            <div
+              className="resize-handle resize-handle-n"
+              onMouseDown={(e) => handleResizeStart(e, 'n')}
+              title="Resize from top edge (hold Shift to change height independently)"
+            />
+            <div
+              className="resize-handle resize-handle-s"
+              onMouseDown={(e) => handleResizeStart(e, 's')}
+              title="Resize from bottom edge (hold Shift to change height independently)"
+            />
+            <div
+              className="resize-handle resize-handle-e"
+              onMouseDown={(e) => handleResizeStart(e, 'e')}
+              title="Resize from right edge (hold Shift to change width independently)"
+            />
+            <div
+              className="resize-handle resize-handle-w"
+              onMouseDown={(e) => handleResizeStart(e, 'w')}
+              title="Resize from left edge (hold Shift to change width independently)"
             />
           </div>
         )}
 
-        {selected && dimensions.width && dimensions.height && (
+        {(selected || isResizing) && dimensions.width && dimensions.height && (
           <div className="image-node-dimensions">
             {dimensions.width} × {dimensions.height}
           </div>

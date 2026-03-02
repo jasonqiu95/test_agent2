@@ -179,8 +179,139 @@ export class HtmlConverter {
    * Convert a single text block to HTML
    */
   private convertTextBlock(block: TextBlock): string {
-    // TODO: Implement text block conversion
-    return '';
+    // Only handle paragraph blocks in this implementation
+    if (block.blockType !== 'paragraph') {
+      return '';
+    }
+
+    return this.convertParagraph(block);
+  }
+
+  /**
+   * Convert a paragraph block to HTML
+   * Handles alignment, indentation, drop caps, and special styling
+   */
+  private convertParagraph(block: TextBlock): string {
+    const classes: string[] = [];
+    const inlineStyles: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Base paragraph class
+    classes.push(generateClassName('paragraph', undefined, prefix));
+
+    // Handle text alignment
+    const alignment = this.getTextAlignment(block);
+    if (alignment) {
+      classes.push(generateClassName('text', alignment, prefix));
+      if (this.options.includeInlineStyles) {
+        inlineStyles.push(`text-align: ${alignment}`);
+      }
+    }
+
+    // Handle indentation
+    const indentation = this.getParagraphIndentation(block);
+    if (indentation) {
+      classes.push(generateClassName('indent', indentation, prefix));
+    }
+
+    // Handle first paragraph special styling (drop caps)
+    const isFirstParagraph = this.context.isFirstParagraph;
+    if (isFirstParagraph && this.shouldApplyDropCap()) {
+      classes.push(generateClassName('first-paragraph', undefined, prefix));
+      classes.push(generateClassName('drop-cap', undefined, prefix));
+    } else if (isFirstParagraph) {
+      classes.push(generateClassName('first-paragraph', undefined, prefix));
+    }
+
+    // Handle empty paragraphs (for spacing)
+    const content = block.content || '';
+    const isEmpty = content.trim() === '';
+    if (isEmpty) {
+      classes.push(generateClassName('paragraph', 'empty', prefix));
+    }
+
+    // Escape and prepare content
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = isEmpty ? '&nbsp;' : escapeFn(content);
+
+    // Build attributes
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+    const styleAttr =
+      inlineStyles.length > 0 && this.options.includeInlineStyles
+        ? ` style="${inlineStyles.join('; ')}"`
+        : '';
+
+    // Mark that we've processed the first paragraph
+    if (isFirstParagraph && !isEmpty) {
+      this.context.isFirstParagraph = false;
+    }
+
+    return `<p${classAttr}${styleAttr}>${escapedContent}</p>`;
+  }
+
+  /**
+   * Get text alignment from block style
+   */
+  private getTextAlignment(
+    block: TextBlock
+  ): 'left' | 'center' | 'right' | 'justify' | null {
+    // Check for style reference
+    if (block.style?.overrides?.textAlign) {
+      return block.style.overrides.textAlign;
+    }
+
+    // Check for book-level body alignment
+    if (this.context.styleConfig?.body?.textAlign) {
+      return this.context.styleConfig.body.textAlign === 'justify'
+        ? 'justify'
+        : this.context.styleConfig.body.textAlign;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get paragraph indentation level
+   */
+  private getParagraphIndentation(block: TextBlock): string | null {
+    // First paragraph typically has no indent (or special handling)
+    if (this.context.isFirstParagraph) {
+      const firstParaStyle = this.context.styleConfig?.firstParagraph;
+      if (firstParaStyle?.indent?.enabled) {
+        return 'first';
+      }
+      return 'none';
+    }
+
+    // Check for custom indentation in style overrides
+    if (block.style?.overrides?.padding) {
+      const padding = block.style.overrides.padding;
+      if (typeof padding === 'string' && padding.includes('em')) {
+        const value = parseFloat(padding);
+        if (value >= 2) return 'large';
+        if (value >= 1) return 'medium';
+        if (value > 0) return 'small';
+      }
+    }
+
+    // Default paragraph indentation
+    return 'default';
+  }
+
+  /**
+   * Determine if drop cap should be applied to current paragraph
+   */
+  private shouldApplyDropCap(): boolean {
+    const dropCapConfig = this.context.styleConfig?.dropCap;
+    if (!dropCapConfig || !dropCapConfig.enabled) {
+      return false;
+    }
+
+    // Only apply to first paragraph of body chapters
+    return (
+      this.context.isFirstParagraph &&
+      this.context.sectionType === 'body-chapter'
+    );
   }
 
   /**
@@ -375,6 +506,71 @@ export function normalizeWhitespace(text: string): string {
     .replace(/\s+/g, ' ')
     .replace(/^\s+|\s+$/g, '')
     .trim();
+}
+
+/**
+ * Check if text block is empty or contains only whitespace
+ */
+export function isEmptyTextBlock(block: TextBlock): boolean {
+  return !block.content || block.content.trim() === '';
+}
+
+/**
+ * Build CSS class list for a paragraph element
+ */
+export function buildParagraphClasses(
+  alignment: string | null,
+  indentation: string | null,
+  isFirst: boolean,
+  hasDropCap: boolean,
+  isEmpty: boolean,
+  prefix: string = 'book'
+): string[] {
+  const classes: string[] = [generateClassName('paragraph', undefined, prefix)];
+
+  if (alignment) {
+    classes.push(generateClassName('text', alignment, prefix));
+  }
+
+  if (indentation) {
+    classes.push(generateClassName('indent', indentation, prefix));
+  }
+
+  if (isFirst) {
+    classes.push(generateClassName('first-paragraph', undefined, prefix));
+    if (hasDropCap) {
+      classes.push(generateClassName('drop-cap', undefined, prefix));
+    }
+  }
+
+  if (isEmpty) {
+    classes.push(generateClassName('paragraph', 'empty', prefix));
+  }
+
+  return classes;
+}
+
+/**
+ * Build inline style string for a paragraph element
+ */
+export function buildParagraphStyles(
+  alignment: string | null,
+  customStyles?: Record<string, string | number>
+): string[] {
+  const styles: string[] = [];
+
+  if (alignment) {
+    styles.push(`text-align: ${alignment}`);
+  }
+
+  if (customStyles) {
+    for (const [key, value] of Object.entries(customStyles)) {
+      const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      styles.push(`${cssKey}: ${value}`);
+    }
+  }
+
+  return styles;
 }
 
 /**

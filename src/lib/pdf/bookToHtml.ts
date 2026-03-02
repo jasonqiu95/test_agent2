@@ -2701,7 +2701,9 @@ ${bodyContent}
    */
   private renderFootnotesSection(): string {
     const config = this.options.footnoteConfig;
-    if (!config?.enabled || !this.context.chapterFootnotes?.size) {
+
+    // Only render if footnotes are enabled, have chapter-end placement, and exist
+    if (!config?.enabled || config.placement !== 'chapter-end' || !this.context.chapterFootnotes?.size) {
       return '';
     }
 
@@ -2714,11 +2716,10 @@ ${bodyContent}
     const roleAttr = this.options.includeAria ? ` role="doc-endnotes"` : '';
     fragments.push(`<section class="${sectionClass}"${roleAttr}>`);
 
-    // Section title
-    if (config.sectionTitle) {
-      const titleClass = generateClassName('footnotes-title', undefined, prefix);
-      fragments.push(`<h2 class="${titleClass}">${escapeFn(config.sectionTitle)}</h2>`);
-    }
+    // Section title - use configured title or default to 'Footnotes'
+    const sectionTitle = config.sectionTitle || 'Footnotes';
+    const titleClass = generateClassName('footnotes-title', undefined, prefix);
+    fragments.push(`<h2 class="${titleClass}">${escapeFn(sectionTitle)}</h2>`);
 
     // Separator
     fragments.push('<hr class="' + generateClassName('footnotes-separator', undefined, prefix) + '" />');
@@ -2738,15 +2739,45 @@ ${bodyContent}
     fragments.push('</ol>');
     fragments.push('</section>');
 
+    // Clear chapter footnotes after rendering
+    this.context.chapterFootnotes.clear();
+
     return fragments.join('\n');
   }
 
   /**
    * Render endnotes section at book end
+   * This handles both endnotes and footnotes with book-end placement
    */
   private renderEndnotesSection(): string {
-    const config = this.options.endnoteConfig;
-    if (!config?.enabled || !this.context.bookEndnotes?.size) {
+    const footnoteConfig = this.options.footnoteConfig;
+    const endnoteConfig = this.options.endnoteConfig;
+
+    // Check if there are any notes to render
+    if (!this.context.bookEndnotes?.size) {
+      return '';
+    }
+
+    // Separate footnotes and endnotes from bookEndnotes collection
+    const bookEndFootnotes: StoredNote[] = [];
+    const actualEndnotes: StoredNote[] = [];
+
+    for (const storedNote of this.context.bookEndnotes.values()) {
+      if (storedNote.note.noteType === 'footnote') {
+        // Only include if footnotes are enabled with book-end placement
+        if (footnoteConfig?.enabled && footnoteConfig.placement === 'book-end') {
+          bookEndFootnotes.push(storedNote);
+        }
+      } else if (storedNote.note.noteType === 'endnote') {
+        // Only include if endnotes are enabled
+        if (endnoteConfig?.enabled) {
+          actualEndnotes.push(storedNote);
+        }
+      }
+    }
+
+    // If nothing to render after filtering, return empty string
+    if (bookEndFootnotes.length === 0 && actualEndnotes.length === 0) {
       return '';
     }
 
@@ -2754,33 +2785,66 @@ ${bodyContent}
     const escapeFn = this.options.escapeHtml || escapeHtml;
     const fragments: string[] = [];
 
+    // Determine section title and CSS class based on what's being rendered
+    let sectionTitle = 'Notes';
+    let sectionClass = 'notes-section';
+
+    if (bookEndFootnotes.length > 0 && actualEndnotes.length === 0) {
+      // Only footnotes with book-end placement
+      sectionTitle = footnoteConfig?.sectionTitle || 'Footnotes';
+      sectionClass = 'footnotes-section';
+    } else if (bookEndFootnotes.length === 0 && actualEndnotes.length > 0) {
+      // Only endnotes
+      sectionTitle = endnoteConfig?.sectionTitle || 'Endnotes';
+      sectionClass = 'endnotes-section';
+    } else {
+      // Both types - use a generic title
+      // Prefer endnote config title, or footnote config title, or default to 'Notes'
+      sectionTitle = endnoteConfig?.sectionTitle || footnoteConfig?.sectionTitle || 'Notes';
+      sectionClass = 'notes-section';
+    }
+
     // Section wrapper
-    const sectionClass = generateClassName('endnotes-section', undefined, prefix);
+    const sectionClassName = generateClassName(sectionClass, undefined, prefix);
     const roleAttr = this.options.includeAria ? ` role="doc-endnotes"` : '';
-    fragments.push(`<section class="${sectionClass}"${roleAttr}>`);
+    fragments.push(`<section class="${sectionClassName}"${roleAttr}>`);
 
     // Section title
-    if (config.sectionTitle) {
-      const titleClass = generateClassName('endnotes-title', undefined, prefix);
-      fragments.push(`<h2 class="${titleClass}">${escapeFn(config.sectionTitle)}</h2>`);
-    }
+    const titleClass = generateClassName(sectionClass.replace('-section', '-title'), undefined, prefix);
+    fragments.push(`<h2 class="${titleClass}">${escapeFn(sectionTitle)}</h2>`);
 
     // Separator
-    fragments.push('<hr class="' + generateClassName('endnotes-separator', undefined, prefix) + '" />');
+    fragments.push('<hr class="' + generateClassName(sectionClass.replace('-section', '-separator'), undefined, prefix) + '" />');
 
-    // Endnotes list
-    const listClass = generateClassName('endnotes-list', undefined, prefix);
-    fragments.push(`<ol class="${listClass}">`);
+    // Render footnotes first (if any), then endnotes
+    if (bookEndFootnotes.length > 0) {
+      const listClass = generateClassName('footnotes-list', undefined, prefix);
+      fragments.push(`<ol class="${listClass}">`);
 
-    // Sort endnotes by number
-    const sortedNotes = Array.from(this.context.bookEndnotes.values())
-      .sort((a, b) => a.number - b.number);
+      // Sort footnotes by number
+      const sortedFootnotes = bookEndFootnotes.sort((a, b) => a.number - b.number);
 
-    for (const storedNote of sortedNotes) {
-      fragments.push(this.renderSingleNote(storedNote, 'endnote'));
+      for (const storedNote of sortedFootnotes) {
+        fragments.push(this.renderSingleNote(storedNote, 'footnote'));
+      }
+
+      fragments.push('</ol>');
     }
 
-    fragments.push('</ol>');
+    if (actualEndnotes.length > 0) {
+      const listClass = generateClassName('endnotes-list', undefined, prefix);
+      fragments.push(`<ol class="${listClass}">`);
+
+      // Sort endnotes by number
+      const sortedEndnotes = actualEndnotes.sort((a, b) => a.number - b.number);
+
+      for (const storedNote of sortedEndnotes) {
+        fragments.push(this.renderSingleNote(storedNote, 'endnote'));
+      }
+
+      fragments.push('</ol>');
+    }
+
     fragments.push('</section>');
 
     return fragments.join('\n');

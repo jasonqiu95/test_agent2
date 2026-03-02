@@ -25,6 +25,7 @@ import { Chapter } from '../types/chapter';
 import { Element } from '../types/element';
 import { TextBlock } from '../types/textBlock';
 import { BookStyle, Style } from '../types/style';
+import { ProgressReporter, ProgressStep, ProgressEvent, formatETA } from '../utils/ProgressReporter';
 // @ts-ignore - epub-gen-memory types may not be perfect
 import Epub from 'epub-gen-memory';
 
@@ -315,6 +316,8 @@ function updateProgress(percentage: number, status: string, extraData?: Partial<
     createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
       percentage,
       status,
+      eta: extraData?.eta,
+      currentStep: extraData?.currentStep,
       ...extraData,
     })
   );
@@ -587,15 +590,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     // Set operation timeout
     setOperationTimeout();
 
-    // Send initial progress
-    updateProgress(0, 'Initializing EPUB generation...');
-
     // Register initial resources
     registerResource('epub-builder');
     registerResource('content-processor');
-
-    // Check cancellation before starting
-    checkCancellation();
 
     // Validate message structure
     if (!message.data || typeof message.data !== 'object') {
@@ -604,9 +601,34 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     const { book, styles, images, options } = message.data;
 
-    // Validate book data
-    updateProgress(5, 'Validating book data...');
+    // Define progress steps with weights
+    const progressSteps: ProgressStep[] = [
+      { id: 'validation', name: 'Validating document', weight: 5 },
+      { id: 'metadata', name: 'Preparing metadata', weight: 10 },
+      { id: 'css', name: 'Generating CSS', weight: 10 },
+      { id: 'content', name: 'Preparing content', weight: 30 },
+      { id: 'generate', name: 'Generating EPUB', weight: 40 },
+      { id: 'finalize', name: 'Finalizing', weight: 5 },
+    ];
 
+    // Create progress reporter
+    const progressReporter = new ProgressReporter(
+      progressSteps,
+      (event: ProgressEvent) => {
+        updateProgress(event.overallProgress, event.status, {
+          details: event.details,
+          eta: event.eta,
+          currentStep: event.stepName,
+        });
+      },
+      100 // Minimum 100ms between progress updates
+    );
+
+    // Start validation step
+    progressReporter.startStep('validation');
+    progressReporter.updateProgress(20, 'Validating book structure');
+
+    // Validate book data
     const bookValidation = validateBookData(book);
     if (!bookValidation.isValid) {
       throw new Error(`Invalid book data: ${bookValidation.error}`);
@@ -614,9 +636,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    // Validate images
-    updateProgress(8, 'Validating images...');
+    progressReporter.updateProgress(40, 'Validating images');
 
+    // Validate images
     const imageValidation = validateImageData(images || []);
     if (!imageValidation.isValid) {
       const error: any = new Error(`Invalid image data: ${imageValidation.error}`);
@@ -626,6 +648,8 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
+    progressReporter.updateProgress(60, 'Validating options');
+
     // Validate options
     const optionsValidation = validateOptions(options);
     if (!optionsValidation.isValid) {
@@ -634,12 +658,17 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
+    progressReporter.updateProgress(80, 'Validating styles');
+
     // Validate styles
     if (styles && !Array.isArray(styles)) {
       throw new Error('Invalid styles: must be an array');
     }
 
     checkCancellation();
+
+    progressReporter.updateProgress(100, 'Validation complete');
+    progressReporter.completeStep();
 
     // Check for missing referenced images
     const imageIds = new Set((images || []).map(img => img.id));
@@ -660,13 +689,16 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    // Progress: 10% - Prepare metadata
-    updateProgress(10, 'Preparing metadata...');
+    // Prepare metadata
+    progressReporter.startStep('metadata');
+    progressReporter.updateProgress(10, 'Preparing book metadata');
 
     // Prepare EPUB metadata
     const author = book.authors.length > 0
       ? book.authors.map(a => a.name).join(', ')
       : 'Unknown Author';
+
+    progressReporter.updateProgress(40, 'Setting up EPUB options');
 
     const epubOptions: any = {
       title: book.title,
@@ -683,6 +715,8 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       version: 3, // EPUB 3
     };
 
+    progressReporter.updateProgress(70, 'Adding optional metadata');
+
     // Add optional metadata
     if (book.metadata.isbn) {
       epubOptions.isbn = book.metadata.isbn;
@@ -694,18 +728,22 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       }
     }
 
-    if (state.isCancelled) {
-      throw new Error('Generation cancelled by user');
-    }
+    checkCancellation();
 
-    // Progress: 20% - Generate CSS
-    updateProgress(20, 'Generating CSS styles...');
+    progressReporter.updateProgress(100, 'Metadata prepared');
+    progressReporter.completeStep();
+
+    // Generate CSS
+    progressReporter.startStep('css');
+    progressReporter.updateProgress(20, 'Generating CSS styles');
 
     // Generate CSS from BookStyles
     let cssContent = '';
     if (styles && styles.length > 0) {
+      progressReporter.updateProgress(50, 'Processing book styles', `Generating CSS from ${styles.length} style(s)`);
       cssContent = styles.map(style => bookStyleToCSS(style)).join('\n\n');
     } else {
+      progressReporter.updateProgress(50, 'Using default CSS styles');
       // Default minimal CSS
       cssContent = `
         body {
@@ -729,21 +767,19 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     epubOptions.css = cssContent;
 
-    if (state.isCancelled) {
-      throw new Error('Generation cancelled by user');
-    }
+    checkCancellation();
 
-    // Progress: 30% - Prepare content
-    updateProgress(30, 'Preparing content...');
+    progressReporter.updateProgress(100, 'CSS generation complete');
+    progressReporter.completeStep();
+
+    // Prepare content
+    progressReporter.startStep('content');
+    progressReporter.updateProgress(0, 'Starting content preparation');
 
     // Build content array for epub-gen
     const content: any[] = [];
     const totalItems = book.frontMatter.length + book.chapters.length + book.backMatter.length;
     let processedItems = 0;
-
-    // Calculate progress range for content processing (30% to 70%)
-    const CONTENT_PROGRESS_START = 30;
-    const CONTENT_PROGRESS_RANGE = 40;
 
     // Add front matter
     for (const element of book.frontMatter) {
@@ -756,11 +792,11 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
-      updateProgress(
-        progress,
+      const stepProgress = (processedItems / totalItems) * 100;
+      progressReporter.updateProgress(
+        stepProgress,
         `Processing front matter: ${element.title}`,
-        { currentItem: element.title, totalItems, processedItems }
+        `Item ${processedItems} of ${totalItems}`
       );
     }
 
@@ -776,17 +812,11 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
-      updateProgress(
-        progress,
-        `Processing chapter ${i + 1}/${book.chapters.length}: ${chapter.title}`,
-        {
-          currentChapter: i + 1,
-          currentChapterTitle: chapter.title,
-          currentItem: chapter.title,
-          totalItems,
-          processedItems,
-        }
+      const stepProgress = (processedItems / totalItems) * 100;
+      progressReporter.updateProgress(
+        stepProgress,
+        `Processing chapter: ${chapter.title}`,
+        `Chapter ${i + 1} of ${book.chapters.length}`
       );
 
       // For demonstration: simulate creating temporary files at certain points
@@ -813,11 +843,11 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
-      updateProgress(
-        progress,
+      const stepProgress = (processedItems / totalItems) * 100;
+      progressReporter.updateProgress(
+        stepProgress,
         `Processing back matter: ${element.title}`,
-        { currentItem: element.title, totalItems, processedItems }
+        `Item ${processedItems} of ${totalItems}`
       );
     }
 
@@ -825,8 +855,14 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    // Progress: 70% - Generate EPUB
-    updateProgress(70, 'Generating EPUB file...');
+    progressReporter.updateProgress(100, 'Content preparation complete');
+    progressReporter.completeStep();
+
+    // Generate EPUB
+    progressReporter.startStep('generate');
+    progressReporter.updateProgress(10, 'Starting EPUB generation');
+
+    progressReporter.updateProgress(50, 'Building EPUB structure');
 
     // Generate EPUB using epub-gen-memory
     // This library returns a Buffer which we need to convert to ArrayBuffer
@@ -834,8 +870,12 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    // Progress: 90% - Finalizing
-    updateProgress(90, 'Finalizing...');
+    progressReporter.updateProgress(100, 'EPUB file generated');
+    progressReporter.completeStep();
+
+    // Finalize
+    progressReporter.startStep('finalize');
+    progressReporter.updateProgress(30, 'Converting buffer format');
 
     // Convert Node.js Buffer to ArrayBuffer for structured cloning
     const arrayBuffer = epubBuffer.buffer.slice(
@@ -843,18 +883,20 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       epubBuffer.byteOffset + epubBuffer.byteLength
     );
 
+    progressReporter.updateProgress(70, 'Cleaning up resources');
+
     // Calculate processing time and metadata
     const processingTimeMs = Date.now() - startTime;
     const fileName = `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.epub`;
-
-    // Progress: 100% - Complete
-    updateProgress(100, 'Complete!');
 
     // Final cancellation check before completing
     checkCancellation();
 
     // Clean up resources on successful completion
     await cleanupResources();
+
+    progressReporter.updateProgress(100, 'EPUB generation complete');
+    progressReporter.completeStep();
 
     // Send completion message with the generated EPUB buffer
     postMessageToMain(

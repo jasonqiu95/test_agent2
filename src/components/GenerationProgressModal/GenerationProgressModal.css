@@ -82,13 +82,38 @@
 
 .generation-progress-content {
   padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.generation-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.generation-progress-step-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.generation-progress-step-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  flex: 1;
 }
 
 .generation-progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .generation-progress-status {
@@ -160,6 +185,51 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+.generation-progress-details {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  text-align: center;
+  padding: 8px 12px;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  animation: fadeInDetails 0.3s ease-in-out;
+}
+
+@keyframes fadeInDetails {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.generation-progress-eta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 6px;
+  border: 1px solid #bae6fd;
+}
+
+.generation-progress-eta-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #0369a1;
+}
+
+.generation-progress-eta-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  font-variant-numeric: tabular-nums;
 }
 
 .generation-progress-footer {
@@ -252,5 +322,36 @@
 
   .generation-progress-btn-cancel:active {
     background-color: #374151;
+  }
+
+  .generation-progress-step {
+    background-color: #374151;
+    border-left-color: #60a5fa;
+  }
+
+  .generation-progress-step-label {
+    color: #9ca3af;
+  }
+
+  .generation-progress-step-value {
+    color: #f9fafb;
+  }
+
+  .generation-progress-details {
+    background-color: #1f2937;
+    color: #9ca3af;
+  }
+
+  .generation-progress-eta {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+    border-color: #1e40af;
+  }
+
+  .generation-progress-eta-label {
+    color: #93c5fd;
+  }
+
+  .generation-progress-eta-value {
+    color: #dbeafe;
   }
 }

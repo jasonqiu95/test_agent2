@@ -24,6 +24,7 @@ import { BookStyle } from '../types/style';
 import { Chapter } from '../types/chapter';
 import { Element } from '../types/element';
 import { TextBlock } from '../types/textBlock';
+import { ProgressReporter, ProgressStep, ProgressEvent, formatETA } from '../utils/ProgressReporter';
 
 /**
  * Worker state
@@ -366,6 +367,8 @@ function sendProgress(
     currentPage?: number;
     totalPages?: number;
     details?: string;
+    eta?: number | null;
+    currentStep?: string;
   }
 ): void {
   state.currentProgress = percentage;
@@ -697,7 +700,35 @@ async function generatePdf(
       const { totalSections, frontMatterCount, chaptersCount, backMatterCount } =
         calculateTotalSections(book);
 
+      // Define progress steps with weights
+      const progressSteps: ProgressStep[] = [
+        { id: 'validation', name: 'Validating document', weight: 5 },
+        { id: 'setup', name: 'Setting up PDF document', weight: 5 },
+        { id: 'frontmatter', name: 'Rendering front matter', weight: 15 },
+        { id: 'chapters', name: 'Rendering chapters', weight: 40 },
+        { id: 'backmatter', name: 'Rendering back matter', weight: 15 },
+        { id: 'pagenumbers', name: 'Adding page numbers', weight: 10 },
+        { id: 'finalize', name: 'Finalizing PDF', weight: 10 },
+      ];
+
+      // Create progress reporter
+      const progressReporter = new ProgressReporter(
+        progressSteps,
+        (event: ProgressEvent) => {
+          sendProgress(event.overallProgress, event.status, {
+            details: event.details,
+            eta: event.eta,
+            currentStep: event.stepName,
+          });
+        },
+        100 // Minimum 100ms between progress updates
+      );
+
       let sectionsProcessed = 0;
+
+      // Start validation step
+      progressReporter.startStep('validation');
+      progressReporter.updateProgress(50, 'Validating book structure');
 
       // Get page dimensions
       const pageDimensions = getPageDimensions(
@@ -712,6 +743,13 @@ async function generatePdf(
         inside: 0.75,
         outside: 0.5,
       };
+
+      progressReporter.updateProgress(100, 'Validation complete');
+      progressReporter.completeStep();
+
+      // Start setup step
+      progressReporter.startStep('setup');
+      progressReporter.updateProgress(30, 'Creating PDF document');
 
       // Create PDF document
       const doc = new PDFDocument({
@@ -747,6 +785,8 @@ async function generatePdf(
       });
       doc.on('error', reject);
 
+      progressReporter.updateProgress(70, 'Setting PDF metadata');
+
       // Set PDF metadata
       doc.info.Title = book.title || 'Untitled';
       doc.info.Author = book.authors
@@ -759,14 +799,15 @@ async function generatePdf(
         doc.info.Keywords = book.metadata.keywords.join(', ');
       }
 
+      progressReporter.updateProgress(100, 'PDF document setup complete');
+      progressReporter.completeStep();
+
       let totalPages = 0;
 
-      // Render front matter (15% of progress: 15-30%)
+      // Render front matter
       if (book.frontMatter && book.frontMatter.length > 0) {
-        sendProgress(15, 'Rendering front matter...', {
-          totalPages: 0,
-          details: `Processing ${frontMatterCount} front matter sections`,
-        });
+        progressReporter.startStep('frontmatter');
+        progressReporter.updateProgress(0, 'Starting front matter rendering', `Processing ${frontMatterCount} sections`);
 
         book.frontMatter.forEach((element, index) => {
           checkCancellation();
@@ -797,24 +838,24 @@ async function generatePdf(
           renderTextBlocks(doc, element.content, style, contentArea);
 
           sectionsProcessed++;
-          const progressPercentage = 15 + (sectionsProcessed / totalSections) * 15;
-          sendProgress(
-            Math.round(progressPercentage),
-            `Rendering front matter: ${element.title}`,
-            {
-              currentPage: totalPages,
-              totalPages: 0, // We don't know total pages yet
-              details: `Section ${index + 1} of ${frontMatterCount}`,
-            }
+          const stepProgress = ((index + 1) / frontMatterCount) * 100;
+          progressReporter.updateProgress(
+            stepProgress,
+            `Rendering: ${element.title}`,
+            `Section ${index + 1} of ${frontMatterCount}`
           );
         });
+
+        progressReporter.completeStep('Front matter complete');
+      } else {
+        // No front matter, skip this step
+        progressReporter.startStep('frontmatter');
+        progressReporter.completeStep('No front matter to render');
       }
 
-      // Render chapters (30% of progress: 30-70%)
-      sendProgress(30, 'Starting chapter rendering...', {
-        totalPages: totalPages,
-        details: `Processing ${chaptersCount} chapters`,
-      });
+      // Render chapters
+      progressReporter.startStep('chapters');
+      progressReporter.updateProgress(0, 'Starting chapter rendering', `Processing ${chaptersCount} chapters`);
 
       book.chapters.forEach((chapter, index) => {
         checkCancellation();
@@ -857,27 +898,20 @@ async function generatePdf(
         renderChapter(doc, chapter, index, style, contentArea, options);
 
         sectionsProcessed++;
-        const progressPercentage = 30 + (sectionsProcessed / totalSections) * 40;
-        sendProgress(
-          Math.round(progressPercentage),
-          `Rendering chapter: ${chapter.title}`,
-          {
-            currentChapter: index + 1,
-            currentChapterTitle: chapter.title,
-            currentPage: totalPages,
-            totalPages: 0, // We still don't know the final page count
-            details: `Chapter ${index + 1} of ${chaptersCount}`,
-          }
+        const stepProgress = ((index + 1) / chaptersCount) * 100;
+        progressReporter.updateProgress(
+          stepProgress,
+          `Rendering: ${chapter.title}`,
+          `Chapter ${index + 1} of ${chaptersCount}`
         );
       });
 
-      // Render back matter (15% of progress: 70-85%)
+      progressReporter.completeStep('Chapters complete');
+
+      // Render back matter
       if (book.backMatter && book.backMatter.length > 0) {
-        sendProgress(70, 'Rendering back matter...', {
-          currentPage: totalPages,
-          totalPages: 0,
-          details: `Processing ${backMatterCount} back matter sections`,
-        });
+        progressReporter.startStep('backmatter');
+        progressReporter.updateProgress(0, 'Starting back matter rendering', `Processing ${backMatterCount} sections`);
 
         book.backMatter.forEach((element, index) => {
           checkCancellation();
@@ -908,28 +942,27 @@ async function generatePdf(
           renderTextBlocks(doc, element.content, style, contentArea);
 
           sectionsProcessed++;
-          const progressPercentage = 70 + (sectionsProcessed / totalSections) * 15;
-          sendProgress(
-            Math.round(progressPercentage),
-            `Rendering back matter: ${element.title}`,
-            {
-              currentPage: totalPages,
-              totalPages: totalPages,
-              details: `Section ${index + 1} of ${backMatterCount}`,
-            }
+          const stepProgress = ((index + 1) / backMatterCount) * 100;
+          progressReporter.updateProgress(
+            stepProgress,
+            `Rendering: ${element.title}`,
+            `Section ${index + 1} of ${backMatterCount}`
           );
         });
+
+        progressReporter.completeStep('Back matter complete');
+      } else {
+        // No back matter, skip this step
+        progressReporter.startStep('backmatter');
+        progressReporter.completeStep('No back matter to render');
       }
 
-      // Add page numbers to all pages if enabled (10% of progress: 85-95%)
+      // Add page numbers to all pages if enabled
       if (pdfOptions.includePageNumbers) {
-        sendProgress(85, 'Adding page numbers...', {
-          currentPage: 0,
-          totalPages: totalPages,
-          details: 'Processing all pages',
-        });
-
+        progressReporter.startStep('pagenumbers');
         const range = doc.bufferedPageRange();
+        progressReporter.updateProgress(0, 'Adding page numbers', `Processing ${range.count} pages`);
+
         for (let i = 0; i < range.count; i++) {
           checkCancellation();
 
@@ -952,28 +985,33 @@ async function generatePdf(
 
           // Report progress every 10 pages to avoid excessive updates
           if (i % 10 === 0 || i === range.count - 1) {
-            const progressPercentage = 85 + ((i + 1) / range.count) * 10;
-            sendProgress(
-              Math.round(progressPercentage),
-              'Adding page numbers...',
-              {
-                currentPage: i + 1,
-                totalPages: range.count,
-                details: `Page ${i + 1} of ${range.count}`,
-              }
+            const stepProgress = ((i + 1) / range.count) * 100;
+            progressReporter.updateProgress(
+              stepProgress,
+              'Adding page numbers',
+              `Page ${i + 1} of ${range.count}`
             );
           }
         }
+
+        progressReporter.completeStep('Page numbers added');
+      } else {
+        // No page numbers, skip this step
+        progressReporter.startStep('pagenumbers');
+        progressReporter.completeStep('Page numbers not required');
       }
 
-      sendProgress(95, 'Finalizing PDF...', {
-        currentPage: totalPages,
-        totalPages: totalPages,
-        details: 'Compressing and finalizing document',
-      });
+      // Finalize PDF
+      progressReporter.startStep('finalize');
+      progressReporter.updateProgress(30, 'Compressing document');
+
+      progressReporter.updateProgress(70, 'Finalizing document');
 
       // Finalize the PDF
       doc.end();
+
+      progressReporter.updateProgress(100, 'PDF generation complete');
+      progressReporter.completeStep('Document ready');
     } catch (error) {
       unregisterResource('pdf-document');
       reject(error);
@@ -1004,8 +1042,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     // Set operation timeout
     setOperationTimeout();
 
-    sendProgress(0, 'Initializing PDF generation...');
-
     // Validate message structure
     if (!message.data || typeof message.data !== 'object') {
       throw new Error('Invalid initialization data: missing or invalid data object');
@@ -1014,8 +1050,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     const { book, styles, images, options } = message.data;
 
     // Validate book data
-    sendProgress(5, 'Validating book data...');
-
     const bookValidation = validateBookData(book);
     if (!bookValidation.isValid) {
       const error: any = new Error(`Invalid book data: ${bookValidation.error}`);
@@ -1026,8 +1060,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     checkCancellation();
 
     // Validate styles
-    sendProgress(8, 'Validating styles...');
-
     const stylesValidation = validateStyles(styles || []);
     if (!stylesValidation.isValid) {
       throw new Error(`Invalid styles: ${stylesValidation.error}`);
@@ -1036,8 +1068,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     checkCancellation();
 
     // Validate images
-    sendProgress(10, 'Validating images...');
-
     const imageValidation = validateImageData(images || []);
     if (!imageValidation.isValid) {
       const error: any = new Error(`Invalid image data: ${imageValidation.error}`);
@@ -1056,7 +1086,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     checkCancellation();
 
     // Check for missing referenced images
-    sendProgress(12, 'Checking image references...');
 
     const imageIds = new Set((images || []).map(img => img.id));
     const warnings: string[] = [];
@@ -1084,23 +1113,13 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    sendProgress(15, 'Generating PDF document...', {
-      details: `Processing ${book.chapters.length} chapters`,
-    });
-
-    // Generate the PDF
+    // Generate the PDF (progress is tracked internally via ProgressReporter)
     const buffer = await generatePdf(book, styles || [], options);
 
     // Clean up resources on successful completion
     await cleanupResources();
 
-    sendProgress(100, 'PDF generation complete', {
-      totalPages: book.chapters.length, // This will be updated with actual page count
-      details: 'Document ready',
-    });
-
     const processingTime = Date.now() - startTime;
-    const pageCount = (doc as any)?.bufferedPageRange?.()?.count || book.chapters.length;
 
     postMessage(
       createWorkerMessage(WorkerMessageType.COMPLETE, {
@@ -1110,7 +1129,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         mimeType: 'application/pdf',
         metadata: {
           processingTimeMs: processingTime,
-          pageCount: pageCount,
+          pageCount: book.chapters.length, // Approximate page count
           warnings: warnings.length > 0 ? warnings : undefined,
         },
       })

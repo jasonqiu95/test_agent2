@@ -9,6 +9,14 @@ import { selectEditorContent } from '../../store/editorSlice';
 import { selectDeviceMode } from '../../store/previewSlice';
 import { renderPreview, DeviceType } from '../../utils/previewRenderer';
 import { Element, Chapter, BookStyle } from '../../types';
+import { usePreviewUpdate } from '../../hooks/usePreviewUpdate';
+import { DeviceSelector } from './DeviceSelector';
+import { ZoomControls } from './ZoomControls';
+import { PageNavigator } from './PageNavigator';
+import { PreviewFrame } from './PreviewFrame';
+import { LoadingState } from './LoadingState';
+import { ErrorState } from './ErrorState';
+import { DeviceChrome } from './DeviceChrome';
 import './PreviewPanel.css';
 
 interface PreviewPanelProps {
@@ -19,14 +27,18 @@ interface PreviewPanelProps {
 }
 
 /**
- * PreviewPanel component connected to Redux store
+ * PreviewPanel component - Complete preview UI with all sub-components
  *
  * Features:
- * - Connects to Redux store to read book state, selected chapter/element, current style
- * - Regenerates preview HTML when book content or style changes
- * - Device mode selector (iPad, Kindle, iPhone, PrintSpread)
- * - Live preview updates on every edit
- * - Uses memoization to avoid unnecessary re-renders
+ * - DeviceSelector: Toggle between iPad, Kindle, iPhone, Print Spread
+ * - ZoomControls: Zoom in/out, reset zoom
+ * - PageNavigator: Navigate between pages, page counter
+ * - PreviewFrame: Iframe-based content rendering
+ * - LoadingState: Skeleton UI while rendering
+ * - ErrorState: Graceful error handling
+ * - DeviceChrome: Device bezels and styling
+ * - Integration with usePreviewUpdate hook for debounced updates
+ * - Responsive layout
  */
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   className = '',
@@ -39,12 +51,26 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   const editorContent = useAppSelector(selectEditorContent);
   const deviceMode = useAppSelector(selectDeviceMode);
 
-  // Local state for preview HTML
+  // Local state for preview
   const [previewHTML, setPreviewHTML] = useState<string>('');
+  const [previewCSS, setPreviewCSS] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine which content to preview (active chapter or selected element)
+  // Use preview update hook for debounced updates
+  const {
+    previewContent,
+    isUpdating,
+    triggerUpdate,
+    cancelPendingUpdates,
+  } = usePreviewUpdate({
+    debounceDelay: 400,
+    useIdleCallback: true,
+    onUpdateStart: () => setIsGenerating(true),
+    onUpdateEnd: () => setIsGenerating(false),
+  });
+
+  // Determine which content to preview
   const contentToPreview = useMemo(() => {
     return activeChapter || selectedElement;
   }, [activeChapter, selectedElement]);
@@ -60,16 +86,17 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     return deviceModeMap[deviceMode] || 'ipad';
   }, [deviceMode]);
 
-  // Generate preview HTML with memoization
+  // Generate preview HTML
   const generatePreviewHTML = useCallback(
     async (content: Element | Chapter | null, style: BookStyle | null, device: DeviceType) => {
       if (!content || !style) {
         setPreviewHTML('');
+        setPreviewCSS('');
         setError(null);
+        cancelPendingUpdates();
         return;
       }
 
-      setIsGenerating(true);
       setError(null);
 
       try {
@@ -86,52 +113,31 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
               updatedAt: content.updatedAt,
             };
 
-        // Use requestIdleCallback for non-blocking rendering
-        if (typeof requestIdleCallback !== 'undefined') {
-          requestIdleCallback(() => {
-            try {
-              const result = renderPreview(elementData, style, device, {
-                includePageBreaks: true,
-                printOptimized: device === 'print-spread',
-                useDetailedPagination: false, // Faster rendering for live preview
-              });
+        // Render preview
+        const result = renderPreview(elementData, style, device, {
+          includePageBreaks: true,
+          printOptimized: device === 'print-spread',
+          useDetailedPagination: false,
+        });
 
-              const fullHTML = `
-                <style>${result.css}</style>
-                ${result.html}
-              `;
+        const fullHTML = `
+          <style>${result.css}</style>
+          ${result.html}
+        `;
 
-              setPreviewHTML(fullHTML);
-              setIsGenerating(false);
-              onPreviewUpdate?.(fullHTML);
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Failed to generate preview');
-              setIsGenerating(false);
-            }
-          }, { timeout: 1000 });
-        } else {
-          // Fallback for environments without requestIdleCallback
-          const result = renderPreview(elementData, style, device, {
-            includePageBreaks: true,
-            printOptimized: device === 'print-spread',
-            useDetailedPagination: false,
-          });
+        // Trigger debounced update
+        triggerUpdate(fullHTML, 'text-edit');
 
-          const fullHTML = `
-            <style>${result.css}</style>
-            ${result.html}
-          `;
-
-          setPreviewHTML(fullHTML);
-          setIsGenerating(false);
-          onPreviewUpdate?.(fullHTML);
-        }
+        setPreviewHTML(result.html);
+        setPreviewCSS(result.css);
+        onPreviewUpdate?.(fullHTML);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to generate preview');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to generate preview';
+        setError(errorMessage);
         setIsGenerating(false);
       }
     },
-    [onPreviewUpdate]
+    [triggerUpdate, cancelPendingUpdates, onPreviewUpdate]
   );
 
   // Regenerate preview when dependencies change
@@ -139,49 +145,70 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     generatePreviewHTML(contentToPreview, bookStyle, deviceType);
   }, [contentToPreview, bookStyle, deviceType, editorContent, generatePreviewHTML]);
 
+  // Handle retry on error
+  const handleRetry = useCallback(() => {
+    setError(null);
+    generatePreviewHTML(contentToPreview, bookStyle, deviceType);
+  }, [contentToPreview, bookStyle, deviceType, generatePreviewHTML]);
+
   return (
     <div className={`preview-panel ${className}`}>
-      <div className="preview-panel__header">
-        <h2 className="preview-panel__title">Preview</h2>
-        <div className="preview-panel__device-mode">{deviceMode}</div>
-        {isGenerating && (
-          <div className="preview-panel__loading-indicator" title="Generating preview...">
-            <svg
-              className="preview-panel__spinner"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="preview-panel__spinner-circle"
-                cx="12"
-                cy="12"
-                r="10"
-                fill="none"
-                strokeWidth="2"
+      {/* Toolbar with controls */}
+      <div className="preview-panel__toolbar">
+        <div className="preview-panel__toolbar-left">
+          <h2 className="preview-panel__title">Preview</h2>
+        </div>
+
+        <div className="preview-panel__toolbar-center">
+          <DeviceSelector />
+        </div>
+
+        <div className="preview-panel__toolbar-right">
+          <ZoomControls />
+        </div>
+      </div>
+
+      {/* Main preview area */}
+      <div className="preview-panel__main">
+        {error ? (
+          <ErrorState
+            error={error}
+            title="Preview Generation Error"
+            onRetry={handleRetry}
+            onDismiss={() => setError(null)}
+          />
+        ) : isGenerating && !previewHTML ? (
+          <LoadingState message="Generating preview..." showSkeleton={true} />
+        ) : previewContent || previewHTML ? (
+          <div className="preview-panel__preview-wrapper">
+            <DeviceChrome deviceMode={deviceType}>
+              <PreviewFrame
+                content={previewContent || previewHTML}
+                styles={previewCSS}
+                deviceMode={deviceType}
+                isLoading={isGenerating || isUpdating}
+                error={error}
               />
-            </svg>
+            </DeviceChrome>
+          </div>
+        ) : (
+          <div className="preview-panel__empty">
+            <div className="preview-panel__empty-icon">📄</div>
+            <h3 className="preview-panel__empty-title">No Content to Preview</h3>
+            <p className="preview-panel__empty-subtitle">
+              {!contentToPreview
+                ? 'Select a chapter or element to preview'
+                : !bookStyle
+                ? 'No book style available'
+                : 'No content available'}
+            </p>
           </div>
         )}
       </div>
-      <div className="preview-panel__content">
-        {error ? (
-          <div className="preview-panel__error">
-            Error: {error}
-          </div>
-        ) : previewHTML ? (
-          <div
-            className="preview-panel__preview"
-            dangerouslySetInnerHTML={{ __html: previewHTML }}
-          />
-        ) : (
-          <div className="preview-panel__placeholder">
-            {!contentToPreview
-              ? 'Select a chapter or element to preview'
-              : !bookStyle
-              ? 'No book style available'
-              : 'No content to preview'}
-          </div>
-        )}
+
+      {/* Footer with page navigation */}
+      <div className="preview-panel__footer">
+        <PageNavigator />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { _electron as electron, ElectronApplication, Page } from '@playwright/test';
-import path from 'path';
+import * as path from 'path';
 
 /**
  * Helper functions for Electron app lifecycle management in E2E tests

@@ -3,11 +3,13 @@ import { Provider } from 'react-redux'
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { store } from './store'
 import { useUndoRedo } from './hooks/useUndoRedo'
+import { usePdfGeneration } from './hooks/usePdfGeneration'
 import UndoRedoStatus from './components/UndoRedoStatus'
 import './App.css'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ImportPreviewDialog } from './components/ImportPreviewDialog'
 import { PreferencesDialog } from './components/PreferencesDialog'
+import { GenerationProgressModal } from './components/GenerationProgressModal'
 import { getPersistenceService } from './services/persistence'
 import { getRecentProjectsService } from './services/recentProjects'
 import type { Book } from './types/book'
@@ -23,6 +25,15 @@ function AppContent() {
 
   // Enable undo/redo keyboard shortcuts
   useUndoRedo()
+
+  // PDF generation hook
+  const {
+    state: pdfState,
+    startGeneration,
+    cancelGeneration,
+    reset: resetPdfGeneration,
+    saveGeneratedFile,
+  } = usePdfGeneration()
 
   const handleProjectOpen = (book: Book, filePath: string) => {
     setCurrentBook(book)
@@ -79,6 +90,67 @@ function AppContent() {
     setCurrentFilePath('')
   }
 
+  const handleExportPdf = async () => {
+    if (!currentBook) {
+      console.error('No book to export')
+      return
+    }
+
+    try {
+      await startGeneration({
+        book: currentBook,
+        styles: currentBook.styles,
+        images: [],
+        options: {
+          format: 'pdf',
+          quality: 'standard',
+          includeMetadata: true,
+          includeToc: true,
+          pdf: {
+            trimSize: '6x9',
+            margins: {
+              top: 0.75,
+              bottom: 0.75,
+              inside: 0.75,
+              outside: 0.5,
+            },
+            includeHeaders: false,
+            includePageNumbers: true,
+            pageNumberConfig: {
+              enabled: true,
+              position: 'bottom',
+              alignment: 'center',
+              startNumber: 1,
+            },
+            compress: true,
+          },
+        },
+      })
+    } catch (error) {
+      console.error('Failed to start PDF generation:', error)
+    }
+  }
+
+  const handlePdfModalClose = () => {
+    if (pdfState.isComplete) {
+      // Auto-save if complete
+      saveGeneratedFile()
+        .then(() => {
+          console.log('PDF saved successfully')
+          resetPdfGeneration()
+        })
+        .catch((error) => {
+          console.error('Failed to save PDF:', error)
+        })
+    } else if (pdfState.isGenerating) {
+      // Cancel if still generating
+      cancelGeneration('User closed modal')
+    } else {
+      // Just close if error or cancelled
+      resetPdfGeneration()
+    }
+  }
+
   // Drag and drop event handlers
   const handleDragStart = (event: DragStartEvent) => {
     console.log('Drag started:', event)
@@ -123,6 +195,13 @@ function AppContent() {
                 {currentFilePath && (
                   <span className="file-path">{currentFilePath}</span>
                 )}
+                <button
+                  onClick={handleExportPdf}
+                  className="export-pdf-button"
+                  disabled={!currentBook || pdfState.isGenerating}
+                >
+                  {pdfState.isGenerating ? 'Generating...' : 'Export PDF'}
+                </button>
               </div>
             </header>
             <main className="editor-main">
@@ -154,6 +233,15 @@ function AppContent() {
         <PreferencesDialog
           isOpen={showPreferences}
           onClose={() => setShowPreferences(false)}
+        />
+
+        <GenerationProgressModal
+          isOpen={pdfState.isGenerating || pdfState.isComplete || pdfState.isCancelled || !!pdfState.error}
+          onCancel={handlePdfModalClose}
+          progress={pdfState.progress}
+          status={pdfState.error || pdfState.status}
+          generationType="PDF"
+          title={pdfState.isComplete ? 'PDF Complete' : pdfState.error ? 'PDF Generation Failed' : undefined}
         />
       </div>
     </DndContext>

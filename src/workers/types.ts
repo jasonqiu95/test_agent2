@@ -4,6 +4,14 @@
 
 import { Book } from '../types/book';
 import { BookStyle, Style } from '../types/style';
+import {
+  TrimSize,
+  CustomTrimSize,
+  PdfMargins,
+  BleedSettings,
+  HeaderConfig,
+  PageNumberConfig,
+} from '../types/pdf';
 
 /**
  * Message types for worker communication
@@ -41,6 +49,22 @@ export interface ImageData {
 }
 
 /**
+ * PDF generation options for worker
+ */
+export interface PdfOptions {
+  trimSize: TrimSize;
+  customTrimSize?: CustomTrimSize;
+  margins: PdfMargins;
+  bleed?: BleedSettings;
+  includeHeaders: boolean;
+  headerConfig?: HeaderConfig;
+  includePageNumbers: boolean;
+  pageNumberConfig?: PageNumberConfig;
+  embedFonts?: boolean;
+  compress?: boolean;
+}
+
+/**
  * Initialization message from main thread to worker
  * Contains all data needed to start processing
  */
@@ -57,6 +81,7 @@ export interface InitializeMessage extends BaseWorkerMessage {
       includeToc?: boolean;
       pageSize?: string;
       margin?: string;
+      pdf?: PdfOptions;
     };
   };
 }

@@ -12,7 +12,9 @@ export type TextFeatureType =
   | 'verse'
   | 'list'
   | 'link'
-  | 'note';
+  | 'note'
+  | 'image'
+  | 'figure';
 
 export interface BaseTextFeature extends Metadata {
   type: TextFeatureType;
@@ -80,4 +82,41 @@ export interface Note extends BaseTextFeature {
   referenceId?: string;
 }
 
-export type TextFeature = Subhead | Break | Quote | Verse | List | Link | Note;
+export type ImageAlignment = 'left' | 'center' | 'right' | 'full-width';
+export type ImageSizing = 'small' | 'medium' | 'large' | 'full' | 'custom';
+
+export interface Image extends BaseTextFeature {
+  type: 'image';
+  /** Image source - can be URL, file path, or base64 data URI */
+  src: string;
+  /** Alternative text for accessibility */
+  alt: string;
+  /** Optional title attribute */
+  title?: string;
+  /** Image alignment */
+  alignment?: ImageAlignment;
+  /** Image sizing preset */
+  sizing?: ImageSizing;
+  /** Custom width (e.g., '300px', '50%') */
+  width?: string;
+  /** Custom height (e.g., '200px', 'auto') */
+  height?: string;
+  /** Whether this is a base64 embedded image */
+  isBase64?: boolean;
+  /** Additional CSS classes */
+  cssClasses?: string[];
+}
+
+export interface Figure extends BaseTextFeature {
+  type: 'figure';
+  /** The image within the figure */
+  image: Image;
+  /** Optional caption */
+  caption?: string;
+  /** Figure alignment */
+  alignment?: ImageAlignment;
+  /** Additional CSS classes */
+  cssClasses?: string[];
+}
+
+export type TextFeature = Subhead | Break | Quote | Verse | List | Link | Note | Image | Figure;

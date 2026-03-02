@@ -3,7 +3,7 @@
  * Converts BookStyle configuration to CSS string for print-ready PDFs
  */
 
-import type { BookStyle, StyleToCssOptions, CustomFont } from './types';
+import type { BookStyle, StyleToCssOptions, CustomFont, PageBreakConfig } from './types';
 import { calculatePageDimensions, toPoints, type Unit } from './pageGeometry';
 import type { Margins } from './marginCalculator';
 
@@ -125,6 +125,7 @@ export function convertStyleToCss(
   // Add @page rules for print if requested
   if (options.includePagedMedia !== false) {
     cssRules.push(generatePageStyles(options));
+    cssRules.push(generatePagedMediaRules(options));
   }
 
   // Generate font rules
@@ -153,7 +154,8 @@ export function convertStyleToCss(
 
   // Generate page break control styles for proper pagination
   if (options.includePagedMedia !== false) {
-    cssRules.push(generatePageBreakStyles());
+    const pageBreakConfig = options.pageBreakConfig || style.pageBreaks;
+    cssRules.push(generatePageBreakStyles(pageBreakConfig));
   }
 
   // Add custom CSS if provided
@@ -276,6 +278,26 @@ function generateSpreadPageStyles(
   rules.push('}');
 
   return rules.join('\n');
+}
+
+/**
+ * Generates @page :left and @page :right rules for spread pages
+ * Used for chapter-specific page break control (starting on left/right pages)
+ */
+function generatePagedMediaRules(options: StyleToCssOptions): string {
+  const margins = options.margins as Margins;
+  const unit = options.unit || 'pt';
+
+  return `/* Left and right page rules for proper spread layout */
+@page :left {
+  margin-left: ${formatUnit(margins.left, 'in', unit)};
+  margin-right: ${formatUnit(margins.right, 'in', unit)};
+}
+
+@page :right {
+  margin-left: ${formatUnit(margins.left, 'in', unit)};
+  margin-right: ${formatUnit(margins.right, 'in', unit)};
+}`;
 }
 
 /**
@@ -729,83 +751,152 @@ function generateOrnamentalBreakStyles(breaks: BookStyle['ornamentalBreaks']): s
  * - Force page breaks before chapter starts
  * - Prevent page breaks after headings
  * - Ensure proper pagination for print-ready PDFs
+ * - Support chapter-specific page break options (right/left/any page)
  *
+ * @param config - Optional page break configuration
  * @returns CSS string with page break control rules
  */
-function generatePageBreakStyles(): string {
-  return `/* Page break control for proper pagination */
+function generatePageBreakStyles(config?: PageBreakConfig): string {
+  const minOrphans = config?.minOrphans ?? 2;
+  const minWidows = config?.minWidows ?? 2;
+  const chapterStartPage = config?.chapterStartPage ?? 'any';
+  const avoidBreakInside = config?.avoidBreakInside ?? [
+    'blockquote',
+    'figure',
+    'pre',
+    'code',
+    'table',
+    'img',
+    '.no-break'
+  ];
 
-/* Prevent page breaks inside these elements */
-blockquote,
-figure,
-pre,
-code,
-table,
-img,
-.no-break {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
+  const rules: string[] = ['/* Page break control for proper pagination */'];
 
-/* Widows and orphans control - minimum 2-3 lines at page breaks */
-p,
-li,
-dt,
-dd {
-  orphans: 3;
-  widows: 3;
-}
+  // Prevent page breaks inside specified elements
+  if (avoidBreakInside.length > 0) {
+    rules.push('');
+    rules.push('/* Prevent page breaks inside these elements */');
+    rules.push(`${avoidBreakInside.join(',\n')} {`);
+    rules.push('  page-break-inside: avoid;');
+    rules.push('  break-inside: avoid;');
+    rules.push('}');
+  }
 
-/* Force page break before chapter starts */
-.chapter,
-.chapter-start,
-h1.chapter-title {
-  page-break-before: page;
-  break-before: page;
-}
+  // Widows and orphans control
+  if (config?.preventOrphans !== false || config?.preventWidows !== false) {
+    rules.push('');
+    rules.push(`/* Widows and orphans control - minimum ${minOrphans}/${minWidows} lines at page breaks */`);
+    rules.push('p,');
+    rules.push('li,');
+    rules.push('dt,');
+    rules.push('dd {');
+    if (config?.preventOrphans !== false) {
+      rules.push(`  orphans: ${minOrphans};`);
+    }
+    if (config?.preventWidows !== false) {
+      rules.push(`  widows: ${minWidows};`);
+    }
+    rules.push('}');
+  }
 
-/* Prevent page breaks immediately after headings */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  page-break-after: avoid;
-  break-after: avoid;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
+  // Chapter page break control based on configuration
+  rules.push('');
+  rules.push(`/* Force page break before chapter starts */`);
+  rules.push('.chapter,');
+  rules.push('.chapter-start,');
+  rules.push('h1.chapter-title {');
 
-/* Keep headings with at least the next line of content */
-h1 + p,
-h2 + p,
-h3 + p,
-h4 + p,
-h5 + p,
-h6 + p {
-  page-break-before: avoid;
-  break-before: avoid;
-}
+  // Handle chapter start page preference
+  switch (chapterStartPage) {
+    case 'right':
+      rules.push('  page-break-before: right; /* Always start on right (odd) page */');
+      rules.push('  break-before: right;');
+      break;
+    case 'left':
+      rules.push('  page-break-before: left; /* Always start on left (even) page */');
+      rules.push('  break-before: left;');
+      break;
+    case 'any':
+    default:
+      rules.push('  page-break-before: always; /* Start on any new page */');
+      rules.push('  break-before: page;');
+      break;
+  }
 
-/* Avoid breaking list items */
-li {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
+  rules.push('}');
 
-/* Keep definition lists together */
-dl {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
+  // Additional chapter start page classes for specific control
+  rules.push('');
+  rules.push('/* Chapter-specific page break classes */');
+  rules.push('.chapter-start-right {');
+  rules.push('  page-break-before: right;');
+  rules.push('  break-before: right;');
+  rules.push('}');
+  rules.push('');
+  rules.push('.chapter-start-left {');
+  rules.push('  page-break-before: left;');
+  rules.push('  break-before: left;');
+  rules.push('}');
+  rules.push('');
+  rules.push('.chapter-start-any {');
+  rules.push('  page-break-before: always;');
+  rules.push('  break-before: page;');
+  rules.push('}');
 
-/* Avoid page breaks before footnotes */
-.footnote,
-.endnote {
-  page-break-before: avoid;
-  break-before: avoid;
-}`;
+  // Prevent page breaks after headings
+  rules.push('');
+  rules.push('/* Prevent page breaks immediately after headings */');
+  rules.push('h1,');
+  rules.push('h2,');
+  rules.push('h3,');
+  rules.push('h4,');
+  rules.push('h5,');
+  rules.push('h6 {');
+  rules.push('  page-break-after: avoid;');
+  rules.push('  break-after: avoid;');
+  rules.push('  page-break-inside: avoid;');
+  rules.push('  break-inside: avoid;');
+  rules.push('}');
+
+  // Keep headings with at least the next line of content
+  rules.push('');
+  rules.push('/* Keep headings with at least the next line of content */');
+  rules.push('h1 + p,');
+  rules.push('h2 + p,');
+  rules.push('h3 + p,');
+  rules.push('h4 + p,');
+  rules.push('h5 + p,');
+  rules.push('h6 + p {');
+  rules.push('  page-break-before: avoid;');
+  rules.push('  break-before: avoid;');
+  rules.push('}');
+
+  // Avoid breaking list items
+  rules.push('');
+  rules.push('/* Avoid breaking list items */');
+  rules.push('li {');
+  rules.push('  page-break-inside: avoid;');
+  rules.push('  break-inside: avoid;');
+  rules.push('}');
+
+  // Keep definition lists together
+  rules.push('');
+  rules.push('/* Keep definition lists together */');
+  rules.push('dl {');
+  rules.push('  page-break-inside: avoid;');
+  rules.push('  break-inside: avoid;');
+  rules.push('}');
+
+  // Avoid page breaks before footnotes
+  rules.push('');
+  rules.push('/* Avoid page breaks before footnotes */');
+  rules.push('.footnote,');
+  rules.push('.endnote {');
+  rules.push('  page-break-before: avoid;');
+  rules.push('  break-before: avoid;');
+  rules.push('}');
+
+  return rules.join('\n');
 }
 
 /**

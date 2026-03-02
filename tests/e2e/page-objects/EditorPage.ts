@@ -250,4 +250,47 @@ export class EditorPage {
   async isToolbarVisible(): Promise<boolean> {
     return await this.toolbar.isVisible();
   }
+
+  /**
+   * Insert a scene break via toolbar button
+   */
+  async insertSceneBreak(): Promise<void> {
+    const sceneBreakButton = this.toolbar.locator('button[aria-label*="Scene Break"], button[title*="Scene Break"], button:has-text("Scene Break")');
+    if (await sceneBreakButton.isVisible()) {
+      await sceneBreakButton.click();
+    } else {
+      // Fallback to keyboard shortcut: Cmd/Ctrl+Shift+B
+      await this.page.keyboard.press('Control+Shift+B');
+    }
+  }
+
+  /**
+   * Insert a scene break via keyboard shortcut
+   */
+  async insertSceneBreakViaShortcut(): Promise<void> {
+    await this.page.keyboard.press('Control+Shift+B');
+  }
+
+  /**
+   * Check if a scene break exists in the editor
+   */
+  async hasSceneBreak(): Promise<boolean> {
+    const count = await this.content.locator('.scene-break').count();
+    return count > 0;
+  }
+
+  /**
+   * Get all scene breaks in the editor
+   */
+  async getSceneBreaks(): Promise<Array<{ symbol: string }>> {
+    const sceneBreaks = await this.content.locator('.scene-break').all();
+    const result: Array<{ symbol: string }> = [];
+
+    for (const sceneBreak of sceneBreaks) {
+      const symbol = await sceneBreak.getAttribute('data-symbol') || await sceneBreak.textContent() || '* * *';
+      result.push({ symbol: symbol.trim() });
+    }
+
+    return result;
+  }
 }

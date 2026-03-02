@@ -21,6 +21,7 @@ export interface Chapter {
   title: string;
   content: Paragraph[];
   startOnNewPage?: boolean;
+  pageBreak?: 'any' | 'right' | 'left'; // Chapter always starts on: any page, right (odd) page, or left (even) page
 }
 
 export interface Paragraph {

@@ -126,6 +126,18 @@ export interface BodyText {
 }
 
 /**
+ * Page break configuration for chapters and sections
+ */
+export interface PageBreakConfig {
+  chapterStartPage?: 'any' | 'right' | 'left'; // Default page side for chapter starts
+  preventOrphans?: boolean; // Prevent orphaned lines at page breaks
+  preventWidows?: boolean; // Prevent widowed lines at page breaks
+  minOrphans?: number; // Minimum lines at start of page (default: 2)
+  minWidows?: number; // Minimum lines at end of page (default: 2)
+  avoidBreakInside?: string[]; // CSS selectors for elements to keep together
+}
+
+/**
  * Complete book style configuration
  */
 export interface BookStyle {
@@ -135,6 +147,7 @@ export interface BookStyle {
   firstParagraph?: FirstParagraph;
   ornamentalBreaks?: OrnamentalBreaks;
   bodyText: BodyText;
+  pageBreaks?: PageBreakConfig;
 }
 
 /**
@@ -149,4 +162,5 @@ export interface StyleToCssOptions {
   pageNumbering?: boolean;
   bleed?: number;
   customCSS?: string; // Additional custom CSS to append
+  pageBreakConfig?: PageBreakConfig; // Page break and widow/orphan control configuration
 }

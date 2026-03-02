@@ -2,6 +2,7 @@ import React, { useState, useRef, DragEvent, MouseEvent } from 'react';
 import { NavigatorItem } from './Navigator';
 import { Element } from '../../types/element';
 import { Chapter } from '../../types/chapter';
+import { createCustomDragImage, cleanupDragImage } from './DragPreview';
 
 export interface TreeNodeProps {
   item: NavigatorItem;
@@ -33,6 +34,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const originalPositionRef = useRef<{ index: number; section: string } | null>(null);
+  const dragImageRef = useRef<HTMLElement | null>(null);
 
   const getDragItemType = (): 'chapter' | 'frontMatter' | 'backMatter' => {
     if (item.type === 'chapter') return 'chapter';
@@ -69,6 +71,25 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
     event.dataTransfer.setData('application/json', JSON.stringify(dragData));
     event.dataTransfer.setData('text/plain', item.id);
 
+    // Create custom drag preview image
+    try {
+      const dragImage = createCustomDragImage(item.title, item.type);
+      dragImageRef.current = dragImage;
+
+      // Set the custom drag image with offset
+      event.dataTransfer.setDragImage(dragImage, 20, 20);
+
+      // Clean up after a short delay to ensure the image is captured
+      setTimeout(() => {
+        if (dragImageRef.current) {
+          cleanupDragImage(dragImageRef.current);
+        }
+      }, 0);
+    } catch (error) {
+      console.warn('Failed to create custom drag preview:', error);
+      // Fall back to default browser behavior
+    }
+
     // Set isDragging state for visual feedback
     setIsDragging(true);
 
@@ -77,6 +98,12 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
   };
 
   const handleDragEnd = (event: DragEvent<HTMLLIElement>) => {
+    // Clean up drag image if it still exists
+    if (dragImageRef.current) {
+      cleanupDragImage(dragImageRef.current);
+      dragImageRef.current = null;
+    }
+
     // Reset dragging state
     setIsDragging(false);
     originalPositionRef.current = null;

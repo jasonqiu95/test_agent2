@@ -63,6 +63,8 @@ export const Navigator: React.FC<NavigatorProps> = ({
   const [draggedItemData, setDraggedItemData] = useState<TreeItemDragData | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [isValidDropTarget, setIsValidDropTarget] = useState<boolean>(true);
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionType>>(new Set());
 
   // Determine if selection is controlled or uncontrolled
@@ -298,13 +300,15 @@ export const Navigator: React.FC<NavigatorProps> = ({
     setDraggedItemData(null);
     setDropTargetId(null);
     setDropPosition(null);
+    setDragOverId(null);
+    setIsValidDropTarget(true);
 
     // Remove dragging class
     (e.currentTarget as HTMLElement).classList.remove('dragging');
 
-    // Remove all drop-target classes
-    document.querySelectorAll('.drop-target').forEach((el) => {
-      el.classList.remove('drop-target');
+    // Remove all drag-related classes
+    document.querySelectorAll('.drop-target, .drag-over, .valid-drop-target, .invalid-drop-target').forEach((el) => {
+      el.classList.remove('drop-target', 'drag-over', 'valid-drop-target', 'invalid-drop-target');
     });
   }, []);
 
@@ -328,21 +332,40 @@ export const Navigator: React.FC<NavigatorProps> = ({
 
       console.log('dragover:', { targetItem: targetItem.id, draggedItemId });
 
+      // Set drag-over state
+      setDragOverId(targetItem.id);
+
+      // Validate if this is a valid drop target
+      const draggedItem = items.find((item) => item.id === draggedItemId);
+      const isValid = draggedItem && draggedItem.section === targetItem.section && draggedItemId !== targetItem.id;
+
+      setIsValidDropTarget(isValid);
+
       // Calculate drop position
       const position = calculateDropPosition(e);
       setDropTargetId(targetItem.id);
       setDropPosition(position);
 
-      // Add drop-target class
-      e.currentTarget.classList.add('drop-target');
+      // Add appropriate classes
+      if (isValid) {
+        e.currentTarget.classList.add('drop-target', 'valid-drop-target');
+        e.currentTarget.classList.remove('invalid-drop-target');
+        e.dataTransfer.dropEffect = 'move';
+      } else {
+        e.currentTarget.classList.add('invalid-drop-target');
+        e.currentTarget.classList.remove('drop-target', 'valid-drop-target');
+        e.dataTransfer.dropEffect = 'none';
+      }
 
-      e.dataTransfer.dropEffect = 'move';
+      // Add drag-over class
+      e.currentTarget.classList.add('drag-over');
     },
-    [disabled, draggedItemId, calculateDropPosition]
+    [disabled, draggedItemId, calculateDropPosition, items]
   );
 
   const handleDragLeave = useCallback((e: DragEvent<HTMLLIElement>) => {
-    e.currentTarget.classList.remove('drop-target');
+    e.currentTarget.classList.remove('drop-target', 'drag-over', 'valid-drop-target', 'invalid-drop-target');
+    setDragOverId(null);
   }, []);
 
   const handleDrop = useCallback(
@@ -453,7 +476,9 @@ export const Navigator: React.FC<NavigatorProps> = ({
         console.error('Error handling drop:', error);
       } finally {
         // Clean up
-        e.currentTarget.classList.remove('drop-target');
+        e.currentTarget.classList.remove('drop-target', 'drag-over', 'valid-drop-target', 'invalid-drop-target');
+        setDragOverId(null);
+        setIsValidDropTarget(true);
       }
     },
     [disabled, draggedItemId, draggedItemData, onReorder, getSectionItems, calculateDropPosition]

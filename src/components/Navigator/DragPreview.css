@@ -1,0 +1,98 @@
+.drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 2px solid #0066cc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  max-width: 300px;
+  opacity: 0.95;
+  cursor: grabbing;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.drag-preview-custom {
+  position: fixed;
+  pointer-events: none;
+}
+
+.drag-preview-icon {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #f0f4f8;
+  border-radius: 4px;
+}
+
+.drag-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-preview-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drag-preview-badge {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Type-specific styling */
+.drag-preview-chapter {
+  border-color: #2196f3;
+}
+
+.drag-preview-chapter .drag-preview-icon {
+  background: #e3f2fd;
+}
+
+.drag-preview-element {
+  border-color: #9e9e9e;
+}
+
+.drag-preview-element .drag-preview-icon {
+  background: #f5f5f5;
+}
+
+.drag-preview-style {
+  border-color: #7b1fa2;
+}
+
+.drag-preview-style .drag-preview-icon {
+  background: #f3e5f5;
+}
+
+/* Animation for preview appearance */
+@keyframes dragPreviewAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+}
+
+.drag-preview {
+  animation: dragPreviewAppear 0.15s ease-out;
+}

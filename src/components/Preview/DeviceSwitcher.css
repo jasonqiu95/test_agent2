@@ -1,0 +1,107 @@
+.device-switcher {
+  display: inline-flex;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.device-switcher__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  color: #666666;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.device-switcher__button:hover {
+  background-color: #e0e0e0;
+  color: #333333;
+}
+
+.device-switcher__button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #4a90e2;
+}
+
+.device-switcher__button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.device-switcher__button:focus-visible {
+  box-shadow: 0 0 0 2px #4a90e2;
+}
+
+.device-switcher__button--active {
+  background-color: #ffffff;
+  color: #4a90e2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.device-switcher__button--active:hover {
+  background-color: #ffffff;
+  color: #4a90e2;
+}
+
+.device-switcher__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.device-switcher__label {
+  display: inline-block;
+}
+
+/* Compact mode - hide labels on smaller screens */
+@media (max-width: 768px) {
+  .device-switcher__label {
+    display: none;
+  }
+
+  .device-switcher__button {
+    padding: 8px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .device-switcher {
+    background-color: #2d2d2d;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .device-switcher__button {
+    color: #b0b0b0;
+  }
+
+  .device-switcher__button:hover {
+    background-color: #3e3e3e;
+    color: #e0e0e0;
+  }
+
+  .device-switcher__button:focus-visible {
+    box-shadow: 0 0 0 2px #6db3f2;
+  }
+
+  .device-switcher__button--active {
+    background-color: #1e1e1e;
+    color: #6db3f2;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  .device-switcher__button--active:hover {
+    background-color: #1e1e1e;
+    color: #6db3f2;
+  }
+}

@@ -1525,6 +1525,7 @@ export class HtmlConverter {
     const prefix = this.options.classPrefix || 'book';
     const useSemanticTags = this.options.useSemanticTags ?? true;
     const tagConfig = selectElementTag(element.type, useSemanticTags);
+    const escapeFn = this.options.escapeHtml || escapeHtml;
 
     // Add special classes for title page
     tagConfig.classes.push(generateClassName('element', 'title-page', prefix));
@@ -1548,7 +1549,59 @@ export class HtmlConverter {
 
     fragments.push(`<div class="${contentClasses.join(' ')}">`);
 
-    // Render content blocks with special styling
+    // Render book title with semantic HTML
+    if (this.book.title) {
+      const titleClasses = [
+        generateClassName('title-page-title', undefined, prefix),
+      ];
+      fragments.push(
+        `<h1 class="${titleClasses.join(' ')}">${escapeFn(this.book.title)}</h1>`
+      );
+    }
+
+    // Render subtitle if present
+    if (this.book.subtitle) {
+      const subtitleClasses = [
+        generateClassName('title-page-subtitle', undefined, prefix),
+      ];
+      fragments.push(
+        `<h2 class="${subtitleClasses.join(' ')}">${escapeFn(this.book.subtitle)}</h2>`
+      );
+    }
+
+    // Render authors
+    if (this.book.authors && this.book.authors.length > 0) {
+      const authorsClasses = [
+        generateClassName('title-page-authors', undefined, prefix),
+      ];
+      fragments.push(`<div class="${authorsClasses.join(' ')}">`);
+
+      for (const author of this.book.authors) {
+        const authorClasses = [
+          generateClassName('title-page-author', undefined, prefix),
+        ];
+        const authorRole = author.role && author.role !== 'author'
+          ? ` (${escapeFn(author.role)})`
+          : '';
+        fragments.push(
+          `<p class="${authorClasses.join(' ')}">${escapeFn(author.name)}${authorRole}</p>`
+        );
+      }
+
+      fragments.push('</div>');
+    }
+
+    // Render publisher if present
+    if (this.book.metadata?.publisher) {
+      const publisherClasses = [
+        generateClassName('title-page-publisher', undefined, prefix),
+      ];
+      fragments.push(
+        `<div class="${publisherClasses.join(' ')}">${escapeFn(this.book.metadata.publisher)}</div>`
+      );
+    }
+
+    // Render any additional content blocks if provided in the element
     if (element.content && element.content.length > 0) {
       const contentHtml = element.content
         .map((block) => this.convertTextBlock(block))

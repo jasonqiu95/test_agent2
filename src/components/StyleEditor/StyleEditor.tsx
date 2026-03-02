@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BookStyle } from '../../types/style';
+import { StylePreviewPanel } from './StylePreviewPanel';
 import './StyleEditor.css';
 
 export interface StyleEditorProps {
@@ -12,12 +13,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   onChange,
 }) => {
   const [currentStyle, setCurrentStyle] = useState<BookStyle>(bookStyle);
-
-  const handleStyleChange = (updates: Partial<BookStyle>) => {
-    const updatedStyle = { ...currentStyle, ...updates };
-    setCurrentStyle(updatedStyle);
-    onChange(updatedStyle);
-  };
 
   return (
     <div className="style-editor">
@@ -36,7 +31,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             <h2 className="style-editor__section-title">Live Preview</h2>
           </div>
           <div className="style-editor__preview-content">
-            {/* Live preview will be rendered here */}
+            <StylePreviewPanel bookStyle={currentStyle} />
           </div>
         </div>
       </div>

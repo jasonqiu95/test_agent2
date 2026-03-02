@@ -242,6 +242,92 @@ export class DocxParser {
   }
 
   /**
+   * Process document body elements in chunks to avoid blocking the event loop
+   * @param body - The document body from parsed XML
+   * @param styles - The styles object from parsed XML
+   * @param chunkSize - Number of elements to process before yielding (default 100)
+   * @param progressCallback - Optional callback for progress updates
+   * @param cancellationToken - Optional token to cancel processing
+   * @returns Processed elements array and statistics
+   */
+  private static async processElementsInChunks(
+    body: any,
+    styles: any,
+    chunkSize: number = 100,
+    progressCallback?: (processed: number, total: number) => void,
+    cancellationToken?: { isCancelled: boolean }
+  ): Promise<{
+    elements: DocumentElement[];
+    totalWords: number;
+    totalChars: number;
+  }> {
+    const elements: DocumentElement[] = [];
+    let totalWords = 0;
+    let totalChars = 0;
+
+    // Collect all elements to process
+    const allElements: Array<{ key: string; data: any }> = [];
+    for (const key of Object.keys(body)) {
+      if (key === 'w:p') {
+        // Paragraphs
+        const paragraphs = body[key];
+        for (const p of paragraphs) {
+          allElements.push({ key: 'w:p', data: p });
+        }
+      } else if (key === 'w:sectPr') {
+        // Section properties
+        allElements.push({ key: 'w:sectPr', data: body[key][0] });
+      }
+    }
+
+    const totalElements = allElements.length;
+
+    // Process elements in chunks
+    for (let i = 0; i < allElements.length; i++) {
+      // Check for cancellation
+      if (cancellationToken?.isCancelled) {
+        break;
+      }
+
+      const element = allElements[i];
+
+      if (element.key === 'w:p') {
+        const paragraph = this.parseParagraph(element.data, styles);
+        elements.push(paragraph);
+        totalWords += paragraph.rawText.split(/\s+/).filter(w => w.length > 0).length;
+        totalChars += paragraph.rawText.length;
+      } else if (element.key === 'w:sectPr') {
+        const sectionBreak: SectionBreak = {
+          type: 'section-break',
+          sectionType: this.extractSectionType(element.data)
+        };
+        elements.push(sectionBreak);
+      }
+
+      // Yield control to event loop after processing a chunk
+      if ((i + 1) % chunkSize === 0) {
+        // Call progress callback if provided
+        if (progressCallback) {
+          progressCallback(i + 1, totalElements);
+        }
+        // Yield control to the event loop
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    }
+
+    // Final progress update
+    if (progressCallback && !cancellationToken?.isCancelled) {
+      progressCallback(allElements.length, totalElements);
+    }
+
+    return {
+      elements,
+      totalWords,
+      totalChars
+    };
+  }
+
+  /**
    * Parse a single paragraph element
    */
   private static parseParagraph(p: any, _styles: any): Paragraph {

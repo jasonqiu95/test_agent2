@@ -4273,8 +4273,9 @@ export function generateTocHtml(
   ];
 
   // Build ARIA attributes
-  const ariaLabel = 'aria-label="Table of Contents"';
-  const roleAttr = ' role="doc-toc"';
+  const includeAria = options.includeAria ?? true;
+  const ariaLabel = includeAria ? ' aria-label="Table of Contents"' : '';
+  const roleAttr = includeAria ? ' role="doc-toc"' : '';
 
   // Generate TOC entries HTML
   const entriesHtml = entries.map(entry =>
@@ -4286,7 +4287,7 @@ export function generateTocHtml(
   const tocTitle = `<h1 class="${tocTitleClass}">Contents</h1>`;
 
   // Wrap in nav element with semantic markup
-  return `<nav class="${tocClasses.join(' ')}"${roleAttr} ${ariaLabel}>
+  return `<nav class="${tocClasses.join(' ')}"${roleAttr}${ariaLabel}>
 ${tocTitle}
 <ol>
 ${entriesHtml}

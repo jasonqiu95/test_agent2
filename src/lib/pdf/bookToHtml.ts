@@ -33,6 +33,13 @@ import { Element, ElementType, MatterType } from '../../types/element';
 import { TextBlock } from '../../types/textBlock';
 import { BookStyle, Style } from '../../types/style';
 import { Break, TextFeature } from '../../types/textFeature';
+import {
+  TextSegment,
+  InlineText,
+  InlineStyle,
+  LinkReference,
+  FootnoteReference
+} from '../../types/inlineText';
 
 /**
  * Ornamental break style options
@@ -116,9 +123,15 @@ export const CssClassNames = {
     ITALIC: 'italic',
     BOLD: 'bold',
     UNDERLINE: 'underline',
+    STRIKETHROUGH: 'strikethrough',
+    SUPERSCRIPT: 'superscript',
+    SUBSCRIPT: 'subscript',
     UPPERCASE: 'uppercase',
     LOWERCASE: 'lowercase',
     CAPITALIZE: 'capitalize',
+    LINK: 'link',
+    FOOTNOTE_REF: 'footnote-ref',
+    STYLED_TEXT: 'styled-text',
   },
 
   // State modifiers
@@ -278,6 +291,10 @@ export interface HtmlGenerationContext {
   currentHeadingLevel: number;
   /** Accumulated HTML fragments */
   htmlFragments: string[];
+  /** Footnote reference counter for auto-numbering */
+  footnoteCounter?: number;
+  /** Map of footnote reference IDs to numbers */
+  footnoteNumbers?: Map<string, number>;
 }
 
 /**
@@ -813,6 +830,8 @@ export class HtmlConverter {
       isFirstParagraph: true,
       currentHeadingLevel: 1,
       htmlFragments: [],
+      footnoteCounter: 0,
+      footnoteNumbers: new Map(),
     };
   }
 
@@ -1305,9 +1324,8 @@ export class HtmlConverter {
       classes.push(generateClassName('paragraph', 'empty', prefix));
     }
 
-    // Escape and prepare content
-    const escapeFn = this.options.escapeHtml || escapeHtml;
-    const escapedContent = isEmpty ? '&nbsp;' : escapeFn(content);
+    // Convert content with inline formatting
+    const processedContent = isEmpty ? '&nbsp;' : this.convertTextContent(block);
 
     // Build attributes
     const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
@@ -1321,7 +1339,209 @@ export class HtmlConverter {
       this.context.isFirstParagraph = false;
     }
 
-    return `<p${classAttr}${styleAttr}>${escapedContent}</p>`;
+    return `<p${classAttr}${styleAttr}>${processedContent}</p>`;
+  }
+
+  /**
+   * Convert text content with inline formatting
+   * Processes richText if available, otherwise falls back to plain content
+   */
+  private convertTextContent(block: TextBlock): string {
+    // If richText is available, process inline formatting
+    if (block.richText && block.richText.segments.length > 0) {
+      return this.convertRichText(block.richText.segments);
+    }
+
+    // Otherwise, escape and return plain content
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    return escapeFn(block.content || '');
+  }
+
+  /**
+   * Convert rich text segments to HTML with inline formatting
+   */
+  private convertRichText(segments: TextSegment[]): string {
+    return segments.map((segment) => this.convertTextSegment(segment)).join('');
+  }
+
+  /**
+   * Convert a single text segment to HTML
+   */
+  private convertTextSegment(segment: TextSegment): string {
+    // Handle different segment types
+    if ('type' in segment) {
+      if (segment.type === 'link') {
+        return this.convertLinkSegment(segment as LinkReference);
+      } else if (segment.type === 'footnote') {
+        return this.convertFootnoteSegment(segment as FootnoteReference);
+      }
+      // Image references would be handled here if needed
+      return '';
+    }
+
+    // Handle inline text with formatting
+    const inlineText = segment as InlineText;
+    return this.convertInlineText(inlineText);
+  }
+
+  /**
+   * Convert inline text with formatting styles
+   * Handles nested formatting like bold, italic, underline, etc.
+   */
+  private convertInlineText(inlineText: InlineText): string {
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    let content = escapeFn(inlineText.text);
+
+    if (!inlineText.style) {
+      return content;
+    }
+
+    const style = inlineText.style;
+    const prefix = this.options.classPrefix || 'book';
+
+    // Apply formatting in order (innermost to outermost)
+    // Superscript and subscript are mutually exclusive
+    if (style.superscript) {
+      const classes = generateClassName('superscript', undefined, prefix);
+      content = `<sup class="${classes}">${content}</sup>`;
+    } else if (style.subscript) {
+      const classes = generateClassName('subscript', undefined, prefix);
+      content = `<sub class="${classes}">${content}</sub>`;
+    }
+
+    // Strikethrough
+    if (style.strikethrough) {
+      const classes = generateClassName('strikethrough', undefined, prefix);
+      content = `<s class="${classes}">${content}</s>`;
+    }
+
+    // Underline
+    if (style.underline) {
+      const classes = generateClassName('underline', undefined, prefix);
+      content = `<u class="${classes}">${content}</u>`;
+    }
+
+    // Italic
+    if (style.italic) {
+      const classes = generateClassName('italic', undefined, prefix);
+      content = `<em class="${classes}">${content}</em>`;
+    }
+
+    // Bold
+    if (style.bold) {
+      const classes = generateClassName('bold', undefined, prefix);
+      content = `<strong class="${classes}">${content}</strong>`;
+    }
+
+    // Handle additional styles (color, highlight, fontSize, fontFamily)
+    if (style.color || style.highlight || style.fontSize || style.fontFamily) {
+      const spanClasses: string[] = [generateClassName('styled-text', undefined, prefix)];
+      const inlineStyles: string[] = [];
+
+      if (style.color) {
+        inlineStyles.push(`color: ${style.color}`);
+      }
+      if (style.highlight) {
+        inlineStyles.push(`background-color: ${style.highlight}`);
+      }
+      if (style.fontSize) {
+        inlineStyles.push(`font-size: ${style.fontSize}px`);
+      }
+      if (style.fontFamily) {
+        inlineStyles.push(`font-family: ${style.fontFamily}`);
+      }
+
+      const classAttr = ` class="${spanClasses.join(' ')}"`;
+      const styleAttr = inlineStyles.length > 0 && this.options.includeInlineStyles
+        ? ` style="${inlineStyles.join('; ')}"`
+        : '';
+
+      content = `<span${classAttr}${styleAttr}>${content}</span>`;
+    }
+
+    return content;
+  }
+
+  /**
+   * Convert link segment to HTML anchor tag
+   */
+  private convertLinkSegment(link: LinkReference): string {
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const prefix = this.options.classPrefix || 'book';
+
+    // Process link text with potential inline formatting
+    let linkText: string;
+    if (link.style) {
+      linkText = this.convertInlineText({ text: link.text, style: link.style });
+    } else {
+      linkText = escapeFn(link.text);
+    }
+
+    // Build link attributes
+    const classes = [generateClassName('link', undefined, prefix)];
+    const attributes: string[] = [`href="${escapeFn(link.url)}"`];
+
+    if (link.title) {
+      attributes.push(`title="${escapeFn(link.title)}"`);
+    }
+
+    if (link.target) {
+      attributes.push(`target="${link.target}"`);
+      // Add rel="noopener noreferrer" for security when opening in new tab
+      if (link.target === '_blank' && !link.rel) {
+        attributes.push(`rel="noopener noreferrer"`);
+      }
+    }
+
+    if (link.rel) {
+      attributes.push(`rel="${link.rel}"`);
+    }
+
+    const classAttr = ` class="${classes.join(' ')}"`;
+    return `<a${classAttr} ${attributes.join(' ')}>${linkText}</a>`;
+  }
+
+  /**
+   * Convert footnote reference to HTML
+   * Handles auto-numbering and links to footnote content
+   */
+  private convertFootnoteSegment(footnote: FootnoteReference): string {
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const prefix = this.options.classPrefix || 'book';
+
+    // Get or assign footnote number
+    let number: number;
+    if (footnote.number !== undefined) {
+      number = footnote.number;
+    } else if (this.context.footnoteNumbers?.has(footnote.referenceId)) {
+      number = this.context.footnoteNumbers.get(footnote.referenceId)!;
+    } else {
+      // Auto-assign number
+      this.context.footnoteCounter = (this.context.footnoteCounter || 0) + 1;
+      number = this.context.footnoteCounter;
+      if (!this.context.footnoteNumbers) {
+        this.context.footnoteNumbers = new Map();
+      }
+      this.context.footnoteNumbers.set(footnote.referenceId, number);
+    }
+
+    // Use symbol if provided, otherwise use number
+    const displayText = footnote.symbol || number.toString();
+
+    // Build footnote reference
+    const classes = [generateClassName('footnote-ref', undefined, prefix)];
+    const refId = `fnref-${footnote.referenceId}`;
+    const targetId = `fn-${footnote.referenceId}`;
+
+    const classAttr = ` class="${classes.join(' ')}"`;
+    const idAttr = ` id="${refId}"`;
+    const hrefAttr = ` href="#${targetId}"`;
+    const roleAttr = this.options.includeAria ? ` role="doc-noteref"` : '';
+    const ariaLabel = this.options.includeAria
+      ? ` aria-label="Footnote ${number}"`
+      : '';
+
+    return `<sup${classAttr}><a${idAttr}${hrefAttr}${roleAttr}${ariaLabel}>${escapeFn(displayText)}</a></sup>`;
   }
 
   /**

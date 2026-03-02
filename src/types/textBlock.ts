@@ -5,9 +5,11 @@
 import { Metadata, Location } from './common';
 import { StyleReference } from './style';
 import { TextFeature } from './textFeature';
+import { RichText } from './inlineText';
 
 export interface TextBlock extends Metadata {
   content: string;
+  richText?: RichText; // Rich text with inline formatting
   blockType: 'paragraph' | 'heading' | 'preformatted' | 'code' | 'list';
   style?: StyleReference & {
     alignment?: 'left' | 'center' | 'right' | 'justify';

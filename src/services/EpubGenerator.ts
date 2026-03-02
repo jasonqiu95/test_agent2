@@ -3,6 +3,7 @@
  * Handles the generation of EPUB files from book content
  */
 
+import JSZip from 'jszip';
 import { Book } from '../types/book';
 import { BookStyle } from '../types/style';
 
@@ -110,6 +111,32 @@ export class EpubGenerator {
   private validateBook(book: Book): boolean {
     // TODO: Implement validation logic
     return book.chapters.length > 0;
+  }
+
+  /**
+   * Builds the EPUB directory structure with required folders and mimetype file
+   * @returns JSZip instance with the basic EPUB structure
+   */
+  buildEpubStructure(): JSZip {
+    const zip = new JSZip();
+
+    // Add mimetype file (must be uncompressed and first in archive)
+    // The mimetype file must be the first file and stored without compression
+    zip.file('mimetype', 'application/epub+zip', {
+      compression: 'STORE',
+      // Setting date to a fixed value ensures deterministic output
+      date: new Date('2000-01-01T00:00:00Z'),
+    });
+
+    // Create META-INF directory
+    // This directory contains container.xml which points to the content.opf file
+    zip.folder('META-INF');
+
+    // Create OEBPS directory (Open eBook Publication Structure)
+    // This directory contains the actual content files (HTML, CSS, images, etc.)
+    zip.folder('OEBPS');
+
+    return zip;
   }
 
   /**

@@ -413,13 +413,11 @@ const mockHelveticaStyle: BookStyle = {
 
 /**
  * ===========================================================================
-<<<<<<< HEAD
  * COMPREHENSIVE PREVIEW PANEL EDGE CASE AND ERROR HANDLING TESTS
  * ===========================================================================
  */
 
 import { PreviewPanel } from './PreviewPanel';
-<<<<<<< HEAD
 import { updateChapter } from '../../slices/bookSlice';
 
 // Get the mocked hook to control its behavior
@@ -451,7 +449,7 @@ describe('PreviewPanel Live Content Update Synchronization', () => {
     });
 
     // Clear all mocks before each test
-=======
+
  * STYLE APPLICATION TO PREVIEW TESTS
  * ===========================================================================
  */
@@ -459,12 +457,10 @@ describe('PreviewPanel Live Content Update Synchronization', () => {
 describe('Preview Style Application', () => {
   beforeEach(() => {
     mockRequestIdleCallback();
->>>>>>> agent/test-style-application-to-preview
     jest.clearAllMocks();
   });
 
   afterEach(() => {
-<<<<<<< HEAD
     // Clean up mocked functions
     cleanupMocks();
 
@@ -529,6 +525,289 @@ describe('Preview Style Application', () => {
             books: [],
             loading: false,
             error: null,
+
+/**
+ * ===========================================================================
+ * DEVICE TYPE SWITCHING INTEGRATION TESTS
+ * ===========================================================================
+ *
+ * Comprehensive tests for device type switching functionality including:
+ * - Preview dimension updates for each device type
+ * - Device-specific style application
+ * - Viewport size mocking
+ * - Integration with device controls
+ */
+
+// Import necessary components for integration testing
+import { DeviceSwitcher } from './DeviceSwitcher';
+import { PreviewContent } from './PreviewContent';
+import { DeviceChrome } from './DeviceChrome';
+import deviceDimensions from '../../constants/deviceDimensions';
+
+// Mock device-specific CSS imports
+jest.mock('./PreviewContent.css', () => ({}));
+jest.mock('./DeviceChrome.css', () => ({}));
+
+describe('Device Type Switching Integration', () => {
+  beforeEach(() => {
+    mockRequestIdleCallback();
+    jest.clearAllMocks();
+
+    // Mock window.postMessage for iframe communication
+    window.postMessage = jest.fn();
+  });
+
+  afterEach(() => {
+    cleanupMocks();
+    jest.resetAllMocks();
+  });
+
+  describe('Device Controls Rendering', () => {
+    it('should render DeviceSwitcher controls correctly', () => {
+      renderWithProviders(<DeviceSwitcher />);
+
+      expect(screen.getByLabelText('Switch to iPad mode')).toBeInTheDocument();
+      expect(screen.getByLabelText('Switch to Kindle mode')).toBeInTheDocument();
+      expect(screen.getByLabelText('Switch to iPhone mode')).toBeInTheDocument();
+      expect(screen.getByLabelText('Switch to Print Spread mode')).toBeInTheDocument();
+    });
+
+    it('should render device controls with correct initial state', () => {
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      const iPadButton = screen.getByLabelText('Switch to iPad mode');
+      expect(iPadButton).toHaveClass('device-switcher__button--active');
+      expect(store.getState().preview.deviceMode).toBe('iPad');
+    });
+  });
+
+  describe('Device Mode Changes and Dimension Updates', () => {
+    it('should update device mode in store when clicking Kindle button', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      await user.click(screen.getByLabelText('Switch to Kindle mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('Kindle');
+      });
+    });
+
+    it('should update device mode in store when clicking iPhone button', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      await user.click(screen.getByLabelText('Switch to iPhone mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('iPhone');
+      });
+    });
+
+    it('should update device mode in store when clicking PrintSpread button', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      await user.click(screen.getByLabelText('Switch to Print Spread mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('PrintSpread');
+      });
+    });
+
+    it('should verify iPad device dimensions from config', () => {
+      expect(deviceDimensions.iPad).toBeDefined();
+      expect(deviceDimensions.iPad.viewport.width).toBe(1536);
+      expect(deviceDimensions.iPad.viewport.height).toBe(2048);
+      expect(deviceDimensions.iPad.ppi).toBe(264);
+    });
+
+    it('should verify Kindle device dimensions from config', () => {
+      expect(deviceDimensions.Kindle).toBeDefined();
+      expect(deviceDimensions.Kindle.viewport.width).toBe(758);
+      expect(deviceDimensions.Kindle.viewport.height).toBe(1024);
+      expect(deviceDimensions.Kindle.ppi).toBe(300);
+    });
+
+    it('should verify iPhone device dimensions from config', () => {
+      expect(deviceDimensions.iPhone).toBeDefined();
+      expect(deviceDimensions.iPhone.viewport.width).toBe(750);
+      expect(deviceDimensions.iPhone.viewport.height).toBe(1334);
+      expect(deviceDimensions.iPhone.ppi).toBe(326);
+    });
+
+    it('should verify PrintSpread device dimensions from config', () => {
+      expect(deviceDimensions.PrintSpread).toBeDefined();
+      expect(deviceDimensions.PrintSpread.ppi).toBe(300);
+      expect(deviceDimensions.PrintSpread.isVariable).toBe(true);
+      expect(deviceDimensions.PrintSpread.trimSizes).toBeDefined();
+    });
+  });
+
+  describe('PreviewContent with Device Modes', () => {
+    it('should render PreviewContent with desktop mode by default', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test content</p>" deviceMode="desktop" />
+      );
+
+      const previewContainer = container.querySelector('.device-desktop');
+      expect(previewContainer).toBeInTheDocument();
+    });
+
+    it('should render PreviewContent with tablet mode', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test content</p>" deviceMode="tablet" />
+      );
+
+      const previewContainer = container.querySelector('.device-tablet');
+      expect(previewContainer).toBeInTheDocument();
+    });
+
+    it('should render PreviewContent with mobile mode', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test content</p>" deviceMode="mobile" />
+      );
+
+      const previewContainer = container.querySelector('.device-mobile');
+      expect(previewContainer).toBeInTheDocument();
+    });
+
+    it('should render empty state when no content provided', () => {
+      renderWithProviders(<PreviewContent content="" deviceMode="desktop" />);
+
+      expect(screen.getByText('No content to preview')).toBeInTheDocument();
+      expect(screen.getByText('Add content to see it rendered here')).toBeInTheDocument();
+    });
+
+    it('should apply custom styles to PreviewContent', () => {
+      const customStyles = '.test { color: red; }';
+      renderWithProviders(
+        <PreviewContent
+          content="<p>Test</p>"
+          styles={customStyles}
+          deviceMode="desktop"
+        />
+      );
+
+      expect(screen.getByTitle('Content Preview')).toBeInTheDocument();
+    });
+  });
+
+  describe('DeviceChrome Visual Rendering', () => {
+    it('should render desktop chrome correctly', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="desktop">
+          <div>Test Content</div>
+        </DeviceChrome>
+      );
+
+      expect(container.querySelector('.device-chrome-desktop')).toBeInTheDocument();
+    });
+
+    it('should render iPad chrome with device bezel', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="ipad">
+          <div>Test Content</div>
+        </DeviceChrome>
+      );
+
+      expect(container.querySelector('.device-chrome-ipad')).toBeInTheDocument();
+      expect(container.querySelector('.ipad-bezel')).toBeInTheDocument();
+      expect(container.querySelector('.ipad-camera')).toBeInTheDocument();
+    });
+
+    it('should render iPhone chrome with notch', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="iphone">
+          <div>Test Content</div>
+        </DeviceChrome>
+      );
+
+      expect(container.querySelector('.device-chrome-iphone')).toBeInTheDocument();
+      expect(container.querySelector('.device-notch')).toBeInTheDocument();
+      expect(container.querySelector('.notch-camera')).toBeInTheDocument();
+    });
+
+    it('should render Kindle chrome with brand label', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="kindle">
+          <div>Test Content</div>
+        </DeviceChrome>
+      );
+
+      expect(container.querySelector('.device-chrome-kindle')).toBeInTheDocument();
+      expect(container.querySelector('.kindle-brand')).toBeInTheDocument();
+      expect(screen.getByText('Kindle')).toBeInTheDocument();
+    });
+
+    it('should render PrintSpread chrome with book pages', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="printspread">
+          <div>Test Content</div>
+        </DeviceChrome>
+      );
+
+      expect(container.querySelector('.device-chrome-printspread')).toBeInTheDocument();
+      expect(container.querySelector('.book-left-page')).toBeInTheDocument();
+      expect(container.querySelector('.book-right-page')).toBeInTheDocument();
+      expect(container.querySelector('.book-spine')).toBeInTheDocument();
+    });
+  });
+
+  describe('Complete Device Switching Flow', () => {
+    it('should handle complete flow: render switcher, click button, verify state', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(
+        <div>
+          <DeviceSwitcher />
+          <PreviewContent content="<p>Test content</p>" />
+        </div>
+      );
+
+      // Initial state
+      expect(store.getState().preview.deviceMode).toBe('iPad');
+
+      // Switch to Kindle
+      await user.click(screen.getByLabelText('Switch to Kindle mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('Kindle');
+      });
+
+      // Verify Kindle button is active
+      const kindleButton = screen.getByLabelText('Switch to Kindle mode');
+      expect(kindleButton).toHaveClass('device-switcher__button--active');
+    });
+
+    it('should transition through all device types correctly', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      const transitions = [
+        { button: 'Switch to Kindle mode', expectedMode: 'Kindle' },
+        { button: 'Switch to iPhone mode', expectedMode: 'iPhone' },
+        { button: 'Switch to Print Spread mode', expectedMode: 'PrintSpread' },
+        { button: 'Switch to iPad mode', expectedMode: 'iPad' },
+      ];
+
+      for (const transition of transitions) {
+        await user.click(screen.getByLabelText(transition.button));
+        await waitFor(() => {
+          expect(store.getState().preview.deviceMode).toBe(transition.expectedMode);
+        });
+      }
+    });
+  });
+
+  describe('Mock Viewport Testing', () => {
+    it('should handle viewport size mocking for iPad', () => {
+      const { store } = renderWithProviders(<DeviceSwitcher />, {
+        preloadedState: {
+          preview: {
+            deviceMode: 'iPad',
+            zoomLevel: 100,
+            currentPage: 1,
+            totalPages: 0,
           },
         },
       });
@@ -538,9 +817,7 @@ describe('Preview Style Application', () => {
         title: 'Chapter 1 Updated',
         content: [{ type: 'paragraph', text: 'New content from Redux' }],
       };
-
       store.dispatch(updateChapter({ id: 'chapter-1', updates: chapterUpdates }));
-
       // Verify Redux state was updated
       const state = store.getState();
       const updatedChapter = state.book.currentBook?.chapters[0];
@@ -549,7 +826,6 @@ describe('Preview Style Application', () => {
         { type: 'paragraph', text: 'New content from Redux' },
       ]);
     });
-
     it('should handle multiple rapid content changes correctly', async () => {
       mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Content 1</p>',
@@ -557,11 +833,9 @@ describe('Preview Style Application', () => {
         triggerUpdate: triggerUpdateMock,
         cancelPendingUpdates: cancelPendingUpdatesMock,
       });
-
       const { rerender } = renderWithProviders(
         <PreviewPanel content="<p>Content 1</p>" debounceDelay={400} />
       );
-
       // Simulate rapid content changes
       const changes = [
         '<p>Content 2</p>',
@@ -569,73 +843,40 @@ describe('Preview Style Application', () => {
         '<p>Content 4</p>',
         '<p>Final content</p>',
       ];
-
       changes.forEach((content) => {
         rerender(<PreviewPanel content={content} debounceDelay={400} />);
-      });
-
       // Verify triggerUpdate was called for each change
       await waitFor(() => {
         expect(triggerUpdateMock).toHaveBeenCalledTimes(5); // Initial + 4 updates
-      });
-
       // Verify the last call was with the final content
       expect(triggerUpdateMock).toHaveBeenLastCalledWith(
-        '<p>Final content</p>',
         'text-edit'
-      );
-    });
-
     it('should properly debounce text edit updates', async () => {
       const debounceDelay = 400;
-
-      mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Initial</p>',
-        isUpdating: true,
-        triggerUpdate: triggerUpdateMock,
-        cancelPendingUpdates: cancelPendingUpdatesMock,
-      });
-
       renderWithProviders(
         <PreviewPanel
           content="<p>Initial</p>"
           updateType="text-edit"
           debounceDelay={debounceDelay}
         />
-      );
-
       // Verify debounce delay was passed to the hook
       expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           debounceDelay,
         })
-      );
-    });
-
     it('should update immediately for navigation events', async () => {
-      mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Chapter 1</p>',
         isUpdating: false,
-        triggerUpdate: triggerUpdateMock,
-        cancelPendingUpdates: cancelPendingUpdatesMock,
-      });
-
-      renderWithProviders(
         <PreviewPanel content="<p>Chapter 1</p>" updateType="navigation" />
-      );
-
       // Verify triggerUpdate was called with navigation type
       expect(triggerUpdateMock).toHaveBeenCalledWith(
         '<p>Chapter 1</p>',
         'navigation'
-      );
-=======
 import { usePreviewUpdate } from '../../hooks/usePreviewUpdate';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
-
 // Get mock functions for assertions
 const mockUsePreviewUpdate = usePreviewUpdate as jest.Mock;
-
 describe('PreviewPanel Edge Cases and Error Handling', () => {
   // Setup mock defaults before each test
   beforeEach(() => {
@@ -645,380 +886,133 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       isUpdating: false,
       triggerUpdate: jest.fn(),
       cancelPendingUpdates: jest.fn(),
-    });
   });
-
   describe('Empty Content Handling', () => {
     it('should render placeholder when content is empty string', () => {
       mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: '',
-        isUpdating: false,
         triggerUpdate: jest.fn(),
         cancelPendingUpdates: jest.fn(),
-      });
-
       renderWithProviders(<PreviewPanel content="" />);
-
       expect(screen.getByText('No content to preview')).toBeInTheDocument();
-    });
-
     it('should render placeholder when content is only whitespace', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       renderWithProviders(<PreviewPanel content="   \n  \t  " />);
-
-      expect(screen.getByText('No content to preview')).toBeInTheDocument();
-    });
-
     it('should render placeholder when previewContent is empty', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
-
-      expect(screen.getByText('No content to preview')).toBeInTheDocument();
-    });
-
     it('should not crash with null or undefined content', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: null as any,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
-      renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
-
-      expect(screen.getByText('No content to preview')).toBeInTheDocument();
-    });
-  });
-
   describe('Very Long Chapters', () => {
     it('should render very long content without crashing', () => {
       const longContent = '<p>' + 'Lorem ipsum dolor sit amet. '.repeat(10000) + '</p>';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: longContent,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={longContent} />);
-
       const previewText = container.querySelector('.preview-panel__text');
       expect(previewText).toBeInTheDocument();
       expect(previewText?.innerHTML).toContain('Lorem ipsum');
-    });
-
     it('should handle extremely large content (>1MB)', () => {
       // Create a very large string (~2MB)
       const hugeContent = '<p>' + 'X'.repeat(2000000) + '</p>';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: hugeContent,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={hugeContent} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
-    });
-
     it('should trigger update with very long content', () => {
       const triggerUpdate = jest.fn();
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: '<p>Test</p>',
-        isUpdating: false,
         triggerUpdate,
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const veryLongContent = '<p>' + 'Content '.repeat(50000) + '</p>';
       renderWithProviders(<PreviewPanel content={veryLongContent} />);
-
       expect(triggerUpdate).toHaveBeenCalledWith(veryLongContent, 'text-edit');
-    });
-  });
-
   describe('Chapters with Only Images', () => {
     it('should render content with only image tags', () => {
       const imageOnlyContent = '<img src="data:image/png;base64,iVBORw0KGg" alt="Test Image" />';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: imageOnlyContent,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={imageOnlyContent} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
       expect(previewText?.innerHTML).toContain('img');
-    });
-
     it('should handle multiple images without text', () => {
       const multipleImages = `
         <img src="data:image/png;base64,abc" alt="Image 1" />
         <img src="data:image/png;base64,def" alt="Image 2" />
         <img src="data:image/png;base64,ghi" alt="Image 3" />
       `;
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: multipleImages,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={multipleImages} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
       expect(previewText?.innerHTML).toContain('Image 1');
       expect(previewText?.innerHTML).toContain('Image 2');
       expect(previewText?.innerHTML).toContain('Image 3');
-    });
-
     it('should handle images with missing src attributes', () => {
       const brokenImages = `
         <img alt="Broken Image 1" />
         <img alt="Broken Image 2" />
-      `;
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: brokenImages,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={brokenImages} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
-    });
-  });
-
   describe('Malformed Content', () => {
     it('should handle unclosed HTML tags', () => {
       const malformedHtml = '<p>Unclosed paragraph<div>Unclosed div<span>Unclosed span';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: malformedHtml,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={malformedHtml} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
-    });
-
     it('should handle invalid HTML entities', () => {
       const invalidEntities = '<p>&invalid; &unknown; &123abc;</p>';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: invalidEntities,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={invalidEntities} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
-    });
-
     it('should handle script tags safely', () => {
       const scriptContent = '<p>Safe content</p><script>alert("XSS")</script>';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: scriptContent,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={scriptContent} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
       // Note: dangerouslySetInnerHTML will render scripts, but they won't execute in jsdom
-    });
-
     it('should handle deeply nested HTML', () => {
       const deeplyNested = '<div>'.repeat(100) + 'Content' + '</div>'.repeat(100);
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: deeplyNested,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={deeplyNested} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
       expect(previewText?.innerHTML).toContain('Content');
-    });
-
     it('should handle mixed valid and invalid markup', () => {
       const mixedMarkup = `
         <p>Valid paragraph</p>
         <invalid-tag>Invalid content</invalid-tag>
         <p class="unclosed">
         <div>Another valid div</div>
-      `;
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: mixedMarkup,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={mixedMarkup} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
-    });
-
     it('should handle special characters and unicode', () => {
       const specialChars = '<p>Special: © ® ™ € £ ¥ ñ ü 中文 日本語 한국어 🎉 👍</p>';
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: specialChars,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content={specialChars} />);
-
-      const previewText = container.querySelector('.preview-panel__text');
       expect(previewText?.innerHTML).toContain('Special:');
-    });
-  });
-
   describe('Missing Style Definitions', () => {
     it('should render without custom className', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Test</p>',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
-
       const panel = container.querySelector('.preview-panel');
       expect(panel).toBeInTheDocument();
       expect(panel?.classList.contains('preview-panel')).toBe(true);
-    });
-
     it('should handle undefined updateType gracefully', () => {
-      const triggerUpdate = jest.fn();
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Test</p>',
-        isUpdating: false,
-        triggerUpdate,
-        cancelPendingUpdates: jest.fn(),
-      });
-
       renderWithProviders(<PreviewPanel content="<p>Test</p>" updateType={undefined} />);
-
       // Should use default 'text-edit' updateType when undefined is passed
       expect(triggerUpdate).toHaveBeenCalledWith('<p>Test</p>', 'text-edit');
-    });
-
     it('should handle missing optional props', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Test</p>',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
-      renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
-
       expect(screen.getByText('Preview')).toBeInTheDocument();
-    });
-
     it('should apply empty string className without error', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Test</p>',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(
         <PreviewPanel content="<p>Test</p>" className="" />
-      );
-
-      const panel = container.querySelector('.preview-panel');
-      expect(panel).toBeInTheDocument();
-    });
-  });
-
   describe('Render Errors and Error Boundaries', () => {
     // Suppress console errors for these tests
     const originalError = console.error;
     beforeAll(() => {
       console.error = jest.fn();
-    });
     afterAll(() => {
       console.error = originalError;
-    });
-
     it('should catch errors with ErrorBoundary and show fallback UI', () => {
       const ThrowError = () => {
         throw new Error('Test render error');
-      };
-
-      renderWithProviders(
         <ErrorBoundary fallback={<div>Error occurred</div>}>
           <ThrowError />
         </ErrorBoundary>
-      );
-
       expect(screen.getByText('Error occurred')).toBeInTheDocument();
-    });
-
     it('should catch errors in PreviewPanel with ErrorBoundary', () => {
       // Create a component that throws an error
       const BrokenPreview = () => {
         throw new Error('Preview render error');
-      };
-
       const onError = jest.fn();
-
-      renderWithProviders(
         <ErrorBoundary onError={onError}>
           <BrokenPreview />
-        </ErrorBoundary>
-      );
-
       expect(onError).toHaveBeenCalled();
-    });
-
     it('should recover from error when reset', () => {
       let shouldThrow = true;
       const ConditionalError = () => {
@@ -1026,17 +1020,11 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
           throw new Error('Conditional error');
         }
         return <div>Recovered</div>;
-      };
-
       const { rerender, store } = renderWithProviders(
         <ErrorBoundary>
           <ConditionalError />
-        </ErrorBoundary>
-      );
-
       // Error should be caught
       expect(screen.queryByText('Recovered')).not.toBeInTheDocument();
-
       // Reset error and rerender
       shouldThrow = false;
       rerender(
@@ -1045,34 +1033,15 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
             <ConditionalError />
           </ErrorBoundary>
         </AllProviders>
-      );
-    });
-
     it('should handle errors during dangerouslySetInnerHTML', () => {
       // dangerouslySetInnerHTML itself won't throw, but we test the component structure
       const problematicContent = '<p>Normal content</p>'.repeat(1000);
-
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: problematicContent,
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
-      const { container } = renderWithProviders(
-        <ErrorBoundary>
           <PreviewPanel content={problematicContent} />
-        </ErrorBoundary>
-      );
-
-      const previewText = container.querySelector('.preview-panel__text');
-      expect(previewText).toBeInTheDocument();
->>>>>>> agent/test-preview-edge-cases-and-error-handling
     });
   });
 
   describe('Loading States', () => {
-<<<<<<< HEAD
     it('should show loading indicator when preview is updating', () => {
       mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Content</p>',
@@ -1099,7 +1068,7 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       });
 
       renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
-=======
+
     it('should show loading indicator when isUpdating is true', () => {
       mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: '<p>Test</p>',
@@ -1123,13 +1092,11 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       });
 
       renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
->>>>>>> agent/test-preview-edge-cases-and-error-handling
 
       const loadingIndicator = screen.queryByTitle('Updating preview...');
       expect(loadingIndicator).not.toBeInTheDocument();
     });
 
-<<<<<<< HEAD
     it('should transition from loading to loaded state', () => {
       mockUsePreviewUpdate.mockReturnValue({
         previewContent: '<p>Content</p>',
@@ -1137,90 +1104,42 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
         triggerUpdate: triggerUpdateMock,
         cancelPendingUpdates: cancelPendingUpdatesMock,
       });
-
       const { rerender } = renderWithProviders(
         <PreviewPanel content="<p>Content</p>" />
       );
-
       // Verify loading state
       expect(screen.getByTitle('Updating preview...')).toBeInTheDocument();
-
       // Simulate update completion
-      mockUsePreviewUpdate.mockReturnValue({
-        previewContent: '<p>Content</p>',
         isUpdating: false,
-        triggerUpdate: triggerUpdateMock,
-        cancelPendingUpdates: cancelPendingUpdatesMock,
-      });
-
       rerender(<PreviewPanel content="<p>Content</p>" />);
-
       // Verify loading state is gone
-=======
     it('should show spinner SVG when loading', () => {
       mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: '<p>Test</p>',
-        isUpdating: true,
         triggerUpdate: jest.fn(),
         cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
-
       const spinner = container.querySelector('.preview-panel__spinner');
       expect(spinner).toBeInTheDocument();
       expect(spinner?.tagName).toBe('svg');
     });
-
     it('should display content while loading', () => {
-      mockUsePreviewUpdate.mockReturnValueOnce({
         previewContent: '<p>Existing content</p>',
-        isUpdating: true,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { container } = renderWithProviders(<PreviewPanel content="<p>New content</p>" />);
-
       // Should show both loading indicator and existing content
-      expect(screen.getByTitle('Updating preview...')).toBeInTheDocument();
       const previewText = container.querySelector('.preview-panel__text');
       expect(previewText?.innerHTML).toContain('Existing content');
-    });
-
-    it('should transition from loading to loaded state', () => {
       // First render with loading state
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Content</p>',
-        isUpdating: true,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       const { rerender, store } = renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
-
-      expect(screen.getByTitle('Updating preview...')).toBeInTheDocument();
-
       // Update mock to not be loading
-      mockUsePreviewUpdate.mockReturnValueOnce({
-        previewContent: '<p>Content</p>',
-        isUpdating: false,
-        triggerUpdate: jest.fn(),
-        cancelPendingUpdates: jest.fn(),
-      });
-
       rerender(
         <AllProviders store={store}>
           <PreviewPanel content="<p>Content</p>" />
         </AllProviders>
-      );
-
->>>>>>> agent/test-preview-edge-cases-and-error-handling
       expect(screen.queryByTitle('Updating preview...')).not.toBeInTheDocument();
     });
   });
 
-<<<<<<< HEAD
   describe('Chapter Navigation and Update Cancellation', () => {
     it('should cancel pending updates when chapter changes', () => {
       mockUsePreviewUpdate.mockReturnValue({
@@ -1276,7 +1195,7 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       // Configure mock to simulate update lifecycle
       mockUsePreviewUpdate.mockImplementation((options) => {
         // Simulate calling onUpdateEnd
-=======
+
   describe('Preview with No Selected Element', () => {
     it('should show placeholder when no element is selected', () => {
       mockUsePreviewUpdate.mockReturnValueOnce({
@@ -1466,7 +1385,6 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
 
       mockUsePreviewUpdate.mockImplementationOnce((options) => {
         // Simulate the hook calling onUpdateEnd
->>>>>>> agent/test-preview-edge-cases-and-error-handling
         setTimeout(() => {
           if (options.onUpdateEnd) {
             options.onUpdateEnd();
@@ -1474,17 +1392,15 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
         }, 0);
 
         return {
-<<<<<<< HEAD
           previewContent: testContent,
           isUpdating: false,
           triggerUpdate: triggerUpdateMock,
           cancelPendingUpdates: cancelPendingUpdatesMock,
-=======
+
           previewContent: '<p>Updated content</p>',
           isUpdating: false,
           triggerUpdate: jest.fn(),
           cancelPendingUpdates: jest.fn(),
->>>>>>> agent/test-preview-edge-cases-and-error-handling
         };
       });
 
@@ -1493,7 +1409,6 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       );
 
       await waitFor(() => {
-<<<<<<< HEAD
         expect(onPreviewUpdate).toHaveBeenCalledWith(testContent);
       });
     });
@@ -1674,7 +1589,7 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
         isUpdating: false,
         triggerUpdate: triggerUpdateMock,
         cancelPendingUpdates: cancelPendingUpdatesMock,
-=======
+
         // The callback should be called after update
       }, { timeout: 100 });
     });
@@ -1692,18 +1607,15 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
           triggerUpdate: jest.fn(),
           cancelPendingUpdates: jest.fn(),
         };
->>>>>>> agent/test-preview-edge-cases-and-error-handling
       });
 
       renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
 
-<<<<<<< HEAD
       const heading = screen.getByRole('heading', { level: 2 });
       expect(heading).toHaveTextContent('Preview');
-=======
+
       expect(screen.getByText('Preview')).toBeInTheDocument();
->>>>>>> agent/test-preview-edge-cases-and-error-handling
-=======
+
     cleanupMocks();
     jest.resetAllMocks();
   });
@@ -1760,6 +1672,148 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       await waitFor(() => {
         const previewText = container.querySelector('.preview-panel__text');
         expect(previewText?.innerHTML).toContain('Helvetica');
+
+      expect(store.getState().preview.deviceMode).toBe('iPad');
+      expect(deviceDimensions.iPad.viewport.width).toBe(1536);
+      expect(deviceDimensions.iPad.viewport.height).toBe(2048);
+    });
+
+    it('should handle viewport size mocking for Kindle', () => {
+      const { store } = renderWithProviders(<DeviceSwitcher />, {
+        preloadedState: {
+          preview: {
+            deviceMode: 'Kindle',
+            zoomLevel: 100,
+            currentPage: 1,
+            totalPages: 0,
+          },
+        },
+      });
+
+      expect(store.getState().preview.deviceMode).toBe('Kindle');
+      expect(deviceDimensions.Kindle.viewport.width).toBe(758);
+      expect(deviceDimensions.Kindle.viewport.height).toBe(1024);
+    });
+
+    it('should handle viewport size mocking for iPhone', () => {
+      const { store } = renderWithProviders(<DeviceSwitcher />, {
+        preloadedState: {
+          preview: {
+            deviceMode: 'iPhone',
+            zoomLevel: 100,
+            currentPage: 1,
+            totalPages: 0,
+          },
+        },
+      });
+
+      expect(store.getState().preview.deviceMode).toBe('iPhone');
+      expect(deviceDimensions.iPhone.viewport.width).toBe(750);
+      expect(deviceDimensions.iPhone.viewport.height).toBe(1334);
+    });
+  });
+
+  describe('Device-Specific Styles Application', () => {
+    it('should apply device-specific CSS class for desktop', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test</p>" deviceMode="desktop" />
+      );
+
+      expect(container.querySelector('.device-desktop')).toBeInTheDocument();
+    });
+
+    it('should apply device-specific CSS class for tablet', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test</p>" deviceMode="tablet" />
+      );
+
+      expect(container.querySelector('.device-tablet')).toBeInTheDocument();
+    });
+
+    it('should apply device-specific CSS class for mobile', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent content="<p>Test</p>" deviceMode="mobile" />
+      );
+
+      expect(container.querySelector('.device-mobile')).toBeInTheDocument();
+    });
+
+    it('should render PreviewContent with custom className', () => {
+      const { container } = renderWithProviders(
+        <PreviewContent
+          content="<p>Test</p>"
+          deviceMode="desktop"
+          className="custom-class"
+        />
+      );
+
+      expect(container.querySelector('.custom-class')).toBeInTheDocument();
+    });
+  });
+
+  describe('Integration with Rendering Engine', () => {
+    it('should call preview renderer with correct device type', () => {
+      const { getDeviceConfig } = require('../../__mocks__/previewRenderer');
+
+      getDeviceConfig('iPad');
+      expect(getDeviceConfig).toHaveBeenCalledWith('iPad');
+
+      getDeviceConfig('Kindle');
+      expect(getDeviceConfig).toHaveBeenCalledWith('Kindle');
+
+      getDeviceConfig('iPhone');
+      expect(getDeviceConfig).toHaveBeenCalledWith('iPhone');
+    });
+
+    it('should receive device configuration from renderer', () => {
+      const { getDeviceConfig } = require('../../__mocks__/previewRenderer');
+
+      const config = getDeviceConfig('iPad');
+      expect(config).toHaveProperty('width');
+      expect(config).toHaveProperty('height');
+      expect(config).toHaveProperty('pixelRatio');
+    });
+  });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle missing device mode gracefully', () => {
+      const { container } = renderWithProviders(
+        <DeviceChrome deviceMode="unknown" as any>
+          <div>Test</div>
+        </DeviceChrome>
+      );
+
+      // Should fall back to desktop chrome
+      expect(container.querySelector('.device-chrome-desktop')).toBeInTheDocument();
+    });
+
+    it('should handle empty content in all device modes', () => {
+      const modes = ['desktop', 'tablet', 'mobile'];
+
+      modes.forEach((mode) => {
+        const { container, unmount } = renderWithProviders(
+          <PreviewContent content="" deviceMode={mode as any} />
+        );
+
+        expect(screen.getByText('No content to preview')).toBeInTheDocument();
+        unmount();
+      });
+    });
+
+    it('should handle rapid device switching without errors', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />);
+
+      // Rapidly click through all devices
+      await user.click(screen.getByLabelText('Switch to Kindle mode'));
+      await user.click(screen.getByLabelText('Switch to iPhone mode'));
+      await user.click(screen.getByLabelText('Switch to Print Spread mode'));
+      await user.click(screen.getByLabelText('Switch to iPad mode'));
+
+      // Should end in a valid state
+      await waitFor(() => {
+        const finalMode = store.getState().preview.deviceMode;
+        expect(['iPad', 'Kindle', 'iPhone', 'PrintSpread']).toContain(finalMode);
       });
     });
   });
@@ -2166,7 +2220,53 @@ describe('PreviewPanel Edge Cases and Error Handling', () => {
       const result = mergeStyles(mockGaramondStyle, customOverrides);
       expect(mergeStyles).toHaveBeenCalledWith(mockGaramondStyle, customOverrides);
       expect(result).toMatchObject(expect.objectContaining(customOverrides));
->>>>>>> agent/test-style-application-to-preview
+
+  describe('Performance and State Management', () => {
+    it('should maintain zoom level when switching devices', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />, {
+        preloadedState: {
+          preview: {
+            deviceMode: 'iPad',
+            zoomLevel: 150,
+            currentPage: 1,
+            totalPages: 10,
+          },
+        },
+      });
+
+      expect(store.getState().preview.zoomLevel).toBe(150);
+
+      await user.click(screen.getByLabelText('Switch to Kindle mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('Kindle');
+        expect(store.getState().preview.zoomLevel).toBe(150); // Zoom level preserved
+      });
+    });
+
+    it('should maintain page number when switching devices', async () => {
+      const user = userEvent.setup();
+      const { store } = renderWithProviders(<DeviceSwitcher />, {
+        preloadedState: {
+          preview: {
+            deviceMode: 'iPad',
+            zoomLevel: 100,
+            currentPage: 5,
+            totalPages: 10,
+          },
+        },
+      });
+
+      expect(store.getState().preview.currentPage).toBe(5);
+
+      await user.click(screen.getByLabelText('Switch to iPhone mode'));
+
+      await waitFor(() => {
+        expect(store.getState().preview.deviceMode).toBe('iPhone');
+        expect(store.getState().preview.currentPage).toBe(5); // Page number preserved
+      });
     });
   });
 });
+

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { BookStyle, HeadingStyle } from '../../types/style';
+import React from 'react';
+import { BookStyle } from '../../types/style';
 import { StylePreviewPanel } from './StylePreviewPanel';
 import { OrnamentalBreaksSection, BodyStyleSection } from './sections';
 import { FontSelector } from './FontSelector';
 import { HeadingStyleSection } from './sections/HeadingStyleSection';
+import { useStyleEditor } from './useStyleEditor';
 import './StyleEditor.css';
 
 export interface StyleEditorProps {
@@ -15,55 +16,49 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   bookStyle,
   onChange,
 }) => {
-  const [currentStyle, setCurrentStyle] = useState<BookStyle>(bookStyle);
-
-  const handleStyleChange = (updates: Partial<BookStyle>) => {
-    const updatedStyle = { ...currentStyle, ...updates };
-    setCurrentStyle(updatedStyle);
-    onChange(updatedStyle);
-  };
-
-  const handleBodyFontChange = (fontFamily: string) => {
-    handleStyleChange({
-      fonts: {
-        ...currentStyle.fonts,
-        body: fontFamily,
-      },
-    });
-  };
-
-  const handleHeadingFontChange = (fontFamily: string) => {
-    handleStyleChange({
-      fonts: {
-        ...currentStyle.fonts,
-        heading: fontFamily,
-      },
-    });
-  };
-
-  const handleDropCapFontChange = (fontFamily: string) => {
-    handleStyleChange({
-      dropCap: {
-        ...currentStyle.dropCap,
-        fontFamily,
-      },
-    });
-  };
-
-  const handleHeadingChange = (
-    level: 'h1' | 'h2' | 'h3' | 'h4',
-    updatedHeadingStyle: HeadingStyle
-  ) => {
-    handleStyleChange({
-      headings: {
-        ...currentStyle.headings,
-        [level]: updatedHeadingStyle,
-      },
-    });
-  };
+  const {
+    currentStyle,
+    isDirty,
+    validationErrors,
+    isValid,
+    updateStyle,
+    updateBodyFont,
+    updateHeadingFont,
+    updateDropCapFont,
+    updateHeading,
+  } = useStyleEditor(bookStyle, {
+    debounceMs: 300,
+    onChange,
+  });
 
   return (
     <div className="style-editor">
+      {/* Validation Errors Display */}
+      {validationErrors.length > 0 && (
+        <div className="style-editor__validation-errors">
+          <div className="style-editor__validation-header">
+            <span className="style-editor__validation-icon">⚠️</span>
+            <strong>Validation Errors:</strong>
+          </div>
+          <ul className="style-editor__validation-list">
+            {validationErrors.map((error, index) => (
+              <li key={index} className="style-editor__validation-error">
+                <span className="style-editor__validation-field">{error.field}:</span>{' '}
+                {error.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Dirty State Indicator */}
+      {isDirty && isValid && (
+        <div className="style-editor__dirty-indicator">
+          <span className="style-editor__dirty-icon">●</span>
+          Unsaved changes
+        </div>
+      )}
+
       <div className="style-editor__container">
         <div className="style-editor__sections">
           {/* Typography Section */}
@@ -73,7 +68,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               <FontSelector
                 label="Body Font"
                 value={currentStyle.fonts.body}
-                onChange={handleBodyFontChange}
+                onChange={updateBodyFont}
                 placeholder="Select body font"
                 allowCustom={true}
                 enableGoogleFonts={true}
@@ -82,7 +77,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               <FontSelector
                 label="Heading Font"
                 value={currentStyle.fonts.heading}
-                onChange={handleHeadingFontChange}
+                onChange={updateHeadingFont}
                 placeholder="Select heading font"
                 allowCustom={true}
                 enableGoogleFonts={true}
@@ -96,7 +91,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             <div className="style-editor__section-content">
               <BodyStyleSection
                 bookStyle={currentStyle}
-                onChange={handleStyleChange}
+                onChange={updateStyle}
               />
             </div>
           </div>
@@ -108,23 +103,23 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               <HeadingStyleSection
                 headingLevel="h1"
                 headingStyle={currentStyle.headings.h1}
-                onChange={(style) => handleHeadingChange('h1', style)}
+                onChange={(style) => updateHeading('h1', style)}
               />
               <HeadingStyleSection
                 headingLevel="h2"
                 headingStyle={currentStyle.headings.h2}
-                onChange={(style) => handleHeadingChange('h2', style)}
+                onChange={(style) => updateHeading('h2', style)}
               />
               <HeadingStyleSection
                 headingLevel="h3"
                 headingStyle={currentStyle.headings.h3}
-                onChange={(style) => handleHeadingChange('h3', style)}
+                onChange={(style) => updateHeading('h3', style)}
               />
               {currentStyle.headings.h4 && (
                 <HeadingStyleSection
                   headingLevel="h4"
                   headingStyle={currentStyle.headings.h4}
-                  onChange={(style) => handleHeadingChange('h4', style)}
+                  onChange={(style) => updateHeading('h4', style)}
                 />
               )}
             </div>
@@ -140,7 +135,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                     type="checkbox"
                     checked={currentStyle.dropCap.enabled}
                     onChange={(e) =>
-                      handleStyleChange({
+                      updateStyle({
                         dropCap: {
                           ...currentStyle.dropCap,
                           enabled: e.target.checked,
@@ -156,7 +151,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 <FontSelector
                   label="Drop Cap Font"
                   value={currentStyle.dropCap.fontFamily || currentStyle.fonts.heading}
-                  onChange={handleDropCapFontChange}
+                  onChange={updateDropCapFont}
                   placeholder="Select drop cap font"
                   allowCustom={true}
                   enableGoogleFonts={true}
@@ -171,7 +166,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             <div className="style-editor__section-content">
               <OrnamentalBreaksSection
                 bookStyle={currentStyle}
-                onChange={handleStyleChange}
+                onChange={updateStyle}
               />
             </div>
           </div>

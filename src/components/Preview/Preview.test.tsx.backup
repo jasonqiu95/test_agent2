@@ -297,7 +297,6 @@ describe('Preview Content Rendering', () => {
         .join('');
 
       __setMockPreviewState(content);
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const paragraphs = container.querySelectorAll('p');
@@ -307,7 +306,6 @@ describe('Preview Content Rendering', () => {
     it('should display chapter with correct DOM structure', () => {
       const content = '<div class="chapter"><h1>Test Chapter</h1><p>Content</p></div>';
 
-      __setMockPreviewState(content);
       __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
@@ -322,7 +320,6 @@ describe('Preview Content Rendering', () => {
       const content = '<p>This is <strong>bold text</strong> in a paragraph.</p>';
 
       __setMockPreviewState(content);
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const strongElement = container.querySelector('strong');
@@ -334,7 +331,6 @@ describe('Preview Content Rendering', () => {
       const content = '<p>This is <em>italic text</em> in a paragraph.</p>';
 
       __setMockPreviewState(content);
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const emElement = container.querySelector('em');
@@ -345,7 +341,6 @@ describe('Preview Content Rendering', () => {
     it('should render combined bold and italic', () => {
       const content = '<p>Text with <strong>bold</strong> and <em>italic</em> and <strong><em>both</em></strong>.</p>';
 
-      __setMockPreviewState(content);
       __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
@@ -360,7 +355,6 @@ describe('Preview Content Rendering', () => {
         .map(block => `<h${block.level}>${block.content}</h${block.level}>`)
         .join('');
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       // Check for different heading levels
@@ -382,7 +376,6 @@ describe('Preview Content Rendering', () => {
         <p>Content</p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const headings = container.querySelectorAll('h1, h2, h3');
@@ -397,7 +390,6 @@ describe('Preview Content Rendering', () => {
     it('should render inline image with src attribute', () => {
       const content = '<p>Text before <img src="/images/test.png" alt="Test image" /> text after.</p>';
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const imgElement = container.querySelector('img');
@@ -412,7 +404,6 @@ describe('Preview Content Rendering', () => {
         <p>Second paragraph with <img src="/image2.png" alt="Image 2" /></p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const images = container.querySelectorAll('img');
@@ -424,7 +415,6 @@ describe('Preview Content Rendering', () => {
     it('should render image with proper alt text for accessibility', () => {
       const content = '<img src="/diagram.png" alt="Architecture diagram showing system components" />';
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const imgElement = container.querySelector('img');
@@ -447,7 +437,6 @@ describe('Preview Content Rendering', () => {
           </blockquote>
         `;
 
-        __setMockPreviewState(content);
         const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
         const blockquote = container.querySelector('blockquote');
@@ -464,7 +453,6 @@ describe('Preview Content Rendering', () => {
         </blockquote>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const cite = container.querySelector('cite');
@@ -503,7 +491,6 @@ describe('Preview Content Rendering', () => {
           </div>
         `;
 
-        __setMockPreviewState(content);
         const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
         const verseContainer = container.querySelector('.verse');
@@ -529,7 +516,6 @@ describe('Preview Content Rendering', () => {
         </div>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const stanzas = container.querySelectorAll('.stanza');
@@ -546,7 +532,6 @@ describe('Preview Content Rendering', () => {
         </div>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const lines = container.querySelectorAll('.verse-line');
@@ -569,7 +554,6 @@ describe('Preview Content Rendering', () => {
           <p>Content after break</p>
         `;
 
-        __setMockPreviewState(content);
         const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
         const sceneBreak = container.querySelector('.scene-break');
@@ -585,7 +569,6 @@ describe('Preview Content Rendering', () => {
         <p>Section two content</p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       expect(screen.getByText('* * *')).toBeInTheDocument();
@@ -602,7 +585,6 @@ describe('Preview Content Rendering', () => {
         <p>Content after</p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const ornamentalBreak = container.querySelector('.ornamental-break');
@@ -625,7 +607,6 @@ describe('Preview Content Rendering', () => {
         return `<p>${block.content}</p>${breakHTML}`;
       }).join('');
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const sceneBreaks = container.querySelectorAll('.scene-break');
@@ -639,7 +620,6 @@ describe('Preview Content Rendering', () => {
         <p>Content on page 2</p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const pageBreak = container.querySelector('.page-break');
@@ -660,7 +640,6 @@ describe('Preview Content Rendering', () => {
         <p>Text after scene break.</p>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       // Check all elements are present
@@ -688,7 +667,6 @@ describe('Preview Content Rendering', () => {
         </article>
       `;
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       // Verify all features render
@@ -707,7 +685,6 @@ describe('Preview Content Rendering', () => {
     it('should verify DOM structure is correct for chapter', () => {
       const content = '<div class="chapter"><h1>Title</h1><p>Content</p></div>';
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const previewPanel = container.querySelector('.preview-panel');
@@ -726,7 +703,6 @@ describe('Preview Content Rendering', () => {
     it('should ensure content is properly rendered via dangerouslySetInnerHTML', () => {
       const content = '<p class="custom-class">Custom content</p>';
 
-      __setMockPreviewState(content);
       const { container } = renderWithProviders(<PreviewPanel content={content} />);
 
       const customElement = container.querySelector('.custom-class');

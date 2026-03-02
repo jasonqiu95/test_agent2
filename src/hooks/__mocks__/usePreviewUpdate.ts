@@ -18,11 +18,43 @@ interface PreviewUpdateResult {
   cancelPendingUpdates: () => void;
 }
 
-export const usePreviewUpdate = jest.fn(
-  (options: PreviewUpdateOptions = {}): PreviewUpdateResult => ({
-    previewContent: '<p>Test preview content</p>',
-    isUpdating: false,
-    triggerUpdate: jest.fn(),
-    cancelPendingUpdates: jest.fn(),
-  })
-);
+// Create a simple state container for testing
+let mockPreviewContent = '<p>Initial mock content</p>';
+let mockIsUpdating = false;
+let mockTriggerUpdate: ((content: string, type?: UpdateType) => void) | null = null;
+
+// Mock implementation that simulates the hook behavior
+export function usePreviewUpdate(options: PreviewUpdateOptions = {}): PreviewUpdateResult {
+  // Create the triggerUpdate function that updates the module state
+  if (!mockTriggerUpdate) {
+    mockTriggerUpdate = jest.fn((content: string, type?: UpdateType) => {
+      // Immediately update content (no debounce in tests)
+      mockPreviewContent = content;
+      if (options.onUpdateEnd) {
+        options.onUpdateEnd();
+      }
+    });
+  }
+
+  const cancelPendingUpdates = jest.fn();
+
+  return {
+    previewContent: mockPreviewContent,
+    isUpdating: mockIsUpdating,
+    triggerUpdate: mockTriggerUpdate,
+    cancelPendingUpdates,
+  };
+}
+
+// Helper to reset mock state between tests
+export const __resetMockPreviewState = () => {
+  mockPreviewContent = '<p>Initial mock content</p>';
+  mockIsUpdating = false;
+  mockTriggerUpdate = null;
+};
+
+// Helper to set mock state for testing
+export const __setMockPreviewState = (content: string, isUpdating: boolean = false) => {
+  mockPreviewContent = content;
+  mockIsUpdating = isUpdating;
+};

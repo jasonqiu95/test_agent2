@@ -31,7 +31,7 @@ module.exports = {
 
   // Transform configuration
   transform: {
-    '^.+\\.tsx?$': [
+    '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
         tsconfig: {
@@ -41,6 +41,7 @@ module.exports = {
         },
       },
     ],
+    '^.+\\.(js|jsx)$': 'babel-jest',
   },
 
   // Coverage configuration

@@ -210,6 +210,97 @@ Build for testing (unpacked):
 npm run build:dir
 ```
 
+## Testing
+
+### Unit Tests
+
+Run unit tests:
+
+```bash
+npm test
+```
+
+Run tests in watch mode:
+
+```bash
+npm run test:watch
+```
+
+### Coverage Reports
+
+Generate code coverage reports:
+
+```bash
+npm run test:coverage
+```
+
+This command will:
+- Run all tests with coverage collection
+- Generate coverage reports in multiple formats:
+  - **Text**: Summary displayed in terminal
+  - **HTML**: Interactive report in `coverage/lcov-report/index.html`
+  - **LCOV**: Machine-readable format in `coverage/lcov.info` for CI integration
+
+#### Coverage Thresholds
+
+The project enforces minimum coverage thresholds of **60%** for:
+- Lines of code
+- Branches
+- Functions
+- Statements
+
+If coverage falls below these thresholds, the test run will fail.
+
+#### What's Included in Coverage
+
+Coverage is collected from:
+- All TypeScript files in `src/**/*.{ts,tsx}`
+
+Excluded from coverage:
+- Test files (`*.test.{ts,tsx}`)
+- Test directories (`__tests__/`)
+- Type definition files (`*.d.ts`)
+- Entry points (`main.tsx`, `vite-env.d.ts`)
+
+#### Viewing Coverage Reports
+
+After running `npm run test:coverage`, open the HTML report:
+
+```bash
+open coverage/lcov-report/index.html
+```
+
+The HTML report provides:
+- File-by-file coverage breakdown
+- Line-by-line highlighting of covered/uncovered code
+- Interactive navigation through the codebase
+
+### End-to-End Tests
+
+Run E2E tests:
+
+```bash
+npm run test:e2e
+```
+
+Run E2E tests with UI:
+
+```bash
+npm run test:e2e:headed
+```
+
+Debug E2E tests:
+
+```bash
+npm run test:e2e:debug
+```
+
+View E2E test report:
+
+```bash
+npm run test:e2e:report
+```
+
 ## Code Quality
 
 Run ESLint:

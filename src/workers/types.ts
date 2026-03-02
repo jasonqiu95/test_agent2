@@ -103,6 +103,8 @@ export interface ProgressMessage extends BaseWorkerMessage {
     totalItems?: number; // Total number of items to process
     status: string;
     details?: string;
+    eta?: number | null; // Estimated time remaining in milliseconds
+    currentStep?: string; // Current step name (e.g., "Validating", "Rendering chapters", etc.)
   };
 }
 

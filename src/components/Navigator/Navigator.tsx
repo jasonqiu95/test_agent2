@@ -1,9 +1,9 @@
 import React, { useState, useCallback, KeyboardEvent, MouseEvent } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectCurrentBook } from '../../slices/bookSlice';
 import { Chapter } from '../../types/chapter';
 import { Element } from '../../types/element';
+import { Book } from '../../types/book';
 import { BookStyle } from '../../types/style';
+import { TreeNode } from './TreeNode';
 import './Navigator.css';
 
 export type NavigatorView = 'contents' | 'styles';
@@ -15,27 +15,41 @@ export interface NavigatorItem {
   data: Chapter | Element | BookStyle;
 }
 
+export interface ReorderParams {
+  itemId: string;
+  itemType: 'chapter' | 'frontMatter' | 'backMatter';
+  fromIndex: number;
+  toIndex: number;
+  section: 'frontMatter' | 'chapters' | 'backMatter';
+}
+
 export interface NavigatorProps {
+  book?: Book;
   view?: NavigatorView;
   onViewChange?: (view: NavigatorView) => void;
   selectedIds?: string[];
   onSelect?: (ids: string[]) => void;
   multiSelect?: boolean;
   className?: string;
+  onReorder?: (params: ReorderParams) => void;
+  disabled?: boolean;
 }
 
 export const Navigator: React.FC<NavigatorProps> = ({
+  book,
   view: controlledView,
   onViewChange,
   selectedIds: controlledSelectedIds,
   onSelect,
   multiSelect = true,
   className = '',
+  onReorder,
+  disabled = false,
 }) => {
   const [internalView, setInternalView] = useState<NavigatorView>(controlledView || 'contents');
   const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([]);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const book = useSelector(selectCurrentBook);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Determine if selection is controlled or uncontrolled
   const isControlled = controlledSelectedIds !== undefined;
@@ -196,6 +210,14 @@ export const Navigator: React.FC<NavigatorProps> = ({
     setLastSelectedIndex(null);
   }, [handleSelectionChange]);
 
+  const handleDragStart = useCallback((itemId: string, index: number, section: string) => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   if (!book) {
     return (
       <div className={`navigator ${className}`}>
@@ -224,8 +246,23 @@ export const Navigator: React.FC<NavigatorProps> = ({
     );
   }
 
+  const getSectionForItem = (index: number): 'frontMatter' | 'chapters' | 'backMatter' => {
+    const frontMatterCount = book?.frontMatter?.length || 0;
+    const chaptersCount = book?.chapters?.length || 0;
+
+    if (index < frontMatterCount) {
+      return 'frontMatter';
+    } else if (index < frontMatterCount + chaptersCount) {
+      return 'chapters';
+    } else {
+      return 'backMatter';
+    }
+  };
+
   return (
     <div className={`navigator ${className}`} onKeyDown={handleKeyDown} tabIndex={0}>
+      {isDragging && <div className="drag-overlay" data-testid="drag-overlay"></div>}
+
       <div className="navigator-header">
         <div className="navigator-view-switcher">
           <button
@@ -253,21 +290,17 @@ export const Navigator: React.FC<NavigatorProps> = ({
         ) : (
           <ul className="navigator-list">
             {items.map((item, index) => (
-              <li
+              <TreeNode
                 key={item.id}
-                className={`navigator-item ${selectedIds.includes(item.id) ? 'selected' : ''} ${
-                  item.type
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleItemClick(item.id, index, e);
-                }}
-                data-testid={`navigator-item-${item.id}`}
-                data-item-id={item.id}
-                data-item-type={item.type}
-              >
-                <span className="navigator-item-title">{item.title}</span>
-              </li>
+                item={item}
+                index={index}
+                section={getSectionForItem(index)}
+                isSelected={selectedIds.includes(item.id)}
+                disabled={disabled}
+                onClick={handleItemClick}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              />
             ))}
           </ul>
         )}

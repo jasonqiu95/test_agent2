@@ -45,6 +45,7 @@ export interface Fonts {
 export interface HeadingStyle {
   fontSize: number;
   fontWeight?: number | string;
+  fontStyle?: 'normal' | 'italic' | 'oblique';
   fontFamily?: string;
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   marginTop?: number;
@@ -53,6 +54,7 @@ export interface HeadingStyle {
   lineHeight?: number;
   letterSpacing?: number;
   color?: string;
+  breakAfter?: 'auto' | 'avoid' | 'always' | 'page' | 'left' | 'right' | 'column';
 }
 
 /**

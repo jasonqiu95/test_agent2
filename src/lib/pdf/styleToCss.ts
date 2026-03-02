@@ -228,32 +228,35 @@ function formatHeadingRule(selector: string, style: BookStyle['headings'][keyof 
 
   const rules: string[] = [`${selector} {`];
 
+  // Font properties
   rules.push(`  font-size: ${style.fontSize}pt;`);
-
-  if (style.fontWeight) {
-    rules.push(`  font-weight: ${style.fontWeight};`);
-  }
 
   if (style.fontFamily) {
     rules.push(`  font-family: ${style.fontFamily};`);
   }
 
+  if (style.fontWeight) {
+    rules.push(`  font-weight: ${style.fontWeight};`);
+  }
+
+  if (style.fontStyle) {
+    rules.push(`  font-style: ${style.fontStyle};`);
+  }
+
+  // Text styling
   if (style.textTransform) {
     rules.push(`  text-transform: ${style.textTransform};`);
-  }
-
-  if (style.marginTop) {
-    rules.push(`  margin-top: ${style.marginTop}em;`);
-  }
-
-  if (style.marginBottom) {
-    rules.push(`  margin-bottom: ${style.marginBottom}em;`);
   }
 
   if (style.textAlign) {
     rules.push(`  text-align: ${style.textAlign};`);
   }
 
+  if (style.color) {
+    rules.push(`  color: ${style.color};`);
+  }
+
+  // Spacing properties
   if (style.lineHeight) {
     rules.push(`  line-height: ${style.lineHeight};`);
   }
@@ -262,8 +265,18 @@ function formatHeadingRule(selector: string, style: BookStyle['headings'][keyof 
     rules.push(`  letter-spacing: ${style.letterSpacing}em;`);
   }
 
-  if (style.color) {
-    rules.push(`  color: ${style.color};`);
+  if (style.marginTop !== undefined) {
+    rules.push(`  margin-top: ${style.marginTop}em;`);
+  }
+
+  if (style.marginBottom !== undefined) {
+    rules.push(`  margin-bottom: ${style.marginBottom}em;`);
+  }
+
+  // Page break control
+  if (style.breakAfter) {
+    rules.push(`  break-after: ${style.breakAfter};`);
+    rules.push(`  page-break-after: ${style.breakAfter};`); // Fallback for older browsers
   }
 
   rules.push('}');

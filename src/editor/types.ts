@@ -70,7 +70,7 @@ export interface VerseAttrs {
 }
 
 /**
- * Attributes for image nodes (placeholder for future implementation)
+ * Attributes for image nodes
  */
 export interface ImageAttrs {
   src: string;
@@ -78,6 +78,7 @@ export interface ImageAttrs {
   title?: string;
   width?: number;
   height?: number;
+  alignment?: 'inline' | 'block' | 'left' | 'right';
 }
 
 /**

@@ -23,6 +23,7 @@ export type ElementType =
   | 'bibliography'
   | 'index'
   | 'about-author'
+  | 'also-by'
   | 'other';
 
 export type MatterType = 'front' | 'body' | 'back';

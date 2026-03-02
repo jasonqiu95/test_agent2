@@ -13,3 +13,4 @@ export * from './inlineText';
 export * from './pdf';
 export * from './preferences';
 export * from './shortcuts';
+export * from './template';

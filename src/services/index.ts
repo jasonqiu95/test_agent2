@@ -34,3 +34,5 @@ export type {
 } from './validator'
 
 export { ConfigService, getConfigService } from './config'
+
+export { TemplateService, templateService } from './templateService'

@@ -1,0 +1,47 @@
+.virtualized-list-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.virtualized-list-item {
+  box-sizing: border-box;
+}
+
+/* Ensure proper scrollbar styling */
+.virtualized-list-container :global(.ReactVirtualized__List) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.5) transparent;
+}
+
+.virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar-thumb {
+  background-color: rgba(128, 128, 128, 0.5);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(128, 128, 128, 0.7);
+}
+
+/* Dark theme support */
+[data-theme='dark'] .virtualized-list-container :global(.ReactVirtualized__List) {
+  scrollbar-color: rgba(200, 200, 200, 0.5) transparent;
+}
+
+[data-theme='dark'] .virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar-thumb {
+  background-color: rgba(200, 200, 200, 0.5);
+}
+
+[data-theme='dark'] .virtualized-list-container :global(.ReactVirtualized__List)::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(200, 200, 200, 0.7);
+}

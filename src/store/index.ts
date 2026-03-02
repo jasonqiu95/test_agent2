@@ -9,6 +9,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import bookReducer from '../slices/bookSlice';
 import selectionReducer from './selectionSlice';
 import undoReducer from '../slices/undoSlice';
+import previewReducer from './previewSlice';
 import undoMiddleware from './middleware/undoMiddleware';
 
 export const store = configureStore({
@@ -16,6 +17,7 @@ export const store = configureStore({
     book: bookReducer,
     selection: selectionReducer,
     undo: undoReducer,
+    preview: previewReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

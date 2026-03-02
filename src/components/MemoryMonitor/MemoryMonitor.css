@@ -1,0 +1,189 @@
+.memory-monitor {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  z-index: 9999;
+  min-width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* Positioning */
+.memory-monitor--top-left {
+  top: 16px;
+  left: 16px;
+}
+
+.memory-monitor--top-right {
+  top: 16px;
+  right: 16px;
+}
+
+.memory-monitor--bottom-left {
+  bottom: 16px;
+  left: 16px;
+}
+
+.memory-monitor--bottom-right {
+  bottom: 16px;
+  right: 16px;
+}
+
+/* Status colors */
+.memory-monitor--normal {
+  border-left: 3px solid #4ade80;
+}
+
+.memory-monitor--warning {
+  border-left: 3px solid #fbbf24;
+}
+
+.memory-monitor--critical {
+  border-left: 3px solid #ef4444;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Header */
+.memory-monitor__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.memory-monitor__title {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.memory-monitor__status {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.memory-monitor--normal .memory-monitor__status {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.memory-monitor--warning .memory-monitor__status {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.memory-monitor--critical .memory-monitor__status {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* Stats */
+.memory-monitor__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.memory-monitor__stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memory-monitor__label {
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 8px;
+}
+
+.memory-monitor__value {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Progress bar */
+.memory-monitor__progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.memory-monitor__progress-bar {
+  height: 100%;
+  background: #4ade80;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.memory-monitor--warning .memory-monitor__progress-bar {
+  background: #fbbf24;
+}
+
+.memory-monitor--critical .memory-monitor__progress-bar {
+  background: #ef4444;
+}
+
+/* Actions */
+.memory-monitor__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.memory-monitor__button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.memory-monitor__button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.memory-monitor__button:active {
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .memory-monitor {
+    font-size: 10px;
+    min-width: 180px;
+    padding: 10px;
+  }
+
+  .memory-monitor__actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .memory-monitor__button {
+    font-size: 9px;
+    padding: 3px 4px;
+  }
+}

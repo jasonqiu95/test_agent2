@@ -13,3 +13,11 @@ export type { KeyboardShortcut, UseKeyboardShortcutsOptions } from './hooks/useK
 export { ShortcutsDialog } from './components/ShortcutsDialog';
 export type { ShortcutsDialogProps } from './components/ShortcutsDialog';
 export type { ShortcutAction, ShortcutKey } from './types/shortcuts';
+
+// Memory optimization system
+export * from './services/memory-manager';
+export * from './utils';
+export { useMemoryManager, useMemoryCleanupHandler, useDisposable } from './hooks/useMemoryManager';
+export type { UseMemoryManagerOptions, MemoryManagerState } from './hooks/useMemoryManager';
+export { MemoryMonitor } from './components/MemoryMonitor';
+export type { MemoryMonitorProps } from './components/MemoryMonitor';

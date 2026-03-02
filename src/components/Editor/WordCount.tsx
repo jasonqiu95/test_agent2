@@ -5,7 +5,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TextBlock } from '../../types/textBlock';
-import { countWords } from '../../models/helpers';
+import {
+  calculateTextStats,
+  stripMarkup,
+  formatReadingTime,
+  type TextStats
+} from '../../utils/textStats';
 
 export interface WordCountProps {
   content: TextBlock[];
@@ -15,8 +20,14 @@ export interface WordCountProps {
   showCharactersWithSpaces?: boolean;
   /** Show character count without spaces */
   showCharactersWithoutSpaces?: boolean;
+  /** Show page count estimate (250 words/page) */
+  showPageCount?: boolean;
+  /** Show reading time estimate (200 WPM) */
+  showReadingTime?: boolean;
   /** Format numbers with commas (e.g., 1,234) */
   formatNumbers?: boolean;
+  /** Label prefix for the stats (e.g., "Selection:", "Chapter:", "Book:") */
+  label?: string;
   className?: string;
 }
 
@@ -24,42 +35,23 @@ interface CountStats {
   words: number;
   charactersWithSpaces: number;
   charactersWithoutSpaces: number;
+  pages: number;
+  readingTimeMinutes: number;
 }
 
 /**
  * Calculate statistics from text content, excluding formatting markup
  */
 function calculateStats(content: TextBlock[]): CountStats {
-  let totalWords = 0;
-  let totalCharsWithSpaces = 0;
-  let totalCharsWithoutSpaces = 0;
+  // Combine all block content
+  const combinedText = content
+    .map(block => stripMarkup(block.content))
+    .join(' ');
 
-  content.forEach((block) => {
-    // Strip formatting markup from content (simple approach - strips common markdown)
-    const cleanContent = block.content
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
-      .replace(/\*(.*?)\*/g, '$1')     // Italic
-      .replace(/__(.*?)__/g, '$1')     // Bold
-      .replace(/_(.*?)_/g, '$1')       // Italic
-      .replace(/`(.*?)`/g, '$1')       // Inline code
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Links
-      .replace(/#+\s/g, '');           // Headers
+  // Calculate stats using the utility
+  const stats = calculateTextStats(combinedText);
 
-    // Count words using the helper function
-    totalWords += countWords(cleanContent);
-
-    // Count characters with spaces
-    totalCharsWithSpaces += cleanContent.length;
-
-    // Count characters without spaces
-    totalCharsWithoutSpaces += cleanContent.replace(/\s/g, '').length;
-  });
-
-  return {
-    words: totalWords,
-    charactersWithSpaces: totalCharsWithSpaces,
-    charactersWithoutSpaces: totalCharsWithoutSpaces,
-  };
+  return stats;
 }
 
 /**
@@ -74,7 +66,10 @@ export const WordCount: React.FC<WordCountProps> = ({
   debounceMs = 0,
   showCharactersWithSpaces = false,
   showCharactersWithoutSpaces = false,
+  showPageCount = true,
+  showReadingTime = true,
   formatNumbers = true,
+  label,
   className = '',
 }) => {
   // Calculate stats immediately for real-time display
@@ -108,6 +103,12 @@ export const WordCount: React.FC<WordCountProps> = ({
 
   return (
     <div className={`word-count ${className}`.trim()} data-testid="word-count">
+      {label && (
+        <span className="word-count-label" data-testid="word-count-label">
+          {label}
+        </span>
+      )}
+
       <span className="word-count-item" data-testid="word-count-words">
         {formatCount(displayStats.words)} {displayStats.words === 1 ? 'word' : 'words'}
       </span>
@@ -121,6 +122,18 @@ export const WordCount: React.FC<WordCountProps> = ({
       {showCharactersWithoutSpaces && (
         <span className="word-count-item" data-testid="word-count-chars-without-spaces">
           {formatCount(displayStats.charactersWithoutSpaces)} characters (no spaces)
+        </span>
+      )}
+
+      {showPageCount && displayStats.pages > 0 && (
+        <span className="word-count-item" data-testid="word-count-pages">
+          {formatCount(displayStats.pages)} {displayStats.pages === 1 ? 'page' : 'pages'}
+        </span>
+      )}
+
+      {showReadingTime && displayStats.readingTimeMinutes > 0 && (
+        <span className="word-count-item" data-testid="word-count-reading-time">
+          {formatReadingTime(displayStats.readingTimeMinutes)} read
         </span>
       )}
     </div>

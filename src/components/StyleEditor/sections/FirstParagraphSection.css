@@ -1,0 +1,128 @@
+.first-paragraph-section {
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.first-paragraph-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.first-paragraph-section__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.first-paragraph-section__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.first-paragraph-section__toggle-input {
+  width: 2.5rem;
+  height: 1.25rem;
+  cursor: pointer;
+  appearance: none;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.first-paragraph-section__toggle-input:checked {
+  background-color: #3b82f6;
+}
+
+.first-paragraph-section__toggle-input::before {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background-color: white;
+  top: 0.125rem;
+  left: 0.125rem;
+  transition: transform 0.2s;
+}
+
+.first-paragraph-section__toggle-input:checked::before {
+  transform: translateX(1.25rem);
+}
+
+.first-paragraph-section__toggle-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.first-paragraph-section__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.first-paragraph-section__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.first-paragraph-section__field--conditional {
+  padding-left: 1rem;
+  border-left: 3px solid #3b82f6;
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.first-paragraph-section__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.first-paragraph-section__input,
+.first-paragraph-section__select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #111827;
+  background-color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.first-paragraph-section__input:focus,
+.first-paragraph-section__select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.first-paragraph-section__input::placeholder {
+  color: #9ca3af;
+}
+
+.first-paragraph-section__hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.first-paragraph-section__select {
+  cursor: pointer;
+}
+
+.first-paragraph-section__select option {
+  padding: 0.5rem;
+}

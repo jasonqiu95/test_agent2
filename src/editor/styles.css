@@ -471,3 +471,166 @@
 .toolbar-btn-verse.active:hover {
   background-color: #0056b3;
 }
+
+/* Scene Break Styles */
+.ProseMirror .scene-break {
+  display: block;
+  text-align: center;
+  margin: 2em 0;
+  padding: 1em 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: #495057;
+  letter-spacing: 0.5em;
+  user-select: none;
+  cursor: default;
+  border: 2px dashed transparent;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ProseMirror .scene-break:hover {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+/* Selected scene break */
+.ProseMirror .scene-break.ProseMirror-selectednode {
+  background: #e7f3ff;
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Ornamental Break Styles */
+.ProseMirror .ornamental-break {
+  display: block;
+  text-align: center;
+  margin: 2.5em 0;
+  padding: 1em 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #343a40;
+  user-select: none;
+  cursor: default;
+  border: 2px dashed transparent;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.ProseMirror .ornamental-break:hover {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+/* Selected ornamental break */
+.ProseMirror .ornamental-break.ProseMirror-selectednode {
+  background: #e7f3ff;
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Style variations for ornamental breaks */
+.ProseMirror .ornamental-break[data-style="default"] {
+  font-size: 1.5rem;
+}
+
+.ProseMirror .ornamental-break[data-style="large"] {
+  font-size: 2rem;
+  margin: 3em 0;
+}
+
+.ProseMirror .ornamental-break[data-style="small"] {
+  font-size: 1rem;
+  margin: 1.5em 0;
+}
+
+/* Print-specific styles for breaks */
+@media print {
+  .ProseMirror .scene-break,
+  .ProseMirror .ornamental-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: none;
+  }
+
+  .ProseMirror .scene-break:hover,
+  .ProseMirror .ornamental-break:hover {
+    background: transparent;
+  }
+
+  .ProseMirror .scene-break.ProseMirror-selectednode,
+  .ProseMirror .ornamental-break.ProseMirror-selectednode {
+    background: transparent;
+    border: none;
+  }
+}
+
+/* Dark mode support for breaks */
+@media (prefers-color-scheme: dark) {
+  .ProseMirror .scene-break {
+    color: #adb5bd;
+  }
+
+  .ProseMirror .scene-break:hover {
+    background: #2b2b2b;
+    border-color: #495057;
+  }
+
+  .ProseMirror .scene-break.ProseMirror-selectednode {
+    background: #1a3a52;
+    border-color: #4da6ff;
+  }
+
+  .ProseMirror .ornamental-break {
+    color: #e9ecef;
+  }
+
+  .ProseMirror .ornamental-break:hover {
+    background: #2b2b2b;
+    border-color: #495057;
+  }
+
+  .ProseMirror .ornamental-break.ProseMirror-selectednode {
+    background: #1a3a52;
+    border-color: #4da6ff;
+  }
+}
+
+/* Spacing adjustments around breaks */
+.ProseMirror p + .scene-break,
+.ProseMirror p + .ornamental-break {
+  margin-top: 2.5em;
+}
+
+.ProseMirror .scene-break + p,
+.ProseMirror .ornamental-break + p {
+  margin-top: 1.5em;
+}
+
+/* Ensure breaks are visible when empty */
+.ProseMirror .scene-break:empty::before,
+.ProseMirror .ornamental-break:empty::before {
+  content: attr(data-symbol);
+  color: inherit;
+}
+
+/* Accessibility - High contrast mode */
+@media (prefers-contrast: high) {
+  .ProseMirror .scene-break,
+  .ProseMirror .ornamental-break {
+    border-width: 2px;
+    border-style: solid;
+  }
+
+  .ProseMirror .scene-break:hover,
+  .ProseMirror .ornamental-break:hover {
+    border-color: #495057;
+    background: #e9ecef;
+  }
+
+  .ProseMirror .scene-break.ProseMirror-selectednode,
+  .ProseMirror .ornamental-break.ProseMirror-selectednode {
+    border-color: #007bff;
+    border-width: 3px;
+  }
+}

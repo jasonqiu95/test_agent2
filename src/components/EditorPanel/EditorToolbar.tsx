@@ -3,7 +3,7 @@
  * Formatting toolbar with text controls for the editor
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { EditorView } from 'prosemirror-view';
 import {
   toggleBold,
@@ -15,7 +15,10 @@ import {
   isItalicActive,
   isUnderlineActive,
   isHeadingActive,
+  insertSceneBreak,
+  insertOrnamentalBreak,
 } from '../../editor/commands';
+import { OrnamentalBreakPicker } from '../OrnamentalBreakPicker';
 import './EditorToolbar.css';
 
 export interface EditorToolbarProps {
@@ -49,6 +52,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   className = '',
 }) => {
   const [, forceUpdate] = useState({});
+  const [showOrnamentalPicker, setShowOrnamentalPicker] = useState(false);
+  const [currentOrnamentalSymbol, setCurrentOrnamentalSymbol] = useState('❦');
+  const ornamentalButtonRef = useRef<HTMLButtonElement>(null);
 
   // Update toolbar state on editor changes
   useEffect(() => {
@@ -183,6 +189,29 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     },
   ];
 
+  /**
+   * Handle scene break insertion
+   */
+  const handleInsertSceneBreak = () => {
+    executeCommand(insertSceneBreak('* * *'));
+  };
+
+  /**
+   * Handle ornamental break picker toggle
+   */
+  const handleOrnamentalBreakClick = () => {
+    setShowOrnamentalPicker(!showOrnamentalPicker);
+  };
+
+  /**
+   * Handle ornamental symbol selection
+   */
+  const handleOrnamentalSymbolSelect = (symbol: string) => {
+    setCurrentOrnamentalSymbol(symbol);
+    executeCommand(insertOrnamentalBreak(symbol));
+    setShowOrnamentalPicker(false);
+  };
+
   return (
     <div className={`editor-toolbar-formatting ${className}`}>
       {/* Text formatting section */}
@@ -224,6 +253,55 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             </span>
           </button>
         ))}
+      </div>
+
+      {/* Divider */}
+      <div className="toolbar-divider" />
+
+      {/* Break elements section */}
+      <div className="toolbar-section toolbar-section-breaks">
+        <button
+          className="toolbar-btn toolbar-btn-break"
+          onClick={handleInsertSceneBreak}
+          title="Insert Scene Break (* * *)"
+          aria-label="Scene Break"
+          type="button"
+        >
+          <span className="toolbar-icon toolbar-icon-scene-break">* * *</span>
+        </button>
+
+        <div style={{ position: 'relative' }}>
+          <button
+            ref={ornamentalButtonRef}
+            className={`toolbar-btn toolbar-btn-break ${showOrnamentalPicker ? 'active' : ''}`}
+            onClick={handleOrnamentalBreakClick}
+            title={`Insert Ornamental Break (${currentOrnamentalSymbol})`}
+            aria-label="Ornamental Break"
+            type="button"
+          >
+            <span className="toolbar-icon toolbar-icon-ornamental-break">
+              {currentOrnamentalSymbol}
+            </span>
+          </button>
+
+          {showOrnamentalPicker && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '8px',
+                zIndex: 1000,
+              }}
+            >
+              <OrnamentalBreakPicker
+                onSelect={handleOrnamentalSymbolSelect}
+                onClose={() => setShowOrnamentalPicker(false)}
+                currentSymbol={currentOrnamentalSymbol}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

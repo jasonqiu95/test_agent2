@@ -217,3 +217,34 @@
   outline-offset: 2px;
   z-index: 1;
 }
+
+/* Break buttons section */
+.toolbar-section-breaks {
+  gap: 4px;
+}
+
+.toolbar-btn-break {
+  min-width: 48px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.toolbar-icon-scene-break {
+  letter-spacing: 2px;
+  font-size: 12px;
+}
+
+.toolbar-icon-ornamental-break {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Dark mode for break buttons */
+@media (prefers-color-scheme: dark) {
+  .toolbar-btn-break:hover {
+    background: #374151;
+    border-color: #4b5563;
+  }
+}

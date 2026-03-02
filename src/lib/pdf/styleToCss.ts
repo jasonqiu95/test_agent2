@@ -3,9 +3,70 @@
  * Converts BookStyle configuration to CSS string for print-ready PDFs
  */
 
-import type { BookStyle, StyleToCssOptions } from './types';
+import type { BookStyle, StyleToCssOptions, CustomFont } from './types';
 import { calculatePageDimensions, toPoints, type Unit } from './pageGeometry';
 import type { Margins } from './marginCalculator';
+
+/**
+ * Generates @font-face CSS rules for custom fonts
+ *
+ * Creates @font-face declarations for each custom font variant with proper
+ * src URLs for multiple font formats (.woff2, .woff, .ttf). Supports
+ * font-weight and font-style variants.
+ *
+ * @param customFonts - Array of custom font configurations
+ * @returns CSS string with @font-face rules
+ *
+ * @example
+ * ```typescript
+ * const customFonts = [{
+ *   family: 'Custom Serif',
+ *   weight: 400,
+ *   style: 'normal',
+ *   sources: [
+ *     { url: '/fonts/custom-regular.woff2', format: 'woff2' },
+ *     { url: '/fonts/custom-regular.woff', format: 'woff' },
+ *     { url: '/fonts/custom-regular.ttf', format: 'ttf' }
+ *   ],
+ *   display: 'swap'
+ * }];
+ * const css = generateCustomFontFaceRules(customFonts);
+ * ```
+ */
+export function generateCustomFontFaceRules(customFonts: CustomFont[]): string {
+  if (!customFonts || customFonts.length === 0) {
+    return '';
+  }
+
+  const fontFaceRules = customFonts.map((font) => {
+    const { family, weight = 400, style = 'normal', sources, display = 'swap', unicodeRange } = font;
+
+    // Generate src declarations for each format
+    const srcParts = sources.map((source) => {
+      // Convert 'ttf' format to 'truetype' for CSS
+      const format = source.format === 'ttf' ? 'truetype' : source.format;
+      return `url('${source.url}') format('${format}')`;
+    });
+
+    // Build the @font-face rule
+    const rules: string[] = [
+      `  font-family: '${family}';`,
+      `  font-style: ${style};`,
+      `  font-weight: ${weight};`,
+      `  font-display: ${display};`,
+      `  src: ${srcParts.join(',\n       ')};`,
+    ];
+
+    // Add unicode-range if specified
+    if (unicodeRange) {
+      rules.push(`  unicode-range: ${unicodeRange};`);
+    }
+
+    return `@font-face {\n${rules.join('\n')}\n}`;
+  });
+
+  return `/* Custom font definitions */\n${fontFaceRules.join('\n\n')}`;
+}
 
 /**
  * Converts a BookStyle configuration to a complete CSS string
@@ -50,6 +111,11 @@ export function convertStyleToCss(
   options: StyleToCssOptions
 ): string {
   const cssRules: string[] = [];
+
+  // Add custom @font-face rules first (must be before any usage)
+  if (style.customFonts && style.customFonts.length > 0) {
+    cssRules.push(generateCustomFontFaceRules(style.customFonts));
+  }
 
   // Add CSS reset if requested
   if (options.includeResetStyles !== false) {

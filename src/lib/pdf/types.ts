@@ -28,6 +28,39 @@ export interface FontFamily {
 }
 
 /**
+ * Font format types for @font-face
+ */
+export type FontFormat = 'woff2' | 'woff' | 'ttf' | 'otf';
+
+/**
+ * Custom font source configuration for @font-face
+ */
+export interface CustomFontSource {
+  /** URL to the font file */
+  url: string;
+  /** Font format */
+  format: FontFormat;
+}
+
+/**
+ * Custom font configuration with variants
+ */
+export interface CustomFont {
+  /** Font family name */
+  family: string;
+  /** Font weight */
+  weight?: number | string;
+  /** Font style */
+  style?: 'normal' | 'italic' | 'oblique';
+  /** Array of font file sources in priority order */
+  sources: CustomFontSource[];
+  /** Font display strategy */
+  display?: 'auto' | 'block' | 'swap' | 'fallback' | 'optional';
+  /** Unicode range for subsetting */
+  unicodeRange?: string;
+}
+
+/**
  * Fonts configuration for the book
  */
 export interface Fonts {
@@ -137,6 +170,8 @@ export interface BookStyle {
   firstParagraph?: FirstParagraph;
   ornamentalBreaks?: OrnamentalBreaks;
   bodyText: BodyText;
+  /** Custom fonts with @font-face declarations */
+  customFonts?: CustomFont[];
 }
 
 /**

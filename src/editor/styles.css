@@ -246,3 +246,95 @@
     font-size: 1rem;
   }
 }
+
+/* Search Highlight Styles */
+/* Subtle highlight for non-current search matches */
+.ProseMirror .search-match {
+  background-color: #fff59d;
+  color: #1a1a1a;
+  border-radius: 2px;
+  padding: 0 1px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Prominent highlight for the active search match */
+.ProseMirror .search-current-match {
+  background-color: #ffb74d;
+  color: #1a1a1a;
+  border-radius: 2px;
+  padding: 0 1px;
+  box-shadow: 0 0 0 2px #ff9800;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  animation: highlight-pulse 0.5s ease-out;
+}
+
+/* Pulse animation for current match transition */
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 2px #ff9800, 0 0 8px rgba(255, 152, 0, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #ff9800, 0 0 0 rgba(255, 152, 0, 0);
+  }
+}
+
+/* Dark mode support for search highlights */
+@media (prefers-color-scheme: dark) {
+  .ProseMirror .search-match {
+    background-color: #f9a825;
+    color: #1a1a1a;
+  }
+
+  .ProseMirror .search-current-match {
+    background-color: #fb8c00;
+    color: #1a1a1a;
+    box-shadow: 0 0 0 2px #f57c00;
+  }
+
+  @keyframes highlight-pulse {
+    0% {
+      box-shadow: 0 0 0 2px #f57c00, 0 0 8px rgba(245, 124, 0, 0.6);
+    }
+    100% {
+      box-shadow: 0 0 0 2px #f57c00, 0 0 0 rgba(245, 124, 0, 0);
+    }
+  }
+}
+
+/* Ensure search highlights work within all text elements */
+.ProseMirror p .search-match,
+.ProseMirror h1 .search-match,
+.ProseMirror h2 .search-match,
+.ProseMirror h3 .search-match,
+.ProseMirror h4 .search-match,
+.ProseMirror h5 .search-match,
+.ProseMirror h6 .search-match {
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.ProseMirror p .search-current-match,
+.ProseMirror h1 .search-current-match,
+.ProseMirror h2 .search-current-match,
+.ProseMirror h3 .search-current-match,
+.ProseMirror h4 .search-current-match,
+.ProseMirror h5 .search-current-match,
+.ProseMirror h6 .search-current-match {
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Accessibility: ensure sufficient contrast */
+.ProseMirror .search-match,
+.ProseMirror .search-current-match {
+  text-decoration: none;
+  outline: none;
+}
+
+/* Focus state for keyboard navigation */
+.ProseMirror .search-current-match:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 1px;
+}

@@ -6,10 +6,16 @@ import path from 'path';
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  // Test directory - using root-level e2e folder
+  testDir: './e2e',
 
   // Maximum time one test can run for
   timeout: 30 * 1000,
+
+  // Expect timeout for assertions
+  expect: {
+    timeout: 5000,
+  },
 
   // Test execution settings
   fullyParallel: true,
@@ -19,15 +25,13 @@ export default defineConfig({
 
   // Reporter configuration
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list']
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['list'],
+    ['json', { outputFile: 'test-results/results.json' }],
   ],
 
   // Shared settings for all projects
   use: {
-    // Base URL for the Electron app (adjust if needed)
-    baseURL: 'file://' + path.resolve(__dirname, 'dist/index.html'),
-
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
 
@@ -36,25 +40,28 @@ export default defineConfig({
 
     // Video on failure
     video: 'retain-on-failure',
+
+    // Action timeout
+    actionTimeout: 10000,
   },
 
-  // Configure projects for different Electron scenarios
+  // Configure projects for Electron testing
   projects: [
     {
       name: 'electron',
+      testMatch: '**/*.spec.ts',
       use: {
-        ...devices['Desktop Chrome'],
-        // Electron-specific launch options
-        launchOptions: {
-          executablePath: require('electron'),
-          args: [
-            path.resolve(__dirname, 'dist-electron/main.js'),
-          ],
-        },
+        // Note: For Electron, we don't use standard browser launch
+        // Tests should use the electron-helpers utility to launch the app
+        viewport: null, // Electron controls its own viewport
       },
     },
   ],
 
   // Output folders
   outputDir: 'test-results/',
+
+  // Global setup/teardown (optional)
+  // globalSetup: require.resolve('./e2e/global-setup.ts'),
+  // globalTeardown: require.resolve('./e2e/global-teardown.ts'),
 });

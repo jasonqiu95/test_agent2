@@ -5,6 +5,7 @@
  */
 
 export * from './previewRenderer';
+export * from './deviceProfiles';
 export * from './contentTransformer';
 export * from './styleGenerator';
 export * from './errorHandler';

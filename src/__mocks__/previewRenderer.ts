@@ -18,6 +18,34 @@ import {
  * Mock device configurations matching the real implementation
  */
 const MOCK_DEVICE_CONFIGS: Record<DeviceType, DeviceConfig> = {
+  ipad: {
+    width: 768,
+    height: 1024,
+    pixelRatio: 2,
+    pageWidth: 708,
+    pageHeight: 944,
+  },
+  kindle: {
+    width: 758,
+    height: 1024,
+    pixelRatio: 2,
+    pageWidth: 698,
+    pageHeight: 964,
+  },
+  iphone: {
+    width: 390,
+    height: 844,
+    pixelRatio: 3,
+    pageWidth: 350,
+    pageHeight: 784,
+  },
+  'print-spread': {
+    width: 1728,
+    height: 1296,
+    pixelRatio: 1,
+    pageWidth: 816,
+    pageHeight: 1224,
+  },
   desktop: {
     width: 1920,
     height: 1080,

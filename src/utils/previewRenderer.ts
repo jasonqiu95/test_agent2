@@ -14,14 +14,25 @@ import {
   generateFontLoadingConfig,
   extractFontFamilies,
 } from './fontLoader';
+import {
+  DeviceType,
+  DeviceProfile,
+  getDeviceProfile,
+  isValidDeviceType as isValidDeviceTypeFromProfiles,
+  generateDeviceCSS,
+  getContentAreaDimensions,
+  getOptimalFontSize,
+  DEVICE_PROFILES,
+} from './deviceProfiles';
 
 /**
- * Device type options for preview rendering
+ * Re-export DeviceType from deviceProfiles for convenience
  */
-export type DeviceType = 'desktop' | 'tablet' | 'mobile' | 'print';
+export type { DeviceType };
 
 /**
  * Configuration object for device-specific rendering dimensions and settings
+ * Extended from DeviceProfile with backward compatibility
  */
 export interface DeviceConfig {
   /** Width of the preview viewport in pixels */
@@ -34,6 +45,8 @@ export interface DeviceConfig {
   pageWidth?: number;
   /** Page height for pagination calculations */
   pageHeight?: number;
+  /** Optional reference to full device profile */
+  profile?: DeviceProfile;
 }
 
 /**
@@ -67,37 +80,31 @@ export interface RenderOptions {
 }
 
 /**
- * Device configuration presets for common device types
+ * Converts DeviceProfile to DeviceConfig for backward compatibility
+ */
+function profileToConfig(profile: DeviceProfile): DeviceConfig {
+  return {
+    width: profile.viewportWidth,
+    height: profile.viewportHeight,
+    pixelRatio: profile.pixelRatio,
+    pageWidth: profile.pageWidth,
+    pageHeight: profile.pageHeight,
+    profile,
+  };
+}
+
+/**
+ * Device configuration presets derived from device profiles
  */
 const DEVICE_CONFIGS: Record<DeviceType, DeviceConfig> = {
-  desktop: {
-    width: 1920,
-    height: 1080,
-    pixelRatio: 1,
-    pageWidth: 816,
-    pageHeight: 1056,
-  },
-  tablet: {
-    width: 1024,
-    height: 768,
-    pixelRatio: 2,
-    pageWidth: 768,
-    pageHeight: 1024,
-  },
-  mobile: {
-    width: 375,
-    height: 667,
-    pixelRatio: 3,
-    pageWidth: 375,
-    pageHeight: 667,
-  },
-  print: {
-    width: 816,
-    height: 1056,
-    pixelRatio: 1,
-    pageWidth: 816,
-    pageHeight: 1056,
-  },
+  ipad: profileToConfig(DEVICE_PROFILES.ipad),
+  kindle: profileToConfig(DEVICE_PROFILES.kindle),
+  iphone: profileToConfig(DEVICE_PROFILES.iphone),
+  'print-spread': profileToConfig(DEVICE_PROFILES['print-spread']),
+  desktop: profileToConfig(DEVICE_PROFILES.desktop),
+  tablet: profileToConfig(DEVICE_PROFILES.tablet),
+  mobile: profileToConfig(DEVICE_PROFILES.mobile),
+  print: profileToConfig(DEVICE_PROFILES.print),
 };
 
 /**
@@ -256,8 +263,13 @@ function generateCSS(
 
   const { css } = generateStyleCSS(styleConfig, generatorOptions);
 
-  // Add device-specific adjustments
-  const deviceSpecificCSS = `
+  // Generate device-specific CSS if we have a profile
+  let deviceSpecificCSS = '';
+  if (deviceConfig.profile) {
+    deviceSpecificCSS = generateDeviceCSS(deviceConfig.profile, classPrefix);
+  } else {
+    // Fallback to basic device-specific adjustments for backward compatibility
+    deviceSpecificCSS = `
 .${classPrefix}-container {
   max-width: ${deviceConfig.pageWidth || deviceConfig.width}px;
   margin: 0 auto;
@@ -269,7 +281,8 @@ function generateCSS(
     padding: 0 1rem;
   }
 }
-  `.trim();
+    `.trim();
+  }
 
   // Combine font-face rules (if any) with generated CSS and device-specific CSS
   const cssParts: string[] = [];
@@ -369,6 +382,15 @@ export function getDeviceConfig(deviceType: DeviceType): DeviceConfig {
 }
 
 /**
+ * Gets the full device profile for a specific device type
+ *
+ * @param {DeviceType} deviceType - The device type
+ * @returns {DeviceProfile} Device profile object
+ * @public
+ */
+export { getDeviceProfile };
+
+/**
  * Validates whether a device type is supported
  *
  * @param {string} deviceType - The device type to validate
@@ -376,5 +398,30 @@ export function getDeviceConfig(deviceType: DeviceType): DeviceConfig {
  * @public
  */
 export function isValidDeviceType(deviceType: string): deviceType is DeviceType {
-  return deviceType in DEVICE_CONFIGS;
+  return isValidDeviceTypeFromProfiles(deviceType);
+}
+
+/**
+ * Gets content area dimensions for a specific device type
+ *
+ * @param {DeviceType} deviceType - The device type
+ * @returns {{ width: number; height: number }} Content area dimensions
+ * @public
+ */
+export function getDeviceContentArea(deviceType: DeviceType): { width: number; height: number } {
+  const profile = getDeviceProfile(deviceType);
+  return getContentAreaDimensions(profile);
+}
+
+/**
+ * Gets optimal font size for a specific device type
+ *
+ * @param {DeviceType} deviceType - The device type
+ * @param {number} baseFontSize - Base font size in pixels
+ * @returns {number} Optimal font size in pixels
+ * @public
+ */
+export function getDeviceOptimalFontSize(deviceType: DeviceType, baseFontSize: number = 16): number {
+  const profile = getDeviceProfile(deviceType);
+  return getOptimalFontSize(profile, baseFontSize);
 }

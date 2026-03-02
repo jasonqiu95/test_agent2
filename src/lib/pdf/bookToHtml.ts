@@ -1020,24 +1020,18 @@ export class HtmlConverter {
       fragments.push(coverPageHtml);
     }
 
-    // Convert front matter
+    // Convert front matter (includes TOC if tocVariant is 'front-matter')
     const frontMatterHtml = this.convertFrontMatter();
     if (frontMatterHtml) {
       fragments.push(frontMatterHtml);
     }
 
-    // Generate and insert table of contents
-    if (this.options.includeToc) {
+    // Generate and insert navigation TOC at the beginning if variant is 'navigation'
+    if (this.options.includeToc && this.options.tocVariant === 'navigation') {
       const tocHtml = generateTocHtml(this.book, this.options);
       if (tocHtml) {
-        // Insert TOC based on variant
-        if (this.options.tocVariant === 'navigation') {
-          // Navigation TOC goes at the beginning
-          fragments.unshift(tocHtml);
-        } else {
-          // Front-matter TOC goes after front matter, before chapters
-          fragments.push(tocHtml);
-        }
+        // Navigation TOC goes at the very beginning (before cover and front matter)
+        fragments.unshift(tocHtml);
       }
     }
 
@@ -1235,21 +1229,87 @@ ${bodyContent}
 
   /**
    * Convert front matter to HTML
+   * Ensures proper ordering: title page, copyright, dedication, epigraph, TOC, foreword, introduction, preface, prologue
    */
   private convertFrontMatter(): string {
-    if (!this.book.frontMatter || this.book.frontMatter.length === 0) {
-      return '';
+    this.resetContextForSection('front-matter');
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Define the proper order for front matter elements
+    const frontMatterOrder: ElementType[] = [
+      'title-page',
+      'copyright',
+      'dedication',
+      'epigraph',
+      // TOC will be inserted here programmatically
+      'foreword',
+      'introduction',
+      'preface',
+      'prologue',
+    ];
+
+    // Create a map of elements by type for quick lookup
+    const elementsByType = new Map<ElementType, Element>();
+    if (this.book.frontMatter && this.book.frontMatter.length > 0) {
+      this.book.frontMatter.forEach((element) => {
+        elementsByType.set(element.type, element);
+      });
     }
 
-    this.resetContextForSection('front-matter');
-    const elementsHtml = this.book.frontMatter
-      .map((element, index) => {
-        this.updateContext({ currentElement: element, elementIndex: index });
-        return this.convertElement(element);
-      })
-      .join('\n\n');
+    // Track if we need page breaks (after major sections like title-page, copyright, dedication, epigraph)
+    const majorSections: ElementType[] = ['title-page', 'copyright', 'dedication', 'epigraph'];
+    let elementIndex = 0;
 
-    return elementsHtml;
+    // Process elements in the proper order
+    for (const elementType of frontMatterOrder) {
+      const element = elementsByType.get(elementType);
+
+      // Skip if element doesn't exist (handle missing elements gracefully)
+      if (!element) {
+        continue;
+      }
+
+      // Update context for this element
+      this.updateContext({ currentElement: element, elementIndex });
+
+      // Add page break before introductory elements (foreword, introduction, preface, prologue)
+      // These elements already have page-break-before in their converters
+      if (['foreword', 'introduction', 'preface', 'prologue'].includes(elementType) && fragments.length > 0) {
+        // The page break is handled by the element's CSS class, no need to add explicit div
+      }
+
+      // Convert the element
+      const elementHtml = this.convertElement(element);
+      if (elementHtml) {
+        fragments.push(elementHtml);
+      }
+
+      elementIndex++;
+    }
+
+    // Insert TOC after epigraph (or after the last major section that exists)
+    // TOC should come before introductory elements (foreword, introduction, preface, prologue)
+    if (this.options.includeToc && this.options.tocVariant !== 'navigation') {
+      const tocHtml = generateTocHtml(this.book, this.options);
+      if (tocHtml) {
+        // Find the position to insert TOC
+        // It should go after epigraph, or after dedication, or after copyright, or after title-page
+        let tocInsertPosition = 0;
+
+        // Count how many major sections exist before TOC position
+        for (const sectionType of ['title-page', 'copyright', 'dedication', 'epigraph']) {
+          if (elementsByType.has(sectionType)) {
+            tocInsertPosition++;
+          }
+        }
+
+        // Insert TOC at the calculated position
+        fragments.splice(tocInsertPosition, 0, tocHtml);
+      }
+    }
+
+    return fragments.join('\n\n');
   }
 
   /**

@@ -44,3 +44,11 @@ export type {
   MemoryMonitorOptions,
   CleanupHandler,
 } from './memory-manager'
+
+export {
+  PdfGeneratorService,
+  getPdfGeneratorService,
+  pdfGeneratorService,
+  resetPdfGeneratorService,
+  PdfGeneratorError,
+} from './pdfGenerator'

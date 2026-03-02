@@ -9,6 +9,7 @@ export * from './contentTransformer';
 export * from './styleGenerator';
 export * from './errorHandler';
 export * from './asyncErrorHandler';
+export * from './fontLoader';
 
 // Cache utilities
 export {

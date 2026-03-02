@@ -10,6 +10,10 @@ import { Element } from '../types/element';
 import { BookStyle } from '../types/style';
 import { transformElementToHtml, transformTextBlocks } from './contentTransformer';
 import { generateCSS as generateStyleCSS, CSSGeneratorOptions } from './styleGenerator';
+import {
+  generateFontLoadingConfig,
+  extractFontFamilies,
+} from './fontLoader';
 
 /**
  * Device type options for preview rendering
@@ -42,6 +46,10 @@ export interface PreviewResult {
   css: string;
   /** Estimated number of pages for the rendered content */
   pageCount: number;
+  /** Google Fonts URL for loading fonts (if applicable) */
+  googleFontsUrl?: string;
+  /** Custom @font-face rules for custom fonts */
+  fontFaceRules?: string;
 }
 
 /**
@@ -168,11 +176,14 @@ export function renderPreview(
     useInlineStyles: options?.useInlineStyles ?? false,
   };
 
+  // Generate font loading configuration
+  const fontConfig = generateFontLoadingConfig(styleConfig);
+
   // Generate HTML content
   const html = generateHTML(elementData, styleConfig, renderOptions);
 
-  // Generate CSS styles
-  const css = generateCSS(styleConfig, deviceConfig, renderOptions);
+  // Generate CSS styles (including font-face rules)
+  const css = generateCSS(styleConfig, deviceConfig, renderOptions, fontConfig.fontFaceRules);
 
   // Calculate estimated page count
   const pageCount = calculatePageCount(elementData, styleConfig, deviceConfig);
@@ -181,6 +192,8 @@ export function renderPreview(
     html,
     css,
     pageCount,
+    googleFontsUrl: fontConfig.googleFontsUrl || undefined,
+    fontFaceRules: fontConfig.fontFaceRules || undefined,
   };
 }
 
@@ -221,13 +234,15 @@ function generateHTML(
  * @param {BookStyle} styleConfig - Style configuration
  * @param {DeviceConfig} deviceConfig - Device configuration
  * @param {Required<RenderOptions>} options - Rendering options
+ * @param {string} fontFaceRules - @font-face rules for custom fonts
  * @returns {string} Generated CSS string
  * @private
  */
 function generateCSS(
   styleConfig: BookStyle,
   deviceConfig: DeviceConfig,
-  options: Required<RenderOptions>
+  options: Required<RenderOptions>,
+  fontFaceRules: string = ''
 ): string {
   const { classPrefix, printOptimized } = options;
 
@@ -256,7 +271,17 @@ function generateCSS(
 }
   `.trim();
 
-  return `${css}\n\n${deviceSpecificCSS}`;
+  // Combine font-face rules (if any) with generated CSS and device-specific CSS
+  const cssParts: string[] = [];
+
+  if (fontFaceRules) {
+    cssParts.push(fontFaceRules);
+  }
+
+  cssParts.push(css);
+  cssParts.push(deviceSpecificCSS);
+
+  return cssParts.join('\n\n');
 }
 
 /**

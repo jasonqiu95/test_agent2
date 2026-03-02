@@ -139,50 +139,128 @@ body {
 }
 
 /**
- * Generates body text CSS rules
+ * Generates body text CSS rules for body, p, and .body-text selectors
+ * Handles font stacks, fallback fonts, and all typography properties
  */
 function generateBodyTextStyles(bodyText: BookStyle['bodyText']): string {
-  const rules: string[] = ['/* Body text styles */', 'p {'];
+  const rules: string[] = ['/* Body text styles */'];
 
-  rules.push(`  font-size: ${bodyText.fontSize}pt;`);
-  rules.push(`  line-height: ${bodyText.lineHeight};`);
+  // Generate styles that apply to body, p, and .body-text
+  const selectors = ['body', 'p', '.body-text'];
+  const commonStyles: string[] = [];
 
-  if (bodyText.textAlign) {
-    rules.push(`  text-align: ${bodyText.textAlign};`);
+  // Font family with fallback support
+  if (bodyText.fontFamily) {
+    const fontStack = formatFontStack(bodyText.fontFamily);
+    commonStyles.push(`  font-family: ${fontStack};`);
   }
 
+  // Font size and line height
+  commonStyles.push(`  font-size: ${bodyText.fontSize}pt;`);
+  commonStyles.push(`  line-height: ${bodyText.lineHeight};`);
+
+  // Letter spacing if specified
+  if ('letterSpacing' in bodyText && (bodyText as any).letterSpacing !== undefined) {
+    commonStyles.push(`  letter-spacing: ${(bodyText as any).letterSpacing}em;`);
+  }
+
+  // Text alignment
+  if (bodyText.textAlign) {
+    commonStyles.push(`  text-align: ${bodyText.textAlign};`);
+  }
+
+  // Text color
+  if (bodyText.color) {
+    commonStyles.push(`  color: ${bodyText.color};`);
+  }
+
+  // Apply common styles to all selectors
+  rules.push(`${selectors.join(', ')} {`);
+  rules.push(...commonStyles);
+  rules.push('}');
+
+  // Paragraph-specific styles
+  const paragraphStyles: string[] = [];
+
   if (bodyText.textIndent) {
-    rules.push(`  text-indent: ${bodyText.textIndent}in;`);
+    paragraphStyles.push(`  text-indent: ${bodyText.textIndent}in;`);
   }
 
   if (bodyText.paragraphSpacing) {
-    rules.push(`  margin-bottom: ${bodyText.paragraphSpacing}em;`);
+    paragraphStyles.push(`  margin-bottom: ${bodyText.paragraphSpacing}em;`);
   }
 
   if (bodyText.hyphenation) {
-    rules.push(`  hyphens: auto;`);
-    rules.push(`  -webkit-hyphens: auto;`);
+    paragraphStyles.push(`  hyphens: auto;`);
+    paragraphStyles.push(`  -webkit-hyphens: auto;`);
   }
 
   if (bodyText.orphans) {
-    rules.push(`  orphans: ${bodyText.orphans};`);
+    paragraphStyles.push(`  orphans: ${bodyText.orphans};`);
   }
 
   if (bodyText.widows) {
-    rules.push(`  widows: ${bodyText.widows};`);
+    paragraphStyles.push(`  widows: ${bodyText.widows};`);
   }
 
-  if (bodyText.color) {
-    rules.push(`  color: ${bodyText.color};`);
+  // Add paragraph-specific rules if any exist
+  if (paragraphStyles.length > 0) {
+    rules.push('');
+    rules.push('p, .body-text {');
+    rules.push(...paragraphStyles);
+    rules.push('}');
   }
-
-  if (bodyText.fontFamily) {
-    rules.push(`  font-family: ${bodyText.fontFamily};`);
-  }
-
-  rules.push('}');
 
   return rules.join('\n');
+}
+
+/**
+ * Formats a font family string with proper fallback fonts
+ * Handles quoted font names and adds generic fallback
+ */
+function formatFontStack(fontFamily: string): string {
+  // If already contains commas, assume it's a complete font stack
+  if (fontFamily.includes(',')) {
+    return fontFamily;
+  }
+
+  // Check if font name needs quotes (contains spaces or special characters)
+  const needsQuotes = /[\s,]/.test(fontFamily) && !fontFamily.startsWith('"') && !fontFamily.startsWith("'");
+  const quotedFont = needsQuotes ? `"${fontFamily}"` : fontFamily;
+
+  // Determine appropriate fallback based on font characteristics
+  const lowerFont = fontFamily.toLowerCase();
+  let fallback = 'serif'; // Default fallback
+
+  // Common sans-serif fonts
+  if (
+    lowerFont.includes('sans') ||
+    lowerFont.includes('helvetica') ||
+    lowerFont.includes('arial') ||
+    lowerFont.includes('verdana') ||
+    lowerFont.includes('tahoma')
+  ) {
+    fallback = 'sans-serif';
+  }
+  // Common monospace fonts
+  else if (
+    lowerFont.includes('mono') ||
+    lowerFont.includes('courier') ||
+    lowerFont.includes('console') ||
+    lowerFont.includes('code')
+  ) {
+    fallback = 'monospace';
+  }
+  // Common cursive fonts
+  else if (
+    lowerFont.includes('script') ||
+    lowerFont.includes('cursive') ||
+    lowerFont.includes('brush')
+  ) {
+    fallback = 'cursive';
+  }
+
+  return `${quotedFont}, ${fallback}`;
 }
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { DetectedChapter } from '../lib/docx/chapterDetection';
 import type { StructuredDocument, Paragraph } from '../lib/docx/types';
 import './ImportPreviewDialog.css';
@@ -37,6 +37,41 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
   );
 
   const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set());
+
+  // Progress tracking state
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [processedCount, setProcessedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const importTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount or when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset import state when dialog closes
+      setIsImporting(false);
+      setImportProgress(0);
+      setStatusMessage('');
+      setProcessedCount(0);
+      setTotalCount(0);
+      setIsCancelled(false);
+      if (importTimerRef.current) {
+        clearInterval(importTimerRef.current);
+        importTimerRef.current = null;
+      }
+    }
+  }, [isOpen]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (importTimerRef.current) {
+        clearInterval(importTimerRef.current);
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -164,7 +199,69 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
 
   const handleImport = () => {
     const includedChapters = chapters.filter((ch) => ch.isIncluded);
-    onImport(includedChapters);
+
+    // Start import process with progress tracking
+    setIsImporting(true);
+    setImportProgress(0);
+    setProcessedCount(0);
+    setTotalCount(includedChapters.length);
+    setIsCancelled(false);
+    setStatusMessage('Preparing import...');
+
+    // Simulate import progress (in real implementation, this would be driven by actual import)
+    let currentProgress = 0;
+    let currentChapter = 0;
+
+    importTimerRef.current = setInterval(() => {
+      if (isCancelled) {
+        if (importTimerRef.current) {
+          clearInterval(importTimerRef.current);
+          importTimerRef.current = null;
+        }
+        setIsImporting(false);
+        setStatusMessage('Import cancelled');
+        return;
+      }
+
+      currentProgress += 2;
+
+      if (currentProgress >= 100) {
+        if (importTimerRef.current) {
+          clearInterval(importTimerRef.current);
+          importTimerRef.current = null;
+        }
+        setImportProgress(100);
+        setProcessedCount(includedChapters.length);
+        setStatusMessage('Import complete!');
+
+        // Complete import after a brief delay
+        setTimeout(() => {
+          setIsImporting(false);
+          onImport(includedChapters);
+        }, 500);
+        return;
+      }
+
+      setImportProgress(currentProgress);
+
+      // Update processed count based on progress
+      const newProcessedCount = Math.floor((currentProgress / 100) * includedChapters.length);
+      if (newProcessedCount > currentChapter) {
+        currentChapter = newProcessedCount;
+        setProcessedCount(currentChapter);
+
+        if (currentChapter < includedChapters.length) {
+          const chapter = includedChapters[currentChapter];
+          const elementCount = chapter.endIndex - chapter.startIndex + 1;
+          setStatusMessage(`Processing "${chapter.editedTitle || chapter.title}" (${elementCount} elements)...`);
+        }
+      }
+    }, 100); // Update every 100ms
+  };
+
+  const handleCancelImport = () => {
+    setIsCancelled(true);
+    setStatusMessage('Cancelling import...');
   };
 
   const includedCount = chapters.filter((ch) => ch.isIncluded).length;
@@ -208,7 +305,29 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
         </div>
 
         <div className="import-preview-dialog-content">
-          {chapters.length === 0 ? (
+          {isImporting ? (
+            <div className="import-progress-view">
+              <div className="import-progress-header">
+                <h3 className="import-progress-title">Importing Chapters</h3>
+                <div className="import-progress-count">
+                  {processedCount} / {totalCount} chapters processed
+                </div>
+              </div>
+
+              <div className="import-progress-bar-container">
+                <div
+                  className="import-progress-bar-fill"
+                  style={{ width: `${importProgress}%` }}
+                >
+                  <span className="import-progress-percentage">{importProgress}%</span>
+                </div>
+              </div>
+
+              <div className="import-progress-status">
+                {statusMessage}
+              </div>
+            </div>
+          ) : chapters.length === 0 ? (
             <div className="import-preview-empty">
               <p>No chapters detected in this document.</p>
             </div>
@@ -230,16 +349,30 @@ export const ImportPreviewDialog: React.FC<ImportPreviewDialogProps> = ({
         </div>
 
         <div className="import-preview-dialog-footer">
-          <button className="import-preview-btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="import-preview-btn-primary"
-            onClick={handleImport}
-            disabled={includedCount === 0}
-          >
-            Import {includedCount > 0 && `(${includedCount})`}
-          </button>
+          {isImporting ? (
+            <>
+              <button
+                className="import-preview-btn-secondary"
+                onClick={handleCancelImport}
+                disabled={isCancelled}
+              >
+                {isCancelled ? 'Cancelling...' : 'Cancel Import'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="import-preview-btn-secondary" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                className="import-preview-btn-primary"
+                onClick={handleImport}
+                disabled={includedCount === 0}
+              >
+                Import {includedCount > 0 && `(${includedCount})`}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

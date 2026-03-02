@@ -7,51 +7,25 @@
 import { Book } from '../../types/book';
 import { BookStyle } from '../../types/style';
 import { ImageData } from '../../workers/types';
+import {
+  EpubOptions,
+  EpubMetadata,
+  ChapterData,
+  EpubStructure,
+  EpubValidationResult,
+  EpubImageData,
+  EpubStylesheet,
+} from '../../types/epub';
 
-export interface EPUBOptions {
-  includeMetadata?: boolean;
-  includeToc?: boolean;
-  validate?: boolean;
-  quality?: 'draft' | 'standard' | 'high';
-}
-
-export interface EPUBMetadata {
-  title: string;
-  author: string | string[];
-  publisher?: string;
-  description?: string;
-  isbn?: string;
-  language?: string;
-  published?: string;
-  subject?: string[];
-  rights?: string;
-  coverImage?: string;
-}
-
-export interface EPUBChapter {
-  title: string;
-  content: string;
-  filename?: string;
-  excludeFromToc?: boolean;
-  beforeToc?: boolean;
-}
-
-export interface EPUBStructure {
-  metadata: EPUBMetadata;
-  chapters: EPUBChapter[];
+// Re-export types for backward compatibility
+export type EPUBOptions = EpubOptions;
+export type EPUBMetadata = EpubMetadata;
+export type EPUBChapter = ChapterData;
+export type EPUBStructure = Omit<EpubStructure, 'content' | 'styles'> & {
+  chapters: ChapterData[];
   styles: string;
-  images: ImageData[];
-  coverImage?: ImageData;
-}
-
-export interface EPUBValidationResult {
-  valid: boolean;
-  errors: Array<{
-    type: 'error' | 'warning';
-    message: string;
-    location?: string;
-  }>;
-}
+};
+export type EPUBValidationResult = EpubValidationResult;
 
 /**
  * Generate EPUB structure from book data
@@ -60,7 +34,7 @@ export function generateEPUBStructure(
   book: Book,
   styles: BookStyle[],
   images: ImageData[],
-  options: EPUBOptions = {}
+  options: EpubOptions = {}
 ): EPUBStructure {
   const metadata = generateMetadata(book, options);
   const chapters = generateChapters(book, options);
@@ -80,36 +54,40 @@ export function generateEPUBStructure(
 /**
  * Generate EPUB metadata from book data
  */
-function generateMetadata(book: Book, options: EPUBOptions): EPUBMetadata {
+function generateMetadata(book: Book, options: EpubOptions): EpubMetadata {
   const authors = book.authors.map(a => a.name);
 
   return {
     title: book.title,
     author: authors.length === 1 ? authors[0] : authors,
+    language: book.metadata.language || 'en',
     publisher: book.metadata.publisher,
     description: book.metadata.description,
     isbn: book.metadata.isbn13 || book.metadata.isbn,
-    language: book.metadata.language,
-    published: book.metadata.publicationDate
-      ? book.metadata.publicationDate.toISOString().split('T')[0]
-      : undefined,
+    publicationDate: book.metadata.publicationDate,
     subject: book.metadata.genre,
     rights: book.metadata.rights,
     coverImage: book.coverImage,
+    series: book.metadata.series,
+    seriesNumber: book.metadata.seriesNumber,
+    edition: book.metadata.edition,
+    keywords: book.metadata.keywords,
+    awards: book.metadata.awards,
   };
 }
 
 /**
  * Generate EPUB chapters from book structure
  */
-function generateChapters(book: Book, options: EPUBOptions): EPUBChapter[] {
-  const chapters: EPUBChapter[] = [];
+function generateChapters(book: Book, options: EpubOptions): ChapterData[] {
+  const chapters: ChapterData[] = [];
 
   // Add front matter
   if (book.frontMatter && book.frontMatter.length > 0) {
     book.frontMatter.forEach((element, index) => {
       const content = renderElementContent(element);
       chapters.push({
+        id: element.id || `front-matter-${index + 1}`,
         title: element.metadata?.title || `Front Matter ${index + 1}`,
         content,
         filename: `front-matter-${index + 1}.xhtml`,
@@ -123,10 +101,17 @@ function generateChapters(book: Book, options: EPUBOptions): EPUBChapter[] {
   book.chapters.forEach((chapter, index) => {
     const content = renderChapterContent(chapter);
     chapters.push({
+      id: chapter.id,
       title: chapter.title,
+      subtitle: chapter.subtitle,
       content,
       filename: `chapter-${index + 1}.xhtml`,
+      number: chapter.number || index + 1,
+      partNumber: chapter.partNumber,
+      partTitle: chapter.partTitle,
       excludeFromToc: chapter.includeInToc === false,
+      epigraph: chapter.epigraph,
+      epigraphAttribution: chapter.epigraphAttribution,
     });
   });
 
@@ -135,6 +120,7 @@ function generateChapters(book: Book, options: EPUBOptions): EPUBChapter[] {
     book.backMatter.forEach((element, index) => {
       const content = renderElementContent(element);
       chapters.push({
+        id: element.id || `back-matter-${index + 1}`,
         title: element.metadata?.title || `Back Matter ${index + 1}`,
         content,
         filename: `back-matter-${index + 1}.xhtml`,
@@ -327,7 +313,7 @@ function escapeHtml(text: string): string {
 function generateStyles(
   book: Book,
   styles: BookStyle[],
-  options: EPUBOptions
+  options: EpubOptions
 ): string {
   let css = `
 /* EPUB Base Styles */
@@ -409,7 +395,7 @@ blockquote {
 /**
  * Process images for EPUB
  */
-function processImages(images: ImageData[], book: Book): ImageData[] {
+function processImages(images: ImageData[], book: Book): EpubImageData[] {
   return images.map(img => ({
     id: img.id,
     url: img.url,
@@ -457,8 +443,8 @@ export function generateTOC(structure: EPUBStructure): string {
 /**
  * Basic EPUB validation
  */
-export function validateEPUB(structure: EPUBStructure): EPUBValidationResult {
-  const errors: EPUBValidationResult['errors'] = [];
+export function validateEPUB(structure: EPUBStructure): EpubValidationResult {
+  const errors: EpubValidationResult['errors'] = [];
 
   // Validate metadata
   if (!structure.metadata.title) {
@@ -524,7 +510,7 @@ export function validateEPUB(structure: EPUBStructure): EPUBValidationResult {
  */
 export async function packageEPUB(
   structure: EPUBStructure,
-  options: EPUBOptions = {}
+  options: EpubOptions = {}
 ): Promise<ArrayBuffer> {
   // This would use epub-gen-memory or similar library
   // For now, we'll create a simple implementation

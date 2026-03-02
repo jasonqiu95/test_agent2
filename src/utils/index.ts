@@ -5,6 +5,7 @@
  */
 
 export * from './previewRenderer';
+export * from './contentTransformer';
 export * from './errorHandler';
 export * from './asyncErrorHandler';
 

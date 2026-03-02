@@ -52,3 +52,13 @@ export {
   type SceneBreakStyle,
   type SceneBreakConverterOptions,
 } from './scene-break-converter';
+
+// Chapter Converter exports
+export {
+  convertChapterToXhtml,
+  convertChaptersToXhtml,
+  saveChapterXhtml,
+  validateChapter,
+  type ChapterConverterOptions,
+  type ChapterConversionResult,
+} from './chapter-converter';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookStyle, HeadingStyle } from '../../types/style';
 import { StylePreviewPanel } from './StylePreviewPanel';
-import { OrnamentalBreaksSection } from './sections';
+import { OrnamentalBreaksSection, BodyStyleSection } from './sections';
 import { FontSelector } from './FontSelector';
 import { HeadingStyleSection } from './sections/HeadingStyleSection';
 import './StyleEditor.css';
@@ -86,6 +86,17 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 placeholder="Select heading font"
                 allowCustom={true}
                 enableGoogleFonts={true}
+              />
+            </div>
+          </div>
+
+          {/* Body Text Section */}
+          <div className="style-editor__section">
+            <h2 className="style-editor__section-title">Body Text</h2>
+            <div className="style-editor__section-content">
+              <BodyStyleSection
+                bookStyle={currentStyle}
+                onChange={handleStyleChange}
               />
             </div>
           </div>

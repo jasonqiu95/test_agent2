@@ -1,0 +1,138 @@
+.drop-caps-section {
+  width: 100%;
+}
+
+.drop-caps-section__header {
+  margin-bottom: 1rem;
+}
+
+.drop-caps-section__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.drop-caps-section__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.drop-caps-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.drop-caps-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333333;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.drop-caps-label-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #666666;
+}
+
+.drop-caps-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #333333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.drop-caps-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.drop-caps-input,
+.drop-caps-select,
+.drop-caps-text-input {
+  padding: 0.5rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: #ffffff;
+  color: #333333;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.drop-caps-input:focus,
+.drop-caps-select:focus,
+.drop-caps-text-input:focus {
+  outline: none;
+  border-color: #0066cc;
+}
+
+.drop-caps-input:disabled,
+.drop-caps-select:disabled,
+.drop-caps-text-input:disabled,
+.drop-caps-color-input:disabled {
+  background-color: #f5f5f5;
+  color: #999999;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.drop-caps-input {
+  width: 100%;
+  max-width: 120px;
+}
+
+.drop-caps-select {
+  width: 100%;
+}
+
+.drop-caps-color-control {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.drop-caps-color-input {
+  width: 3rem;
+  height: 2.5rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0.25rem;
+  background-color: #ffffff;
+}
+
+.drop-caps-color-input:hover:not(:disabled) {
+  border-color: #0066cc;
+}
+
+.drop-caps-text-input {
+  flex: 1;
+  max-width: 150px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .drop-caps-field {
+    gap: 0.375rem;
+  }
+
+  .drop-caps-label {
+    font-size: 0.8125rem;
+  }
+
+  .drop-caps-input,
+  .drop-caps-select,
+  .drop-caps-text-input {
+    font-size: 0.8125rem;
+    padding: 0.4rem;
+  }
+}

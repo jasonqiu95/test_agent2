@@ -13,6 +13,7 @@ import bookReducer from '../slices/bookSlice';
 import selectionReducer from '../store/selectionSlice';
 import undoReducer from '../slices/undoSlice';
 import previewReducer from '../store/previewSlice';
+import editorReducer from '../store/editorSlice';
 import { RootState } from '../store';
 
 /**
@@ -26,6 +27,7 @@ export function createMockStore(preloadedState?: PreloadedState<RootState>) {
       selection: selectionReducer,
       undo: undoReducer,
       preview: previewReducer,
+      editor: editorReducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>

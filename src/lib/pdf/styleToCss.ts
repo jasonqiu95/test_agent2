@@ -295,13 +295,34 @@ function generateDropCapStyles(dropCaps: BookStyle['dropCaps']): string {
 
 /**
  * Generates first paragraph CSS rules
+ * Targets first paragraph after headings with special styling
  */
 function generateFirstParagraphStyles(firstPara: BookStyle['firstParagraph']): string {
   if (!firstPara) return '';
 
-  const rules: string[] = ['/* First paragraph styles */', '.first-paragraph {'];
+  const rules: string[] = ['/* First paragraph styles */'];
 
-  if (firstPara.textTransform) {
+  // Target first paragraphs after headings
+  const selectors = [
+    'h1 + p',
+    'h2 + p',
+    'h3 + p',
+    'h4 + p',
+    'h5 + p',
+    'h6 + p',
+    '.chapter-title + p',
+    '.section-title + p'
+  ];
+
+  rules.push(`${selectors.join(',\n')} {`);
+
+  // Remove text indent for first paragraphs
+  rules.push(`  text-indent: 0;`);
+
+  // Handle small caps via font-variant or text-transform
+  if (firstPara.textTransform === 'small-caps') {
+    rules.push(`  font-variant: small-caps;`);
+  } else if (firstPara.textTransform) {
     rules.push(`  text-transform: ${firstPara.textTransform};`);
   }
 
@@ -322,6 +343,15 @@ function generateFirstParagraphStyles(firstPara: BookStyle['firstParagraph']): s
   }
 
   rules.push('}');
+
+  // Handle partial small-caps (first N words) if specified
+  if (firstPara.smallCapsWords && firstPara.smallCapsWords > 0) {
+    rules.push('');
+    rules.push('/* Apply small-caps to first words only */');
+    rules.push(`${selectors.join(',\n')}::first-line {`);
+    rules.push(`  font-variant: small-caps;`);
+    rules.push('}');
+  }
 
   return rules.join('\n');
 }

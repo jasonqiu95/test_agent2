@@ -6,6 +6,7 @@ import { BookStyle } from '../../types/style';
 import { DragTypes } from '../../constants/dragTypes';
 import type { TreeItemDragData } from '../../types/drag';
 import { TreeNode } from './TreeNode';
+import { validateDrop, validateDropPosition } from './dragValidation';
 import './Navigator.css';
 
 export type NavigatorView = 'contents' | 'styles';
@@ -63,6 +64,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
   const [draggedItemData, setDraggedItemData] = useState<TreeItemDragData | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
+  const [isValidDropTarget, setIsValidDropTarget] = useState<boolean>(true);
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionType>>(new Set());
 
   // Determine if selection is controlled or uncontrolled
@@ -298,13 +300,15 @@ export const Navigator: React.FC<NavigatorProps> = ({
     setDraggedItemData(null);
     setDropTargetId(null);
     setDropPosition(null);
+    setIsValidDropTarget(true);
 
     // Remove dragging class
     (e.currentTarget as HTMLElement).classList.remove('dragging');
 
-    // Remove all drop-target classes
-    document.querySelectorAll('.drop-target').forEach((el) => {
+    // Remove all drop-target and drop-blocked classes
+    document.querySelectorAll('.drop-target, .drop-blocked').forEach((el) => {
       el.classList.remove('drop-target');
+      el.classList.remove('drop-blocked');
     });
   }, []);
 
@@ -321,28 +325,40 @@ export const Navigator: React.FC<NavigatorProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
-      if (!draggedItemId) {
-        console.log('dragover: no draggedItemId');
+      if (!draggedItemId || !draggedItemData) {
+        console.log('dragover: no draggedItemId or draggedItemData');
         return;
       }
 
       console.log('dragover:', { targetItem: targetItem.id, draggedItemId });
 
+      // Validate if this is a valid drop target
+      const validation = validateDrop(draggedItemData, targetItem.section!);
+      const canDrop = validation.canDrop;
+
       // Calculate drop position
       const position = calculateDropPosition(e);
       setDropTargetId(targetItem.id);
       setDropPosition(position);
+      setIsValidDropTarget(canDrop);
 
-      // Add drop-target class
-      e.currentTarget.classList.add('drop-target');
-
-      e.dataTransfer.dropEffect = 'move';
+      // Add appropriate class based on validation
+      if (canDrop) {
+        e.currentTarget.classList.add('drop-target');
+        e.currentTarget.classList.remove('drop-blocked');
+        e.dataTransfer.dropEffect = 'move';
+      } else {
+        e.currentTarget.classList.add('drop-blocked');
+        e.currentTarget.classList.remove('drop-target');
+        e.dataTransfer.dropEffect = 'none';
+      }
     },
-    [disabled, draggedItemId, calculateDropPosition]
+    [disabled, draggedItemId, draggedItemData, calculateDropPosition]
   );
 
   const handleDragLeave = useCallback((e: DragEvent<HTMLLIElement>) => {
     e.currentTarget.classList.remove('drop-target');
+    e.currentTarget.classList.remove('drop-blocked');
   }, []);
 
   const handleDrop = useCallback(
@@ -378,6 +394,13 @@ export const Navigator: React.FC<NavigatorProps> = ({
 
         console.log('dragData:', dragData);
 
+        // Validate drop using validation function
+        const validation = validateDrop(dragData, targetItem.section!);
+        if (!validation.canDrop) {
+          console.log('Invalid drop:', validation.reason);
+          return;
+        }
+
         // Get source section
         const sourceSection =
           dragData.type === DragTypes.FRONT_MATTER_ITEM
@@ -387,12 +410,6 @@ export const Navigator: React.FC<NavigatorProps> = ({
             : 'backMatter';
 
         console.log('sourceSection:', sourceSection, 'targetSection:', targetItem.section);
-
-        // Validate: can only drop within same section
-        if (sourceSection !== targetItem.section) {
-          console.log('Section mismatch - skipping');
-          return;
-        }
 
         // Get source and target indices
         const sectionItems = getSectionItems(sourceSection);
@@ -405,8 +422,9 @@ export const Navigator: React.FC<NavigatorProps> = ({
           return;
         }
 
-        // Calculate final target index based on drop position
-        const position = calculateDropPosition(e);
+        // Use stored drop position from dragOver event
+        // If dropPosition is not set (edge case), calculate it from the event
+        const position = dropPosition || calculateDropPosition(e);
         let finalTargetIndex = targetIndex;
 
         console.log('Drop debug:', {
@@ -419,13 +437,17 @@ export const Navigator: React.FC<NavigatorProps> = ({
           targetSection: targetItem.section
         });
 
-        // Don't reorder if dropping in the same position
-        if (
-          sourceIndex === finalTargetIndex ||
-          (position === 'before' && sourceIndex === finalTargetIndex) ||
-          (position === 'after' && sourceIndex === finalTargetIndex - 1)
-        ) {
-          console.log('Skipping reorder - same position');
+        // Validate drop position
+        const isValidPosition = validateDropPosition(
+          draggedItemId,
+          targetItem.id,
+          sourceIndex,
+          finalTargetIndex,
+          position
+        );
+
+        if (!isValidPosition) {
+          console.log('Skipping reorder - invalid position (same position or no change)');
           return;
         }
 
@@ -454,9 +476,10 @@ export const Navigator: React.FC<NavigatorProps> = ({
       } finally {
         // Clean up
         e.currentTarget.classList.remove('drop-target');
+        e.currentTarget.classList.remove('drop-blocked');
       }
     },
-    [disabled, draggedItemId, draggedItemData, onReorder, getSectionItems, calculateDropPosition]
+    [disabled, draggedItemId, draggedItemData, dropPosition, onReorder, getSectionItems, calculateDropPosition]
   );
 
   const handleSectionToggle = useCallback((section: SectionType) => {
@@ -540,12 +563,13 @@ export const Navigator: React.FC<NavigatorProps> = ({
                 const itemType = section === 'chapters' ? 'chapter' : section === 'frontMatter' ? 'element' : 'element';
                 const showDropZoneBefore = dropTargetId === item.id && dropPosition === 'before';
                 const showDropZoneAfter = dropTargetId === item.id && dropPosition === 'after';
+                const dropZoneClass = isValidDropTarget ? 'drop-zone' : 'drop-zone drop-zone-blocked';
 
                 return (
                   <React.Fragment key={item.id}>
                     {showDropZoneBefore && (
                       <div
-                        className="drop-zone drop-zone-before"
+                        className={`${dropZoneClass} drop-zone-before`}
                         data-testid={`drop-zone-before-${item.id}`}
                       />
                     )}
@@ -575,7 +599,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
                     </li>
                     {showDropZoneAfter && (
                       <div
-                        className="drop-zone drop-zone-after"
+                        className={`${dropZoneClass} drop-zone-after`}
                         data-testid={`drop-zone-after-${item.id}`}
                       />
                     )}
@@ -591,8 +615,6 @@ export const Navigator: React.FC<NavigatorProps> = ({
 
   return (
     <div className={`navigator ${className}`} onKeyDown={handleKeyDown} tabIndex={0}>
-      {isDragging && <div className="drag-overlay" data-testid="drag-overlay"></div>}
-
       <div className="navigator-header">
         <div className="navigator-view-switcher">
           <button

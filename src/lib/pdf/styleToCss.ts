@@ -85,6 +85,11 @@ export function convertStyleToCss(
     cssRules.push(generateOrnamentalBreakStyles(style.ornamentalBreaks));
   }
 
+  // Generate page break control styles for proper pagination
+  if (options.includePagedMedia !== false) {
+    cssRules.push(generatePageBreakStyles());
+  }
+
   // Add custom CSS if provided
   if (options.customCSS) {
     cssRules.push(options.customCSS);
@@ -442,6 +447,94 @@ function generateOrnamentalBreakStyles(breaks: BookStyle['ornamentalBreaks']): s
 }
 
 /**
+ * Generates page break control CSS rules for proper pagination
+ *
+ * This function creates CSS rules to:
+ * - Prevent unwanted page breaks inside certain elements (blockquotes, figures, tables, etc.)
+ * - Control widows and orphans (minimum 2-3 lines at page breaks)
+ * - Force page breaks before chapter starts
+ * - Prevent page breaks after headings
+ * - Ensure proper pagination for print-ready PDFs
+ *
+ * @returns CSS string with page break control rules
+ */
+function generatePageBreakStyles(): string {
+  return `/* Page break control for proper pagination */
+
+/* Prevent page breaks inside these elements */
+blockquote,
+figure,
+pre,
+code,
+table,
+img,
+.no-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Widows and orphans control - minimum 2-3 lines at page breaks */
+p,
+li,
+dt,
+dd {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Force page break before chapter starts */
+.chapter,
+.chapter-start,
+h1.chapter-title {
+  page-break-before: page;
+  break-before: page;
+}
+
+/* Prevent page breaks immediately after headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  page-break-after: avoid;
+  break-after: avoid;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Keep headings with at least the next line of content */
+h1 + p,
+h2 + p,
+h3 + p,
+h4 + p,
+h5 + p,
+h6 + p {
+  page-break-before: avoid;
+  break-before: avoid;
+}
+
+/* Avoid breaking list items */
+li {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Keep definition lists together */
+dl {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Avoid page breaks before footnotes */
+.footnote,
+.endnote {
+  page-break-before: avoid;
+  break-before: avoid;
+}`;
+}
+
+/**
  * Generates print-specific CSS optimizations
  * Wraps all print-specific rules in @media print query
  */
@@ -469,22 +562,9 @@ function generatePrintOptimizations(): string {
   rules.push('    -moz-osx-font-smoothing: grayscale;');
   rules.push('  }');
   rules.push('');
-  rules.push('  /* Prevent page breaks inside elements */');
-  rules.push('  h1, h2, h3, h4, h5, h6 {');
-  rules.push('    page-break-after: avoid;');
-  rules.push('    break-after: avoid;');
-  rules.push('  }');
-  rules.push('');
-  rules.push('  p, blockquote {');
-  rules.push('    page-break-inside: avoid;');
-  rules.push('    break-inside: avoid;');
-  rules.push('  }');
-  rules.push('');
   rules.push('  /* Ensure images fit on page */');
   rules.push('  img {');
   rules.push('    max-width: 100%;');
-  rules.push('    page-break-inside: avoid;');
-  rules.push('    break-inside: avoid;');
   rules.push('  }');
   rules.push('}');
 

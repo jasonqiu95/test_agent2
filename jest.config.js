@@ -31,13 +31,24 @@ module.exports = {
 
   // Transform configuration
   transform: {
-    '^.+\\.tsx?$': [
+    '^.+\\.(ts|tsx)$': [
       'ts-jest',
       {
         tsconfig: {
           jsx: 'react-jsx',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
+        },
+      },
+    ],
+    '^.+\\.(js|jsx)$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          jsx: 'react-jsx',
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          allowJs: true,
         },
       },
     ],

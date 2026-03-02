@@ -12,6 +12,7 @@ import { configureStore, PreloadedState } from '@reduxjs/toolkit';
 import bookReducer from '../slices/bookSlice';
 import selectionReducer from '../store/selectionSlice';
 import undoReducer from '../slices/undoSlice';
+import previewReducer from '../store/previewSlice';
 import { RootState } from '../store';
 
 /**
@@ -24,7 +25,7 @@ export function createMockStore(preloadedState?: PreloadedState<RootState>) {
       book: bookReducer,
       selection: selectionReducer,
       undo: undoReducer,
-      preview: (state = {}) => state, // Mock preview reducer
+      preview: previewReducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>

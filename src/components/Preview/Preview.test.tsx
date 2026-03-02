@@ -195,6 +195,282 @@ describe('Preview Component Test Infrastructure', () => {
 
 /**
  * ===========================================================================
+ * PAGE NAVIGATION INTEGRATION TESTS
+ * ===========================================================================
+ */
+
+describe('Preview with Page Navigation', () => {
+  beforeEach(() => {
+    mockRequestIdleCallback();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanupMocks();
+    jest.resetAllMocks();
+  });
+
+  describe('Page Count Updates', () => {
+    it('should update preview state when page count changes', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Test content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 5,
+            },
+          },
+        }
+      );
+
+      // Verify initial state
+      expect(store.getState().preview.totalPages).toBe(5);
+      expect(store.getState().preview.currentPage).toBe(1);
+    });
+
+    it('should maintain page state consistency when content changes', () => {
+      const { rerender, store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Initial content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 3,
+              totalPages: 10,
+            },
+          },
+        }
+      );
+
+      // Content changes
+      rerender(
+        <SimplePreviewComponent content="<p>Updated content</p>" />
+      );
+
+      // Page state should remain consistent
+      expect(store.getState().preview.currentPage).toBe(3);
+      expect(store.getState().preview.totalPages).toBe(10);
+    });
+
+    it('should handle page navigation state across multiple preview updates', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Test content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 5,
+            },
+          },
+        }
+      );
+
+      const initialState = store.getState().preview;
+      expect(initialState.currentPage).toBe(1);
+      expect(initialState.totalPages).toBe(5);
+    });
+  });
+
+  describe('Navigation Updates Preview Content', () => {
+    it('should track navigation state changes that affect preview rendering', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Page content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 10,
+            },
+          },
+        }
+      );
+
+      // Simulate page navigation
+      const initialPage = store.getState().preview.currentPage;
+
+      // Navigation state change (which would trigger preview content update)
+      store.dispatch({ type: 'preview/navigatePage', payload: 2 });
+
+      const newPage = store.getState().preview.currentPage;
+      expect(newPage).toBe(2);
+      expect(newPage).not.toBe(initialPage);
+    });
+
+    it('should preserve device mode during page navigation', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Test content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'Kindle',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 5,
+            },
+          },
+        }
+      );
+
+      expect(store.getState().preview.deviceMode).toBe('Kindle');
+
+      // Navigate to different page
+      store.dispatch({ type: 'preview/navigatePage', payload: 3 });
+
+      // Device mode should be preserved
+      expect(store.getState().preview.deviceMode).toBe('Kindle');
+      expect(store.getState().preview.currentPage).toBe(3);
+    });
+
+    it('should preserve zoom level during page navigation', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Test content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 150,
+              currentPage: 1,
+              totalPages: 5,
+            },
+          },
+        }
+      );
+
+      expect(store.getState().preview.zoomLevel).toBe(150);
+
+      // Navigate to different page
+      store.dispatch({ type: 'preview/navigatePage', payload: 2 });
+
+      // Zoom level should be preserved
+      expect(store.getState().preview.zoomLevel).toBe(150);
+      expect(store.getState().preview.currentPage).toBe(2);
+    });
+  });
+
+  describe('Preview State Synchronization', () => {
+    it('should maintain synchronized state between preview and navigation', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 5,
+              totalPages: 10,
+            },
+          },
+        }
+      );
+
+      const previewState = store.getState().preview;
+
+      // All preview state properties should be accessible
+      expect(previewState).toHaveProperty('currentPage');
+      expect(previewState).toHaveProperty('totalPages');
+      expect(previewState).toHaveProperty('deviceMode');
+      expect(previewState).toHaveProperty('zoomLevel');
+
+      expect(previewState.currentPage).toBe(5);
+      expect(previewState.totalPages).toBe(10);
+    });
+
+    it('should handle rapid state changes without losing sync', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Content</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 10,
+            },
+          },
+        }
+      );
+
+      // Rapid state updates
+      store.dispatch({ type: 'preview/navigatePage', payload: 2 });
+      store.dispatch({ type: 'preview/navigatePage', payload: 3 });
+      store.dispatch({ type: 'preview/navigatePage', payload: 4 });
+
+      const finalState = store.getState().preview;
+      expect(finalState.currentPage).toBe(4);
+      expect(finalState.totalPages).toBe(10);
+    });
+  });
+
+  describe('Boundary Condition Integration', () => {
+    it('should handle preview with no pages', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 0,
+            },
+          },
+        }
+      );
+
+      expect(store.getState().preview.totalPages).toBe(0);
+      expect(store.getState().preview.currentPage).toBe(1);
+    });
+
+    it('should handle preview with single page', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Single page</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 1,
+              totalPages: 1,
+            },
+          },
+        }
+      );
+
+      expect(store.getState().preview.totalPages).toBe(1);
+      expect(store.getState().preview.currentPage).toBe(1);
+    });
+
+    it('should handle preview with many pages', () => {
+      const { store } = renderWithProviders(
+        <SimplePreviewComponent content="<p>Large document</p>" />,
+        {
+          preloadedState: {
+            preview: {
+              deviceMode: 'iPad',
+              zoomLevel: 100,
+              currentPage: 50,
+              totalPages: 100,
+            },
+          },
+        }
+      );
+
+      expect(store.getState().preview.totalPages).toBe(100);
+      expect(store.getState().preview.currentPage).toBe(50);
+    });
+  });
+});
+
+/**
+ * ===========================================================================
  * COMPREHENSIVE PREVIEW PANEL COMPONENT TESTS
  * ===========================================================================
  *

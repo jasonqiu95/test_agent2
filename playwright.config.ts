@@ -6,8 +6,8 @@ import path from 'path';
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  // Test directories - include both e2e and tests/e2e folders
-  testMatch: ['e2e/**/*.spec.ts', 'tests/e2e/**/*.spec.ts'],
+  // Test directories - include e2e, tests/e2e, and tests/integration folders
+  testMatch: ['e2e/**/*.spec.ts', 'tests/e2e/**/*.spec.ts', 'tests/integration/**/*.spec.ts'],
 
   // Maximum time one test can run for
   timeout: 60 * 1000,

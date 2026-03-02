@@ -236,4 +236,46 @@ export class PreviewPage {
 
     return result;
   }
+
+  /**
+   * Check if a scene break exists in the preview
+   */
+  async hasSceneBreak(): Promise<boolean> {
+    return await this.hasElement('.scene-break');
+  }
+
+  /**
+   * Get all scene breaks in the preview
+   */
+  async getSceneBreaks(): Promise<Array<{ symbol: string; style: string }>> {
+    const sceneBreaks = await this.content.locator('.scene-break').all();
+    const result: Array<{ symbol: string; style: string }> = [];
+
+    for (const sceneBreak of sceneBreaks) {
+      const symbol = await sceneBreak.getAttribute('data-symbol') || await sceneBreak.textContent() || '* * *';
+      const computedStyle = await sceneBreak.evaluate((el) => {
+        const styles = window.getComputedStyle(el);
+        return {
+          textAlign: styles.textAlign,
+          margin: styles.margin,
+          color: styles.color,
+          fontSize: styles.fontSize,
+        };
+      });
+
+      result.push({
+        symbol: symbol.trim(),
+        style: JSON.stringify(computedStyle)
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Check if an ornamental break exists in the preview
+   */
+  async hasOrnamentalBreak(): Promise<boolean> {
+    return await this.hasElement('.ornamental-break');
+  }
 }

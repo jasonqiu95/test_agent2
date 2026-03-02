@@ -15,6 +15,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Node as PMNode } from 'prosemirror-model';
 import { EditorView, NodeView, Decoration } from 'prosemirror-view';
 import { ImageAttrs } from '../types';
+import { ImageContextMenu } from '../components/ImageContextMenu';
 import './ImageNodeView.css';
 
 interface ImageNodeViewProps {
@@ -40,6 +41,7 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
     width: attrs.width || null,
     height: attrs.height || null,
   });
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +50,22 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
   // Check if node is selected
   const pos = getPos();
   const selected = view.state.selection.from === pos && view.state.selection.to === pos + node.nodeSize;
+
+  // Update menu position when selection changes
+  useEffect(() => {
+    if (selected && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const editorRect = view.dom.getBoundingClientRect();
+
+      // Position menu above the image
+      setMenuPosition({
+        top: rect.top - editorRect.top - 60, // 60px above the image
+        left: rect.left - editorRect.left + rect.width / 2 - 100, // Center horizontally (assuming 200px menu width)
+      });
+    } else {
+      setMenuPosition(null);
+    }
+  }, [selected, view]);
 
   // Handle image load
   const handleImageLoad = () => {
@@ -272,6 +290,15 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
           <div className="image-node-dimensions">
             {dimensions.width} × {dimensions.height}
           </div>
+        )}
+
+        {selected && menuPosition && !isResizing && (
+          <ImageContextMenu
+            view={view}
+            node={node}
+            getPos={getPos}
+            position={menuPosition}
+          />
         )}
       </div>
     </div>

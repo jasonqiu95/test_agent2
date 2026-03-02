@@ -1,0 +1,186 @@
+/**
+ * ImageContextMenu Styles
+ * Styling for floating toolbar with image alignment controls
+ */
+
+/* Menu container */
+.image-context-menu {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: all;
+  user-select: none;
+}
+
+/* Menu content box */
+.image-context-menu-content {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 200px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Menu title */
+.image-context-menu-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #718096;
+  margin-bottom: 6px;
+  padding: 0 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Button container */
+.image-context-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Individual button */
+.image-context-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #2d3748;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.image-context-menu-button:hover {
+  background: #f7fafc;
+  border-color: #e2e8f0;
+}
+
+.image-context-menu-button:active {
+  background: #edf2f7;
+  transform: scale(0.98);
+}
+
+.image-context-menu-button.active {
+  background: #ebf8ff;
+  border-color: #4299e1;
+  color: #2c5282;
+  font-weight: 500;
+}
+
+.image-context-menu-button.active .button-icon {
+  color: #3182ce;
+}
+
+/* Button icon */
+.button-icon {
+  font-size: 18px;
+  line-height: 1;
+  color: #718096;
+  min-width: 20px;
+  text-align: center;
+  transition: color 0.15s ease;
+}
+
+/* Button label */
+.button-label {
+  flex: 1;
+  font-size: 13px;
+}
+
+/* Focus styles for accessibility */
+.image-context-menu-button:focus {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+}
+
+.image-context-menu-button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .image-context-menu-content {
+    background: #2d3748;
+    border-color: #4a5568;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .image-context-menu-title {
+    color: #a0aec0;
+  }
+
+  .image-context-menu-button {
+    color: #e2e8f0;
+  }
+
+  .image-context-menu-button:hover {
+    background: #374151;
+    border-color: #4a5568;
+  }
+
+  .image-context-menu-button:active {
+    background: #4a5568;
+  }
+
+  .image-context-menu-button.active {
+    background: #2c5282;
+    border-color: #4299e1;
+    color: #bee3f8;
+  }
+
+  .button-icon {
+    color: #a0aec0;
+  }
+
+  .image-context-menu-button.active .button-icon {
+    color: #63b3ed;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .image-context-menu-content {
+    min-width: 180px;
+    padding: 6px;
+  }
+
+  .image-context-menu-button {
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .button-icon {
+    font-size: 20px;
+    min-width: 24px;
+  }
+
+  .button-label {
+    font-size: 14px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .image-context-menu {
+    display: none !important;
+  }
+}

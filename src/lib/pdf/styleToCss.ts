@@ -415,33 +415,69 @@ function generateFirstParagraphStyles(firstPara: BookStyle['firstParagraph']): s
 
 /**
  * Generates ornamental break CSS rules
+ *
+ * Creates CSS for ornamental/scene breaks that can be styled with different
+ * characters (asterisks, dingbats, custom symbols), sizes, spacing, and alignment.
+ * Supports both .scene-break and hr elements.
+ *
+ * @param breaks - Ornamental break configuration
+ * @returns CSS string for ornamental break rules
  */
 function generateOrnamentalBreakStyles(breaks: BookStyle['ornamentalBreaks']): string {
   if (!breaks) return '';
 
-  const rules: string[] = ['/* Ornamental break styles */', '.ornamental-break {'];
+  const rules: string[] = ['/* Ornamental break styles */'];
 
-  rules.push(`  text-align: ${breaks.textAlign || 'center'};`);
-  rules.push(`  margin-top: ${breaks.marginTop || 1}em;`);
-  rules.push(`  margin-bottom: ${breaks.marginBottom || 1}em;`);
+  // Default values
+  const alignment = breaks.textAlign || 'center';
+  const marginTop = breaks.marginTop ?? 1;
+  const marginBottom = breaks.marginBottom ?? 1;
+  const character = breaks.character || '* * *';
+
+  // Base styles for both .scene-break and hr elements
+  const baseStyles = [
+    `  text-align: ${alignment};`,
+    `  margin-top: ${marginTop}em;`,
+    `  margin-bottom: ${marginBottom}em;`,
+    `  display: block;`,
+    `  width: 100%;`
+  ];
 
   if (breaks.fontSize) {
-    rules.push(`  font-size: ${breaks.fontSize}pt;`);
+    baseStyles.push(`  font-size: ${breaks.fontSize}pt;`);
   }
 
   if (breaks.color) {
-    rules.push(`  color: ${breaks.color};`);
+    baseStyles.push(`  color: ${breaks.color};`);
+  }
+
+  // Styles for .scene-break class
+  rules.push('.scene-break {');
+  rules.push(...baseStyles);
+  rules.push('}');
+  rules.push('');
+
+  // Styles for hr elements (horizontal rules used as scene breaks)
+  rules.push('hr.scene-break {');
+  rules.push(`  border: none;`);
+  rules.push(`  background: none;`);
+  rules.push(`  height: auto;`);
+  rules.push(...baseStyles);
+  rules.push('}');
+
+  // Add ::before pseudo-element with the ornamental character
+  rules.push('');
+  rules.push('.scene-break::before,');
+  rules.push('hr.scene-break::before {');
+  rules.push(`  content: '${escapeForCss(character)}';`);
+  rules.push(`  display: block;`);
+
+  // Add letter-spacing for multiple character symbols (e.g., "* * *")
+  if (character.length > 1) {
+    rules.push(`  letter-spacing: 0.2em;`);
   }
 
   rules.push('}');
-
-  // Add ::before pseudo-element if character is specified
-  if (breaks.character) {
-    rules.push('');
-    rules.push('.ornamental-break::before {');
-    rules.push(`  content: '${breaks.character}';`);
-    rules.push('}');
-  }
 
   return rules.join('\n');
 }
@@ -569,6 +605,17 @@ function generatePrintOptimizations(): string {
   rules.push('}');
 
   return rules.join('\n');
+}
+
+/**
+ * Escapes special characters for use in CSS content property
+ *
+ * @param str - String to escape
+ * @returns Escaped string safe for CSS
+ */
+function escapeForCss(str: string): string {
+  // Escape single quotes and backslashes for CSS content property
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 /**

@@ -1,205 +1,151 @@
-# PDF Generator Worker
+# Workers Documentation
 
-This directory contains the Web Worker implementation for PDF generation, which runs in a separate thread to avoid blocking the UI during PDF processing.
+This directory contains Web Worker implementations for background processing tasks, which run in separate threads to avoid blocking the UI.
 
-## Files
+## Workers
 
-- **pdf-generator.worker.ts** - The main worker implementation with message handling and error boundaries
-- **types.ts** - TypeScript definitions for worker message protocol
-- **index.ts** - Worker manager and utilities for easy integration
+### PDF Generator Worker
+
+For PDF generation documentation, see the dedicated PDF worker documentation.
+
+### EPUB Generator Worker
+
+This directory contains the Web Worker implementation for EPUB generation, which runs in a separate thread to avoid blocking the UI during book processing.
+
+#### Files
+
+- **`types.ts`**: Message protocol definitions for worker communication
+- **`epub-generator.worker.ts`**: The Web Worker implementation with message routing and error handling
+- **`epub-worker-client.ts`**: Client-side utility class for easy worker interaction from the main thread
 
 ## Architecture
 
-### Worker Structure
+### Worker Features
 
-The worker implements a message-based protocol with the following components:
-
-1. **Message Event Listener** - Entry point for all messages from the main thread
-2. **Message Router** - Routes messages to appropriate handlers based on type
-3. **Error Boundary** - Global error handlers for uncaught errors and unhandled rejections
-4. **State Management** - Tracks worker state (initialized, processing, cancelled)
+1. **Message Protocol**: Type-safe message passing between main thread and worker
+2. **Message Routing**: Handles INITIALIZE and CANCEL messages
+3. **Error Boundaries**: Global error handlers and promise rejection handling
+4. **Progress Reporting**: Real-time progress updates during generation
+5. **Cancellation Support**: Ability to cancel ongoing generation
 
 ### Message Types
 
-- `INITIALIZE` - Start PDF generation with book data
-- `CANCEL` - Cancel the current operation
-- `READY` - Worker is initialized (sent to main thread)
-- `PROGRESS` - Progress update (sent to main thread)
-- `ERROR` - Error occurred (sent to main thread)
-- `COMPLETE` - Generation complete with PDF buffer (sent to main thread)
+- **INITIALIZE**: Start EPUB generation with book data
+- **CANCEL**: Cancel ongoing generation
+- **PROGRESS**: Progress updates from worker
+- **ERROR**: Error notifications
+- **COMPLETE**: Generation complete with result buffer
+- **READY**: Worker is initialized and ready
 
-## Usage
-
-### Basic Example
+## Usage Example
 
 ```typescript
-import { createPDFWorker } from './workers';
-import { Book } from './types/book';
-import { BookStyle } from './types/style';
+import { EPUBWorkerClient } from '@/workers/epub-worker-client';
 
-// Create worker with event handlers
-const pdfWorker = createPDFWorker({
-  onReady: (data) => {
-    console.log('Worker ready:', data.workerId);
+// Create and initialize the worker
+const workerClient = new EPUBWorkerClient();
+
+await workerClient.initialize({
+  onReady: (workerId) => {
+    console.log('Worker ready:', workerId);
   },
   onProgress: (data) => {
-    console.log(`Progress: ${data.percentage}%`, data.status);
-  },
-  onError: (data) => {
-    console.error('Error:', data.message);
+    console.log(`Progress: ${data.percentage}%`);
+    console.log(`Status: ${data.status}`);
   },
   onComplete: (data) => {
-    console.log('PDF generated:', data.fileName);
-    // Download or save the PDF buffer
+    console.log('EPUB generated successfully!');
+    // Save the buffer to file
     const blob = new Blob([data.buffer], { type: data.mimeType });
-    // ... handle the blob
+    // ... handle file saving
+  },
+  onError: (error) => {
+    console.error('Generation error:', error.message);
   }
 });
 
-// Wait for worker to be ready
-await pdfWorker.waitForReady();
-
-// Generate PDF
-const book: Book = { /* book data */ };
-const styles: BookStyle[] = [ /* styles */ ];
-
-await pdfWorker.generatePDF(book, styles, [], {
-  format: 'pdf',
+// Start generation
+await workerClient.generateEPUB(book, styles, images, {
+  format: 'epub',
   quality: 'standard',
   includeMetadata: true,
-  includeToc: true
+  includeToc: true,
 });
 
-// Cancel if needed
-// pdfWorker.cancel('User cancelled');
+// To cancel
+workerClient.cancel('User requested cancellation');
 
 // Clean up when done
-// pdfWorker.terminate();
-```
-
-### Advanced Usage with React
-
-```typescript
-import { useEffect, useRef, useState } from 'react';
-import { createPDFWorker, PDFWorkerManager } from './workers';
-
-function PDFGenerator() {
-  const workerRef = useRef<PDFWorkerManager | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('');
-
-  useEffect(() => {
-    // Initialize worker
-    workerRef.current = createPDFWorker({
-      onProgress: (data) => {
-        setProgress(data.percentage);
-        setStatus(data.status);
-      },
-      onError: (data) => {
-        console.error('PDF generation error:', data);
-      },
-      onComplete: (data) => {
-        console.log('PDF complete:', data);
-        // Handle completion
-      }
-    });
-
-    // Cleanup on unmount
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
-
-  const handleGenerate = async () => {
-    if (workerRef.current) {
-      await workerRef.current.generatePDF(book, styles);
-    }
-  };
-
-  const handleCancel = () => {
-    workerRef.current?.cancel('User cancelled');
-  };
-
-  return (
-    <div>
-      <button onClick={handleGenerate}>Generate PDF</button>
-      <button onClick={handleCancel}>Cancel</button>
-      <div>Progress: {progress}%</div>
-      <div>Status: {status}</div>
-    </div>
-  );
-}
+workerClient.terminate();
 ```
 
 ## Configuration
 
 ### Vite Configuration
 
-The `vite.config.ts` includes worker support:
+The `vite.config.ts` includes worker-specific configuration:
 
 ```typescript
-{
-  worker: {
-    format: 'es',
-    plugins: () => []
+worker: {
+  format: 'es',
+  plugins: () => [],
+  rollupOptions: {
+    output: {
+      entryFileNames: 'workers/[name].js'
+    }
   }
 }
 ```
 
 ### TypeScript Configuration
 
-The worker uses standard TypeScript configuration from `tsconfig.json` with:
-- Target: ES2020
-- Module: ESNext
-- Lib: ES2020, DOM, DOM.Iterable
+The `tsconfig.json` includes the WebWorker library:
+
+```json
+{
+  "compilerOptions": {
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"]
+  }
+}
+```
+
+## Implementation Status
+
+### ✅ Completed
+
+- Basic worker structure and lifecycle
+- Message event listener
+- Message routing based on protocol
+- Error boundary (global error handlers)
+- Worker registration/initialization
+- TypeScript/Vite configuration for workers
+- Client-side utility class
+- Type-safe message protocol
+
+### 🔄 TODO
+
+- Implement actual EPUB generation logic (currently returns dummy buffer)
+- Integrate with epub-gen-memory library
+- Add support for PDF and DOCX formats
+- Implement streaming/chunked processing for large books
+- Add worker pool for parallel processing
+- Implement resource management and cleanup
 
 ## Error Handling
 
-The worker includes comprehensive error handling:
+The worker implements multiple layers of error handling:
 
-1. **Global Error Handler** (`self.onerror`) - Catches uncaught errors
-2. **Unhandled Rejection Handler** (`self.onunhandledrejection`) - Catches promise rejections
-3. **Message Handler Try-Catch** - Wraps all message processing
-4. **Typed Error Messages** - All errors include code, message, and optional details
+1. **Try-catch blocks** in message handlers
+2. **Global onerror handler** for uncaught errors
+3. **onunhandledrejection handler** for promise rejections
+4. **Routing errors** for malformed messages
 
-### Error Codes
+All errors are reported to the main thread with detailed information including error code, message, stack trace, and recoverability status.
 
-- `WORKER_BUSY` - Worker is already processing a task
-- `GENERATION_CANCELLED` - Operation was cancelled by user
-- `GENERATION_ERROR` - Error during PDF generation
-- `INVALID_MESSAGE` - Invalid message format or type
-- `MESSAGE_HANDLER_ERROR` - Error in message handler
-- `WORKER_ERROR` - Uncaught error in worker
-- `WORKER_UNHANDLED_REJECTION` - Unhandled promise rejection
-- `MESSAGE_ERROR` - Error processing message
-- `INITIALIZATION_ERROR` - Error initializing worker
+## Performance Considerations
 
-## Future Enhancements
-
-The current implementation is a skeleton. Future additions should include:
-
-1. **PDF Generation Logic** - Integration with PDF libraries (pdfmake, jsPDF, etc.)
-2. **Chapter Processing** - Iterate through chapters and generate pages
-3. **Image Handling** - Process and embed images in PDF
-4. **Style Application** - Apply book styles to PDF output
-5. **Table of Contents** - Generate TOC from chapter structure
-6. **Metadata** - Embed book metadata in PDF
-7. **Progress Tracking** - More granular progress updates
-8. **Memory Management** - Handle large books efficiently
-9. **Caching** - Cache intermediate results for better performance
-
-## Testing
-
-To test the worker:
-
-1. Install dependencies: `npm install`
-2. Run type check: `npm run type-check`
-3. Add unit tests for worker message handling
-4. Add integration tests for PDF generation
-
-## Notes
-
-- Workers run in a separate thread and cannot access the DOM
-- All data passed between main thread and worker must be serializable
-- Use `ArrayBuffer` or `Transferable` objects for large data to avoid copying
-- Worker termination should be handled properly to avoid memory leaks
+- Worker runs in separate thread, keeping UI responsive
+- Supports cancellation to prevent wasted computation
+- Progress updates don't block processing
+- Uses transferable objects (ArrayBuffer) for efficient data transfer
+- Unique worker ID for debugging and monitoring

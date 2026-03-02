@@ -48,6 +48,11 @@ export default defineConfig({
   },
   worker: {
     format: 'es',
-    plugins: () => []
+    plugins: () => [],
+    rollupOptions: {
+      output: {
+        entryFileNames: 'workers/[name].js'
+      }
+    }
   }
 })

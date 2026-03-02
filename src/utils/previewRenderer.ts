@@ -8,6 +8,7 @@
 
 import { Element } from '../types/element';
 import { BookStyle } from '../types/style';
+import { transformElementToHtml, transformTextBlocks } from './contentTransformer';
 
 /**
  * Device type options for preview rendering
@@ -196,19 +197,19 @@ function generateHTML(
   styleConfig: BookStyle,
   options: Required<RenderOptions>
 ): string {
-  // TODO: Implement HTML generation logic
-  // This will be implemented in subsequent tasks
+  const { classPrefix, useInlineStyles } = options;
 
-  const { classPrefix } = options;
+  // Transform element to HTML using the content transformer
+  const content = transformElementToHtml(elementData, {
+    classPrefix,
+    useInlineStyles,
+    generateIds: true,
+  });
 
+  // Wrap in container
   return `
     <div class="${classPrefix}-container">
-      <article class="${classPrefix}-element" data-type="${elementData.type}" data-matter="${elementData.matter}">
-        <h1 class="${classPrefix}-title">${escapeHtml(elementData.title)}</h1>
-        <div class="${classPrefix}-content">
-          <!-- Content blocks will be rendered here -->
-        </div>
-      </article>
+      ${content}
     </div>
   `.trim();
 }
@@ -275,14 +276,40 @@ function calculatePageCount(
   styleConfig: BookStyle,
   deviceConfig: DeviceConfig
 ): number {
-  // TODO: Implement page count calculation logic
-  // This will be implemented in subsequent tasks
-  // For now, return a placeholder estimate based on content blocks
-
+  // Estimate page count based on content blocks and styling
   const contentBlocks = elementData.content?.length || 0;
-  const estimatedBlocksPerPage = 10;
 
-  return Math.max(1, Math.ceil(contentBlocks / estimatedBlocksPerPage));
+  if (contentBlocks === 0) {
+    return 1;
+  }
+
+  // Calculate average words per block
+  let totalWords = 0;
+  elementData.content?.forEach((block) => {
+    const wordCount = block.content.split(/\s+/).filter((word) => word.length > 0).length;
+    totalWords += wordCount;
+  });
+
+  // Estimate based on page dimensions and font size
+  const fontSize = parseFloat(styleConfig.body.fontSize) || 16;
+  const lineHeight = parseFloat(styleConfig.body.lineHeight) || 1.5;
+  const pageHeight = deviceConfig.pageHeight || 1056;
+  const pageWidth = deviceConfig.pageWidth || 816;
+
+  // Calculate approximate lines per page
+  const lineHeightPx = fontSize * lineHeight;
+  const linesPerPage = Math.floor(pageHeight / lineHeightPx);
+
+  // Estimate words per line based on average word length and font size
+  const avgWordLength = 5; // average word length in characters
+  const charsPerLine = Math.floor(pageWidth / (fontSize * 0.6));
+  const wordsPerLine = Math.floor(charsPerLine / avgWordLength);
+  const wordsPerPage = linesPerPage * wordsPerLine;
+
+  // Calculate total pages
+  const estimatedPages = Math.ceil(totalWords / wordsPerPage);
+
+  return Math.max(1, estimatedPages);
 }
 
 /**

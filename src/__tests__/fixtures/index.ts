@@ -4,6 +4,7 @@
 
 // Export all chapter fixtures
 export * from './sampleChapters';
+export * from './chapters';
 
 // Export all book content fixtures
 export * from './bookContent';

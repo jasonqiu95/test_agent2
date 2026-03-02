@@ -12,11 +12,13 @@ import { Book, Author } from '../types/book';
 import { Chapter } from '../types/chapter';
 import { Element } from '../types/element';
 import { Style } from '../types/style';
+import { Note } from '../types/notes';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface BookState {
   currentBook: Book | null;
   books: Book[];
+  notes: Note[];
   loading: boolean;
   error: string | null;
   isDirty: boolean;
@@ -25,6 +27,7 @@ export interface BookState {
 const initialState: BookState = {
   currentBook: null,
   books: [],
+  notes: [],
   loading: false,
   error: null,
   isDirty: false,
@@ -426,6 +429,37 @@ export const bookSlice = createSlice({
     setDirty: (state, action: PayloadAction<boolean>) => {
       state.isDirty = action.payload;
     },
+
+    /**
+     * Create a new note (footnote or endnote)
+     */
+    createNote: (state, action: PayloadAction<Note>) => {
+      state.notes.push(action.payload);
+      state.isDirty = true;
+    },
+
+    /**
+     * Update an existing note
+     */
+    updateNote: (state, action: PayloadAction<Note>) => {
+      const index = state.notes.findIndex(
+        (note) => note.id === action.payload.id
+      );
+      if (index !== -1) {
+        state.notes[index] = action.payload;
+        state.isDirty = true;
+      }
+    },
+
+    /**
+     * Delete a note by ID
+     */
+    deleteNote: (state, action: PayloadAction<string>) => {
+      state.notes = state.notes.filter(
+        (note) => note.id !== action.payload
+      );
+      state.isDirty = true;
+    },
   },
 });
 
@@ -457,6 +491,9 @@ export const {
   setLoading,
   setError,
   setDirty,
+  createNote,
+  updateNote,
+  deleteNote,
 } = bookSlice.actions;
 
 // Basic Selectors
@@ -495,6 +532,29 @@ export const selectSelectedElement = createSelector(
 export const selectCurrentBookStyle = createSelector(
   [selectBookStyles],
   (styles) => styles[0] || null
+);
+
+// Selectors for notes
+export const selectNotes = (state: RootState) => state.book.notes;
+
+// Memoized selector to get notes by type (footnote or endnote)
+export const selectNotesByType = createSelector(
+  [selectNotes, (_state: RootState, noteType: 'footnote' | 'endnote') => noteType],
+  (notes, noteType) => notes.filter(note => note.noteType === noteType)
+);
+
+// Memoized selector to get notes by chapter ID
+export const selectNotesByChapterId = createSelector(
+  [selectNotes, (_state: RootState, chapterId: string) => chapterId],
+  (notes, chapterId) => notes.filter(note =>
+    note.noteType === 'endnote' && note.chapterId === chapterId
+  )
+);
+
+// Memoized selector to get a single note by ID
+export const selectNoteById = createSelector(
+  [selectNotes, (_state: RootState, noteId: string) => noteId],
+  (notes, noteId) => notes.find(note => note.id === noteId) || null
 );
 
 export default bookSlice.reducer;

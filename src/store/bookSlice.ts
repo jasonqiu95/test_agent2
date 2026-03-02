@@ -1,12 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Book, Chapter, Element } from '../types';
+import { Book, Chapter, Element, Note } from '../types';
 
 interface BookState {
   book: Book | null;
+  notes: Note[];
 }
 
 const initialState: BookState = {
   book: null,
+  notes: [],
 };
 
 const bookSlice = createSlice({
@@ -106,6 +108,22 @@ const bookSlice = createSlice({
         }
       }
     },
+    createNote: (state, action: PayloadAction<Note>) => {
+      state.notes.push(action.payload);
+    },
+    updateNote: (state, action: PayloadAction<Note>) => {
+      const index = state.notes.findIndex(
+        (note) => note.id === action.payload.id
+      );
+      if (index !== -1) {
+        state.notes[index] = action.payload;
+      }
+    },
+    deleteNote: (state, action: PayloadAction<string>) => {
+      state.notes = state.notes.filter(
+        (note) => note.id !== action.payload
+      );
+    },
   },
 });
 
@@ -124,6 +142,9 @@ export const {
   updateFrontMatter,
   updateChapter,
   updateBackMatter,
+  createNote,
+  updateNote,
+  deleteNote,
 } = bookSlice.actions;
 
 export default bookSlice.reducer;

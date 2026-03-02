@@ -61,6 +61,54 @@ export interface OrnamentalBreakConfig {
   marginBottom?: string;
 }
 
+/**
+ * Heading numbering style
+ */
+export type HeadingNumberingStyle =
+  | 'decimal'        // 1, 2, 3
+  | 'decimal-dot'    // 1., 2., 3.
+  | 'roman-upper'    // I, II, III
+  | 'roman-lower'    // i, ii, iii
+  | 'alpha-upper'    // A, B, C
+  | 'alpha-lower'    // a, b, c
+  | 'none';          // No numbering
+
+/**
+ * Heading configuration for subheads and section headings
+ */
+export interface HeadingConfig {
+  /** Whether to include numbering */
+  numbering?: boolean;
+  /** Numbering style */
+  numberingStyle?: HeadingNumberingStyle;
+  /** Text alignment */
+  textAlign?: 'left' | 'center' | 'right';
+  /** Whether to uppercase the heading */
+  uppercase?: boolean;
+  /** Whether to apply small caps */
+  smallCaps?: boolean;
+  /** Top spacing (in CSS units) */
+  marginTop?: string;
+  /** Bottom spacing (in CSS units) */
+  marginBottom?: string;
+  /** Font size (in CSS units) */
+  fontSize?: string;
+  /** Font weight */
+  fontWeight?: 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900';
+  /** Whether to include in document outline */
+  includeInOutline?: boolean;
+}
+
+/**
+ * Heading hierarchy context for tracking heading levels within a chapter
+ */
+export interface HeadingHierarchyContext {
+  /** Current heading counters by level (1-6) */
+  counters: Map<number, number>;
+  /** Parent heading level */
+  parentLevel?: number;
+}
+
 // ============================================================================
 // CSS Class System - Constants and Enums
 // ============================================================================
@@ -92,6 +140,8 @@ export const CssClassNames = {
   ELEMENT: {
     PARAGRAPH: 'paragraph',
     HEADING: 'heading',
+    SUBHEAD: 'subhead',
+    SECTION_HEADING: 'section-heading',
     TITLE: 'title',
     SUBTITLE: 'subtitle',
     DEDICATION: 'dedication',
@@ -131,6 +181,8 @@ export const CssClassNames = {
     HAS_DROP_CAP: 'has-drop-cap',
     HAS_IMAGE: 'has-image',
     NO_INDENT: 'no-indent',
+    NUMBERED: 'numbered',
+    UNNUMBERED: 'unnumbered',
   },
 
   // Theme variations
@@ -241,6 +293,10 @@ export interface BookToHtmlOptions {
   ornamentalBreakConfig?: OrnamentalBreakConfig;
   /** Enable page break hints for print */
   enablePageBreaks?: boolean;
+  /** Heading configuration for subheads */
+  headingConfig?: HeadingConfig;
+  /** Enable automatic heading hierarchy numbering */
+  enableHeadingNumbering?: boolean;
 }
 
 /**
@@ -276,6 +332,8 @@ export interface HtmlGenerationContext {
   isFirstParagraph: boolean;
   /** Current heading level (for nesting) */
   currentHeadingLevel: number;
+  /** Heading hierarchy context for numbering */
+  headingHierarchy: HeadingHierarchyContext;
   /** Accumulated HTML fragments */
   htmlFragments: string[];
 }
@@ -812,6 +870,10 @@ export class HtmlConverter {
       options: this.options,
       isFirstParagraph: true,
       currentHeadingLevel: 1,
+      headingHierarchy: {
+        counters: new Map(),
+        parentLevel: undefined,
+      },
       htmlFragments: [],
     };
   }
@@ -1254,12 +1316,22 @@ export class HtmlConverter {
    * Convert a single text block to HTML
    */
   private convertTextBlock(block: TextBlock): string {
-    // Only handle paragraph blocks in this implementation
-    if (block.blockType !== 'paragraph') {
-      return '';
-    }
+    switch (block.blockType) {
+      case 'paragraph':
+        return this.convertParagraph(block);
 
-    return this.convertParagraph(block);
+      case 'heading':
+        return this.convertHeading(block);
+
+      case 'preformatted':
+      case 'code':
+      case 'list':
+        // These will be handled in future implementations
+        return '';
+
+      default:
+        return '';
+    }
   }
 
   /**
@@ -1387,6 +1459,162 @@ export class HtmlConverter {
       this.context.isFirstParagraph &&
       this.context.sectionType === 'body-chapter'
     );
+  }
+
+  /**
+   * Convert a heading block to HTML
+   * Handles subheads (h2-h6) and section headings with proper hierarchy
+   */
+  private convertHeading(block: TextBlock): string {
+    const classes: string[] = [];
+    const inlineStyles: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+
+    // Get heading level from block (default to 2 for subheads in chapters)
+    const level = Math.max(2, Math.min(6, block.level || 2));
+
+    // Get heading configuration
+    const headingConfig = this.getHeadingConfig(level);
+
+    // Generate heading classes
+    const headingClasses = generateHeadingClasses(level, headingConfig, prefix);
+    classes.push(...headingClasses);
+
+    // Handle text alignment
+    const alignment = block.style?.alignment || headingConfig.textAlign;
+    if (alignment && this.options.includeInlineStyles) {
+      inlineStyles.push(`text-align: ${alignment}`);
+    }
+
+    // Handle font size
+    if (headingConfig.fontSize && this.options.includeInlineStyles) {
+      inlineStyles.push(`font-size: ${headingConfig.fontSize}`);
+    }
+
+    // Handle font weight
+    if (headingConfig.fontWeight && this.options.includeInlineStyles) {
+      inlineStyles.push(`font-weight: ${headingConfig.fontWeight}`);
+    }
+
+    // Handle margins
+    if (headingConfig.marginTop && this.options.includeInlineStyles) {
+      inlineStyles.push(`margin-top: ${headingConfig.marginTop}`);
+    }
+    if (headingConfig.marginBottom && this.options.includeInlineStyles) {
+      inlineStyles.push(`margin-bottom: ${headingConfig.marginBottom}`);
+    }
+
+    // Prepare heading content
+    let content = block.content || '';
+
+    // Apply text transformations
+    if (headingConfig.uppercase) {
+      content = content.toUpperCase();
+    }
+
+    // Add heading numbering if enabled
+    let headingNumber = '';
+    if (this.options.enableHeadingNumbering && headingConfig.numbering) {
+      // Update hierarchy
+      updateHeadingHierarchy(this.context.headingHierarchy, level);
+
+      // Build hierarchical number
+      const numberingStyle = headingConfig.numberingStyle || 'decimal-dot';
+      headingNumber = buildHierarchicalNumber(
+        this.context.headingHierarchy,
+        level,
+        numberingStyle
+      );
+
+      if (headingNumber) {
+        headingNumber = `<span class="${prefix}-heading-number">${headingNumber}</span> `;
+      }
+    }
+
+    // Escape content
+    const escapedContent = escapeFn(content);
+
+    // Build attributes
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+    const styleAttr =
+      inlineStyles.length > 0 && this.options.includeInlineStyles
+        ? ` style="${inlineStyles.join('; ')}"`
+        : '';
+
+    // Build ARIA attributes for accessibility
+    let ariaAttr = '';
+    if (this.options.includeAria) {
+      ariaAttr = ` role="heading" aria-level="${level}"`;
+    }
+
+    // Update context
+    this.context.currentHeadingLevel = level;
+
+    // Headings reset the first paragraph flag
+    this.context.isFirstParagraph = true;
+
+    // Generate semantic heading tag (h2-h6)
+    const tag = `h${level}`;
+
+    return `<${tag}${classAttr}${styleAttr}${ariaAttr}>${headingNumber}${escapedContent}</${tag}>`;
+  }
+
+  /**
+   * Get heading configuration for a specific level
+   * Merges default configuration with options
+   */
+  private getHeadingConfig(level: number): HeadingConfig {
+    const defaults: HeadingConfig = {
+      numbering: this.options.enableHeadingNumbering ?? false,
+      numberingStyle: 'decimal-dot',
+      textAlign: 'left',
+      uppercase: false,
+      smallCaps: false,
+      includeInOutline: true,
+    };
+
+    // Level-specific defaults
+    const levelDefaults: Partial<HeadingConfig> = {};
+    switch (level) {
+      case 2:
+        levelDefaults.fontSize = '1.5em';
+        levelDefaults.fontWeight = 'bold';
+        levelDefaults.marginTop = '2em';
+        levelDefaults.marginBottom = '1em';
+        break;
+      case 3:
+        levelDefaults.fontSize = '1.3em';
+        levelDefaults.fontWeight = 'bold';
+        levelDefaults.marginTop = '1.5em';
+        levelDefaults.marginBottom = '0.75em';
+        break;
+      case 4:
+        levelDefaults.fontSize = '1.1em';
+        levelDefaults.fontWeight = 'bold';
+        levelDefaults.marginTop = '1.25em';
+        levelDefaults.marginBottom = '0.5em';
+        break;
+      case 5:
+        levelDefaults.fontSize = '1em';
+        levelDefaults.fontWeight = 'bold';
+        levelDefaults.marginTop = '1em';
+        levelDefaults.marginBottom = '0.5em';
+        break;
+      case 6:
+        levelDefaults.fontSize = '0.9em';
+        levelDefaults.fontWeight = 'bold';
+        levelDefaults.marginTop = '1em';
+        levelDefaults.marginBottom = '0.5em';
+        break;
+    }
+
+    // Merge configurations: defaults < level defaults < options
+    return {
+      ...defaults,
+      ...levelDefaults,
+      ...this.options.headingConfig,
+    };
   }
 
   /**
@@ -1654,6 +1882,158 @@ export function generateListClasses(
   }
 
   return builder.build();
+}
+
+/**
+ * Generate classes for heading elements
+ *
+ * @param level Heading level (1-6, where 2-6 are subheads within chapters)
+ * @param config Heading configuration
+ * @param prefix Class prefix
+ * @returns Array of CSS class names
+ */
+export function generateHeadingClasses(
+  level: number,
+  config?: HeadingConfig,
+  prefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix });
+
+  // Base heading class
+  builder.add(CssClassNames.ELEMENT.HEADING);
+
+  // Add subhead or section heading class based on level
+  if (level >= 2) {
+    builder.add(CssClassNames.ELEMENT.SUBHEAD);
+  } else {
+    builder.add(CssClassNames.ELEMENT.SECTION_HEADING);
+  }
+
+  // Add level-specific class (h2, h3, etc.)
+  builder.modifier('heading', `level-${level}`);
+
+  // Add numbering state
+  if (config?.numbering) {
+    builder.add(CssClassNames.STATE.NUMBERED);
+    if (config.numberingStyle && config.numberingStyle !== 'none') {
+      builder.modifier('heading', `numbering-${config.numberingStyle}`);
+    }
+  } else {
+    builder.add(CssClassNames.STATE.UNNUMBERED);
+  }
+
+  // Add alignment
+  if (config?.textAlign) {
+    builder.align(config.textAlign);
+  }
+
+  // Add typography modifiers
+  if (config?.uppercase) {
+    builder.add(CssClassNames.TYPOGRAPHY.UPPERCASE);
+  }
+
+  if (config?.smallCaps) {
+    builder.add(CssClassNames.TYPOGRAPHY.SMALL_CAPS);
+  }
+
+  return builder.build();
+}
+
+/**
+ * Format heading number based on numbering style
+ *
+ * @param number The heading number
+ * @param style Numbering style
+ * @returns Formatted heading number
+ */
+export function formatHeadingNumber(
+  number: number,
+  style: HeadingNumberingStyle = 'decimal'
+): string {
+  switch (style) {
+    case 'decimal':
+      return `${number}`;
+
+    case 'decimal-dot':
+      return `${number}.`;
+
+    case 'roman-upper': {
+      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+                            'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+      return number <= 20 ? romanNumerals[number - 1] : `${number}`;
+    }
+
+    case 'roman-lower': {
+      const romanNumerals = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
+                            'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx'];
+      return number <= 20 ? romanNumerals[number - 1] : `${number}`;
+    }
+
+    case 'alpha-upper': {
+      return number <= 26 ? String.fromCharCode(64 + number) : `${number}`;
+    }
+
+    case 'alpha-lower': {
+      return number <= 26 ? String.fromCharCode(96 + number) : `${number}`;
+    }
+
+    case 'none':
+      return '';
+
+    default:
+      return `${number}`;
+  }
+}
+
+/**
+ * Build hierarchical heading number (e.g., "1.2.3")
+ *
+ * @param hierarchy Heading hierarchy context
+ * @param level Current heading level
+ * @param style Numbering style
+ * @returns Formatted hierarchical number
+ */
+export function buildHierarchicalNumber(
+  hierarchy: HeadingHierarchyContext,
+  level: number,
+  style: HeadingNumberingStyle = 'decimal-dot'
+): string {
+  const numbers: string[] = [];
+
+  // Build number path from level 2 to current level
+  for (let i = 2; i <= level; i++) {
+    const count = hierarchy.counters.get(i) || 0;
+    if (count > 0) {
+      numbers.push(formatHeadingNumber(count, 'decimal'));
+    }
+  }
+
+  // Join with dots and add final dot if needed
+  const joined = numbers.join('.');
+  return style === 'decimal-dot' ? `${joined}.` : joined;
+}
+
+/**
+ * Update heading hierarchy when encountering a heading
+ *
+ * @param hierarchy Heading hierarchy context
+ * @param level Heading level
+ */
+export function updateHeadingHierarchy(
+  hierarchy: HeadingHierarchyContext,
+  level: number
+): void {
+  // Increment counter for this level
+  const currentCount = hierarchy.counters.get(level) || 0;
+  hierarchy.counters.set(level, currentCount + 1);
+
+  // Reset counters for deeper levels
+  for (let i = level + 1; i <= 6; i++) {
+    hierarchy.counters.set(i, 0);
+  }
+
+  // Update parent level
+  hierarchy.parentLevel = level;
 }
 
 /**

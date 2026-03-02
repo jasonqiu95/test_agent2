@@ -1,0 +1,219 @@
+/* EditorToolbar - Text formatting toolbar for the editor */
+
+.editor-toolbar-formatting {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+}
+
+/* Toolbar section grouping */
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Toolbar divider */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e5e7eb;
+  margin: 0 8px;
+}
+
+/* Toolbar button base styles */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.toolbar-btn:active {
+  background: #e5e7eb;
+  transform: scale(0.96);
+}
+
+.toolbar-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.toolbar-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Active state */
+.toolbar-btn.active {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.toolbar-btn.active:hover {
+  background: #bfdbfe;
+  border-color: #60a5fa;
+}
+
+/* Toolbar icon styles */
+.toolbar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Specific icon styles for text formatting */
+.toolbar-icon-bold {
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.toolbar-icon-italic {
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.toolbar-icon-underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Heading button styles */
+.toolbar-btn-heading {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.toolbar-icon-heading {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: -0.5px;
+}
+
+/* Disabled state */
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+.toolbar-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Tooltip enhancement (browser native titles) */
+.toolbar-btn {
+  position: relative;
+}
+
+/* Loading state (for future use) */
+.toolbar-btn.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .toolbar-btn {
+    color: #d1d5db;
+  }
+
+  .toolbar-btn:hover {
+    background: #374151;
+    border-color: #4b5563;
+  }
+
+  .toolbar-btn:active {
+    background: #4b5563;
+  }
+
+  .toolbar-btn.active {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border-color: #3b82f6;
+  }
+
+  .toolbar-btn.active:hover {
+    background: #1e40af;
+    border-color: #60a5fa;
+  }
+
+  .toolbar-divider {
+    background: #4b5563;
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .toolbar-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .toolbar-btn-heading {
+    font-size: 12px;
+  }
+
+  .toolbar-divider {
+    margin: 0 4px;
+  }
+}
+
+/* Accessibility - High contrast mode */
+@media (prefers-contrast: high) {
+  .toolbar-btn {
+    border-color: #6b7280;
+  }
+
+  .toolbar-btn.active {
+    border-width: 2px;
+    border-color: #1e40af;
+  }
+
+  .toolbar-divider {
+    background: #374151;
+    width: 2px;
+  }
+}
+
+/* Animation for active state transitions */
+@keyframes pulse-active {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.toolbar-btn.active {
+  animation: pulse-active 0.3s ease-out;
+}
+
+/* Keyboard navigation focus indicator */
+.toolbar-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  z-index: 1;
+}

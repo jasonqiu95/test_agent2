@@ -24,6 +24,12 @@ import {
   getOptimalFontSize,
   DEVICE_PROFILES,
 } from './deviceProfiles';
+import {
+  calculatePagination,
+  estimatePageCount,
+  PageDimensions,
+  PaginationOptions,
+} from './paginationEngine';
 
 /**
  * Re-export DeviceType from deviceProfiles for convenience
@@ -63,6 +69,12 @@ export interface PreviewResult {
   googleFontsUrl?: string;
   /** Custom @font-face rules for custom fonts */
   fontFaceRules?: string;
+  /** Detailed pagination metadata (optional) */
+  paginationMetadata?: {
+    hasExplicitPageBreaks: boolean;
+    widowOrphanAdjustments: number;
+    averagePageHeight: number;
+  };
 }
 
 /**
@@ -77,6 +89,10 @@ export interface RenderOptions {
   classPrefix?: string;
   /** Whether to include inline styles in addition to CSS classes */
   useInlineStyles?: boolean;
+  /** Pagination calculation options */
+  paginationOptions?: PaginationOptions;
+  /** Whether to use detailed pagination calculation (slower but more accurate) */
+  useDetailedPagination?: boolean;
 }
 
 /**
@@ -176,11 +192,20 @@ export function renderPreview(
   }
 
   // Merge default options with provided options
-  const renderOptions: Required<RenderOptions> = {
+  const renderOptions = {
     includePageBreaks: options?.includePageBreaks ?? true,
     printOptimized: options?.printOptimized ?? deviceType === 'print',
     classPrefix: options?.classPrefix ?? 'preview',
     useInlineStyles: options?.useInlineStyles ?? false,
+    useDetailedPagination: options?.useDetailedPagination ?? true,
+    paginationOptions: options?.paginationOptions ?? {
+      widowOrphanControl: true,
+      minLinesAtBoundary: 2,
+      keepHeadingsWithContent: true,
+      respectChapterBoundaries: true,
+      respectPageBreaks: true,
+      useVirtualRendering: true,
+    },
   };
 
   // Generate font loading configuration
@@ -192,15 +217,21 @@ export function renderPreview(
   // Generate CSS styles (including font-face rules)
   const css = generateCSS(styleConfig, deviceConfig, renderOptions, fontConfig.fontFaceRules);
 
-  // Calculate estimated page count
-  const pageCount = calculatePageCount(elementData, styleConfig, deviceConfig);
+  // Calculate estimated page count with pagination metadata
+  const paginationResult = calculatePageCountWithMetadata(
+    elementData,
+    styleConfig,
+    deviceConfig,
+    renderOptions
+  );
 
   return {
     html,
     css,
-    pageCount,
+    pageCount: paginationResult.pageCount,
     googleFontsUrl: fontConfig.googleFontsUrl || undefined,
     fontFaceRules: fontConfig.fontFaceRules || undefined,
+    paginationMetadata: paginationResult.metadata,
   };
 }
 
@@ -216,7 +247,12 @@ export function renderPreview(
 function generateHTML(
   elementData: Element,
   _styleConfig: BookStyle,
-  options: Required<RenderOptions>
+  options: {
+    classPrefix: string;
+    useInlineStyles: boolean;
+    includePageBreaks: boolean;
+    printOptimized: boolean;
+  }
 ): string {
   const { classPrefix, useInlineStyles } = options;
 
@@ -248,7 +284,10 @@ function generateHTML(
 function generateCSS(
   styleConfig: BookStyle,
   deviceConfig: DeviceConfig,
-  options: Required<RenderOptions>,
+  options: {
+    classPrefix: string;
+    printOptimized: boolean;
+  },
   fontFaceRules: string = ''
 ): string {
   const { classPrefix, printOptimized } = options;
@@ -298,53 +337,76 @@ function generateCSS(
 }
 
 /**
- * Calculates the estimated page count for the rendered content
+ * Calculates the estimated page count for the rendered content using advanced pagination engine
  *
- * @param {Element} elementData - The element to measure
- * @param {BookStyle} styleConfig - Style configuration
- * @param {DeviceConfig} deviceConfig - Device configuration
- * @returns {number} Estimated number of pages
+ * @param elementData - The element to measure
+ * @param styleConfig - Style configuration
+ * @param deviceConfig - Device configuration
+ * @param renderOptions - Rendering options with pagination settings
+ * @returns Object with page count and pagination metadata
  * @private
  */
-function calculatePageCount(
+function calculatePageCountWithMetadata(
   elementData: Element,
   styleConfig: BookStyle,
-  deviceConfig: DeviceConfig
-): number {
-  // Estimate page count based on content blocks and styling
-  const contentBlocks = elementData.content?.length || 0;
-
-  if (contentBlocks === 0) {
-    return 1;
+  deviceConfig: DeviceConfig,
+  renderOptions: {
+    useDetailedPagination?: boolean;
+    paginationOptions?: PaginationOptions;
   }
-
-  // Calculate average words per block
-  let totalWords = 0;
-  elementData.content?.forEach((block) => {
-    const wordCount = block.content.split(/\s+/).filter((word) => word.length > 0).length;
-    totalWords += wordCount;
-  });
-
-  // Estimate based on page dimensions and font size
-  const fontSize = parseFloat(styleConfig.body.fontSize) || 16;
-  const lineHeight = parseFloat(styleConfig.body.lineHeight) || 1.5;
+): {
+  pageCount: number;
+  metadata?: {
+    hasExplicitPageBreaks: boolean;
+    widowOrphanAdjustments: number;
+    averagePageHeight: number;
+  };
+} {
+  // Get page dimensions from device config
   const pageHeight = deviceConfig.pageHeight || 1056;
   const pageWidth = deviceConfig.pageWidth || 816;
 
-  // Calculate approximate lines per page
-  const lineHeightPx = fontSize * lineHeight;
-  const linesPerPage = Math.floor(pageHeight / lineHeightPx);
+  // Use device profile margins if available, otherwise use defaults
+  const profile = deviceConfig.profile;
+  const marginTop = profile?.margins?.top || 72;
+  const marginBottom = profile?.margins?.bottom || 72;
+  const marginLeft = profile?.margins?.left || 72;
+  const marginRight = profile?.margins?.right || 72;
 
-  // Estimate words per line based on average word length and font size
-  const avgWordLength = 5; // average word length in characters
-  const charsPerLine = Math.floor(pageWidth / (fontSize * 0.6));
-  const wordsPerLine = Math.floor(charsPerLine / avgWordLength);
-  const wordsPerPage = linesPerPage * wordsPerLine;
+  const dimensions: PageDimensions = {
+    pageWidth,
+    pageHeight,
+    marginTop,
+    marginBottom,
+    marginLeft,
+    marginRight,
+  };
 
-  // Calculate total pages
-  const estimatedPages = Math.ceil(totalWords / wordsPerPage);
+  // Use detailed pagination calculation if enabled (default)
+  if (renderOptions.useDetailedPagination !== false) {
+    const result = calculatePagination(
+      elementData,
+      styleConfig,
+      dimensions,
+      renderOptions.paginationOptions
+    );
 
-  return Math.max(1, estimatedPages);
+    return {
+      pageCount: result.pageCount,
+      metadata: {
+        hasExplicitPageBreaks: result.metadata.hasExplicitPageBreaks,
+        widowOrphanAdjustments: result.metadata.widowOrphanAdjustments,
+        averagePageHeight: result.metadata.averagePageHeight,
+      },
+    };
+  } else {
+    // Use quick estimation for faster rendering (less accurate)
+    const pageCount = estimatePageCount(elementData, styleConfig, dimensions);
+    return {
+      pageCount,
+      metadata: undefined,
+    };
+  }
 }
 
 /**

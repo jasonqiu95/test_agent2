@@ -11,6 +11,7 @@ export * from './styleGenerator';
 export * from './errorHandler';
 export * from './asyncErrorHandler';
 export * from './fontLoader';
+export * from './paginationEngine';
 
 // Cache utilities
 export {

@@ -8,6 +8,8 @@ export { createHistoryPlugin, undo, redo } from './history';
 export { createKeymapPlugins } from './keymap';
 export { createNoteMarkersPlugin } from './noteMarkers';
 export { createImageDropPlugin, ImageDropPluginOptions } from './imageDrop';
+export { createImagePastePlugin, hasImageInClipboard } from './imagePaste';
+export type { ImagePasteOptions } from './imagePaste';
 
 import { Plugin } from 'prosemirror-state';
 import { Schema } from 'prosemirror-model';
@@ -16,6 +18,7 @@ import { createHistoryPlugin } from './history';
 import { createKeymapPlugins } from './keymap';
 import { createNoteMarkersPlugin } from './noteMarkers';
 import { createImageDropPlugin } from './imageDrop';
+import { createImagePastePlugin } from './imagePaste';
 
 /**
  * Creates all default plugins for the editor
@@ -29,9 +32,10 @@ export function createDefaultPlugins(
   config?: {
     historyDepth?: number;
     newGroupDelay?: number;
+    enableImagePaste?: boolean;
   }
 ): Plugin[] {
-  return [
+  const plugins: Plugin[] = [
     // History plugin must come first to track all changes
     createHistoryPlugin({
       depth: config?.historyDepth,
@@ -46,8 +50,15 @@ export function createDefaultPlugins(
 
     // Note markers plugin for footnote/endnote interactions
     createNoteMarkersPlugin(),
-
-    // Keymaps should be last to have lowest priority
-    ...createKeymapPlugins(schema),
   ];
+
+  // Image paste plugin (enabled by default)
+  if (config?.enableImagePaste !== false) {
+    plugins.push(createImagePastePlugin(schema));
+  }
+
+  // Keymaps should be last to have lowest priority
+  plugins.push(...createKeymapPlugins(schema));
+
+  return plugins;
 }

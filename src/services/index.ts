@@ -44,3 +44,9 @@ export type {
   MemoryMonitorOptions,
   CleanupHandler,
 } from './memory-manager'
+
+export { EpubGenerator, getEpubGenerator } from './EpubGenerator'
+export type {
+  EpubOptions,
+  EpubGenerationResult,
+} from './EpubGenerator'

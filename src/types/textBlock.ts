@@ -8,10 +8,14 @@ import { TextFeature } from './textFeature';
 
 export interface TextBlock extends Metadata {
   content: string;
-  blockType: 'paragraph' | 'heading' | 'preformatted' | 'code';
-  style?: StyleReference;
+  blockType: 'paragraph' | 'heading' | 'preformatted' | 'code' | 'list';
+  style?: StyleReference & {
+    alignment?: 'left' | 'center' | 'right' | 'justify';
+  };
   features?: TextFeature[];
   location?: Location;
   language?: string; // For code blocks
-  level?: number; // For headings
+  level?: number; // For headings (1-6)
+  listType?: 'ordered' | 'unordered'; // For list blocks
+  indentLevel?: number; // For nested lists (0-6)
 }

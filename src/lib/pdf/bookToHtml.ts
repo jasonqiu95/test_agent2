@@ -32,7 +32,7 @@ import { Chapter } from '../../types/chapter';
 import { Element, ElementType, MatterType } from '../../types/element';
 import { TextBlock } from '../../types/textBlock';
 import { BookStyle, Style } from '../../types/style';
-import { Break, TextFeature, Quote, Verse, List as ListFeature, ListItem, Image, Figure, ImageAlignment, ImageSizing } from '../../types/textFeature';
+import { Break, TextFeature, Quote, Verse, List as ListFeature, ListItem, Image, Figure, ImageAlignment, ImageSizing, Note } from '../../types/textFeature';
 import {
   TextSegment,
   InlineText,
@@ -107,6 +107,38 @@ export interface HeadingConfig {
 }
 
 /**
+ * Footnote numbering scheme
+ */
+export type FootnoteNumberingScheme =
+  | 'numeric'        // 1, 2, 3, ...
+  | 'symbolic'       // *, †, ‡, §, ¶, ...
+  | 'per-chapter'    // Reset numbering per chapter
+  | 'continuous';    // Continuous numbering throughout book
+
+/**
+ * Footnote placement
+ */
+export type FootnotePlacement = 'chapter-end' | 'book-end';
+
+/**
+ * Footnote configuration
+ */
+export interface FootnoteConfig {
+  /** Whether to render footnotes */
+  enabled?: boolean;
+  /** Numbering scheme */
+  numberingScheme?: FootnoteNumberingScheme;
+  /** Where to place footnotes */
+  placement?: FootnotePlacement;
+  /** Section title for footnotes */
+  sectionTitle?: string;
+  /** Whether to include backlinks from footnotes to references */
+  includeBacklinks?: boolean;
+  /** Symbolic characters to use for symbolic numbering */
+  symbols?: string[];
+}
+
+/**
  * Heading hierarchy context for tracking heading levels within a chapter
  */
 export interface HeadingHierarchyContext {
@@ -168,6 +200,13 @@ export const CssClassNames = {
     CAPTION: 'caption',
     SEPARATOR: 'separator',
     ORNAMENTAL_BREAK: 'ornamental-break',
+    FOOTNOTES_SECTION: 'footnotes-section',
+    ENDNOTES_SECTION: 'endnotes-section',
+    FOOTNOTE: 'footnote',
+    ENDNOTE: 'endnote',
+    FOOTNOTE_MARKER: 'footnote-marker',
+    FOOTNOTE_CONTENT: 'footnote-content',
+    FOOTNOTE_BACKLINK: 'footnote-backlink',
   },
 
   // Typography elements
@@ -317,6 +356,10 @@ export interface BookToHtmlOptions {
   headingConfig?: HeadingConfig;
   /** Enable automatic heading hierarchy numbering */
   enableHeadingNumbering?: boolean;
+  /** Footnote configuration */
+  footnoteConfig?: FootnoteConfig;
+  /** Endnote configuration */
+  endnoteConfig?: FootnoteConfig;
 }
 
 /**
@@ -328,6 +371,20 @@ export type SectionType =
   | 'back-matter'
   | 'toc'
   | 'title-page';
+
+/**
+ * Stored note information for rendering
+ */
+export interface StoredNote {
+  /** The note content */
+  note: Note;
+  /** Assigned number */
+  number: number;
+  /** Assigned symbol (if using symbolic numbering) */
+  symbol?: string;
+  /** Chapter index where this note was referenced */
+  chapterIndex?: number;
+}
 
 /**
  * HTML generation context
@@ -360,6 +417,12 @@ export interface HtmlGenerationContext {
   footnoteCounter?: number;
   /** Map of footnote reference IDs to numbers */
   footnoteNumbers?: Map<string, number>;
+  /** Collection of footnotes for current chapter */
+  chapterFootnotes?: Map<string, StoredNote>;
+  /** Collection of all endnotes for the book */
+  bookEndnotes?: Map<string, StoredNote>;
+  /** Per-chapter footnote counter (resets each chapter) */
+  chapterFootnoteCounter?: number;
 }
 
 /**
@@ -878,6 +941,22 @@ export class HtmlConverter {
       includeToc: true,
       htmlVersion: 'html5',
       includeChapterNumbers: true,
+      footnoteConfig: {
+        enabled: true,
+        numberingScheme: 'numeric',
+        placement: 'chapter-end',
+        sectionTitle: 'Notes',
+        includeBacklinks: true,
+        symbols: ['*', '†', '‡', '§', '¶', '‖', '#'],
+      },
+      endnoteConfig: {
+        enabled: true,
+        numberingScheme: 'continuous',
+        placement: 'book-end',
+        sectionTitle: 'Endnotes',
+        includeBacklinks: true,
+        symbols: ['*', '†', '‡', '§', '¶', '‖', '#'],
+      },
       ...options,
     };
 
@@ -901,6 +980,9 @@ export class HtmlConverter {
       htmlFragments: [],
       footnoteCounter: 0,
       footnoteNumbers: new Map(),
+      chapterFootnotes: new Map(),
+      bookEndnotes: new Map(),
+      chapterFootnoteCounter: 0,
     };
   }
 
@@ -927,6 +1009,12 @@ export class HtmlConverter {
     const backMatterHtml = this.convertBackMatter();
     if (backMatterHtml) {
       fragments.push(backMatterHtml);
+    }
+
+    // Add endnotes section if enabled and endnotes exist
+    const endnotesHtml = this.renderEndnotesSection();
+    if (endnotesHtml) {
+      fragments.push(endnotesHtml);
     }
 
     // Wrap in main container if semantic tags are enabled
@@ -987,6 +1075,12 @@ export class HtmlConverter {
     const includeAria = this.options.includeAria ?? true;
     const includeChapterNumbers = this.options.includeChapterNumbers ?? true;
 
+    // Reset chapter footnotes at the start of each chapter
+    if (this.options.footnoteConfig?.numberingScheme === 'per-chapter') {
+      this.context.chapterFootnoteCounter = 0;
+    }
+    this.context.chapterFootnotes = new Map();
+
     // Determine chapter matter type (front, body, back) based on metadata or position
     const matterType = this.determineChapterMatterType(chapter, index);
     const sectionType = matterTypeToSectionType(matterType);
@@ -1022,6 +1116,12 @@ export class HtmlConverter {
     const contentHtml = this.convertChapterContent(chapter);
     if (contentHtml) {
       fragments.push(contentHtml);
+    }
+
+    // Add footnotes section if enabled and footnotes exist
+    const footnotesHtml = this.renderFootnotesSection();
+    if (footnotesHtml) {
+      fragments.push(footnotesHtml);
     }
 
     // Close chapter container
@@ -1982,6 +2082,11 @@ export class HtmlConverter {
       case 'break':
         return this.convertBreak(feature as Break);
 
+      case 'note':
+        // Notes are collected for later rendering, not inline
+        this.collectNote(feature as Note);
+        return '';
+
       // Other feature types can be added here
 >>>>>>> agent/implement-inline-images-and-figures
       default:
@@ -2250,6 +2355,211 @@ export class HtmlConverter {
       : '';
 
     return `<sup${classAttr}><a${idAttr}${hrefAttr}${roleAttr}${ariaLabel}>${escapeFn(displayText)}</a></sup>`;
+  }
+
+  /**
+   * Collect a note (footnote or endnote) for later rendering
+   */
+  private collectNote(note: Note): void {
+    const referenceId = note.referenceId || note.id;
+    if (!referenceId) {
+      return; // Skip notes without reference IDs
+    }
+
+    // Determine if this is a footnote or endnote
+    const isFootnote = note.noteType === 'footnote';
+    const config = isFootnote ? this.options.footnoteConfig : this.options.endnoteConfig;
+
+    if (!config?.enabled) {
+      return; // Notes are disabled
+    }
+
+    // Determine numbering
+    let number: number;
+    let symbol: string | undefined;
+
+    if (note.number !== undefined) {
+      // Use explicit number
+      number = note.number;
+    } else if (note.symbol) {
+      // Use explicit symbol
+      symbol = note.symbol;
+      number = this.context.footnoteNumbers?.get(referenceId) || 0;
+    } else {
+      // Auto-assign number based on scheme
+      if (config.numberingScheme === 'per-chapter' && isFootnote) {
+        this.context.chapterFootnoteCounter = (this.context.chapterFootnoteCounter || 0) + 1;
+        number = this.context.chapterFootnoteCounter;
+      } else if (config.numberingScheme === 'symbolic') {
+        // Use symbolic numbering
+        const symbolIndex = (this.context.footnoteCounter || 0) % (config.symbols?.length || 7);
+        symbol = config.symbols?.[symbolIndex] || '*';
+        this.context.footnoteCounter = (this.context.footnoteCounter || 0) + 1;
+        number = this.context.footnoteCounter;
+      } else {
+        // Continuous numeric numbering
+        this.context.footnoteCounter = (this.context.footnoteCounter || 0) + 1;
+        number = this.context.footnoteCounter;
+      }
+
+      // Store the assigned number
+      if (!this.context.footnoteNumbers) {
+        this.context.footnoteNumbers = new Map();
+      }
+      this.context.footnoteNumbers.set(referenceId, number);
+    }
+
+    const storedNote: StoredNote = {
+      note,
+      number,
+      symbol,
+      chapterIndex: this.context.chapterIndex,
+    };
+
+    // Store in appropriate collection
+    if (isFootnote && config.placement === 'chapter-end') {
+      if (!this.context.chapterFootnotes) {
+        this.context.chapterFootnotes = new Map();
+      }
+      this.context.chapterFootnotes.set(referenceId, storedNote);
+    } else {
+      // Store as endnote (book-end)
+      if (!this.context.bookEndnotes) {
+        this.context.bookEndnotes = new Map();
+      }
+      this.context.bookEndnotes.set(referenceId, storedNote);
+    }
+  }
+
+  /**
+   * Render footnotes section at chapter end
+   */
+  private renderFootnotesSection(): string {
+    const config = this.options.footnoteConfig;
+    if (!config?.enabled || !this.context.chapterFootnotes?.size) {
+      return '';
+    }
+
+    const prefix = this.options.classPrefix || 'book';
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const fragments: string[] = [];
+
+    // Section wrapper
+    const sectionClass = generateClassName('footnotes-section', undefined, prefix);
+    const roleAttr = this.options.includeAria ? ` role="doc-endnotes"` : '';
+    fragments.push(`<section class="${sectionClass}"${roleAttr}>`);
+
+    // Section title
+    if (config.sectionTitle) {
+      const titleClass = generateClassName('footnotes-title', undefined, prefix);
+      fragments.push(`<h2 class="${titleClass}">${escapeFn(config.sectionTitle)}</h2>`);
+    }
+
+    // Separator
+    fragments.push('<hr class="' + generateClassName('footnotes-separator', undefined, prefix) + '" />');
+
+    // Footnotes list
+    const listClass = generateClassName('footnotes-list', undefined, prefix);
+    fragments.push(`<ol class="${listClass}">`);
+
+    // Sort footnotes by number
+    const sortedNotes = Array.from(this.context.chapterFootnotes.values())
+      .sort((a, b) => a.number - b.number);
+
+    for (const storedNote of sortedNotes) {
+      fragments.push(this.renderSingleNote(storedNote, 'footnote'));
+    }
+
+    fragments.push('</ol>');
+    fragments.push('</section>');
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Render endnotes section at book end
+   */
+  private renderEndnotesSection(): string {
+    const config = this.options.endnoteConfig;
+    if (!config?.enabled || !this.context.bookEndnotes?.size) {
+      return '';
+    }
+
+    const prefix = this.options.classPrefix || 'book';
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const fragments: string[] = [];
+
+    // Section wrapper
+    const sectionClass = generateClassName('endnotes-section', undefined, prefix);
+    const roleAttr = this.options.includeAria ? ` role="doc-endnotes"` : '';
+    fragments.push(`<section class="${sectionClass}"${roleAttr}>`);
+
+    // Section title
+    if (config.sectionTitle) {
+      const titleClass = generateClassName('endnotes-title', undefined, prefix);
+      fragments.push(`<h2 class="${titleClass}">${escapeFn(config.sectionTitle)}</h2>`);
+    }
+
+    // Separator
+    fragments.push('<hr class="' + generateClassName('endnotes-separator', undefined, prefix) + '" />');
+
+    // Endnotes list
+    const listClass = generateClassName('endnotes-list', undefined, prefix);
+    fragments.push(`<ol class="${listClass}">`);
+
+    // Sort endnotes by number
+    const sortedNotes = Array.from(this.context.bookEndnotes.values())
+      .sort((a, b) => a.number - b.number);
+
+    for (const storedNote of sortedNotes) {
+      fragments.push(this.renderSingleNote(storedNote, 'endnote'));
+    }
+
+    fragments.push('</ol>');
+    fragments.push('</section>');
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Render a single note (footnote or endnote)
+   */
+  private renderSingleNote(storedNote: StoredNote, type: 'footnote' | 'endnote'): string {
+    const { note, number, symbol } = storedNote;
+    const referenceId = note.referenceId || note.id;
+    const prefix = this.options.classPrefix || 'book';
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const config = type === 'footnote' ? this.options.footnoteConfig : this.options.endnoteConfig;
+
+    const fragments: string[] = [];
+
+    // List item
+    const itemClass = generateClassName(type, undefined, prefix);
+    const itemId = `fn-${referenceId}`;
+    const roleAttr = this.options.includeAria ? ` role="doc-${type}"` : '';
+    fragments.push(`<li id="${itemId}" class="${itemClass}"${roleAttr}>`);
+
+    // Note marker (number or symbol)
+    const markerClass = generateClassName('footnote-marker', undefined, prefix);
+    const displayText = symbol || number.toString();
+    fragments.push(`<span class="${markerClass}">${escapeFn(displayText)}.</span> `);
+
+    // Note content
+    const contentClass = generateClassName('footnote-content', undefined, prefix);
+    fragments.push(`<span class="${contentClass}">${escapeFn(note.content)}</span>`);
+
+    // Backlink to reference
+    if (config?.includeBacklinks) {
+      const backlinkClass = generateClassName('footnote-backlink', undefined, prefix);
+      const refId = `fnref-${referenceId}`;
+      const backlinkRole = this.options.includeAria ? ` role="doc-backlink"` : '';
+      const ariaLabel = this.options.includeAria ? ` aria-label="Back to reference"` : '';
+      fragments.push(` <a href="#${refId}" class="${backlinkClass}"${backlinkRole}${ariaLabel}>↩</a>`);
+    }
+
+    fragments.push('</li>');
+
+    return fragments.join('');
   }
 
   /**

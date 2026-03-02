@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Provider } from 'react-redux'
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { store } from './store'
 import { useUndoRedo } from './hooks/useUndoRedo'
+import { useEpubGeneration } from './hooks/useEpubGeneration'
 import UndoRedoStatus from './components/UndoRedoStatus'
 import './App.css'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ImportPreviewDialog } from './components/ImportPreviewDialog'
 import { PreferencesDialog } from './components/PreferencesDialog'
+import { GenerationProgressModal } from './components/GenerationProgressModal/GenerationProgressModal'
 import { getPersistenceService } from './services/persistence'
 import { getRecentProjectsService } from './services/recentProjects'
+import { formatFileSize } from './services/epub-generation'
 import type { Book } from './types/book'
 
 type AppView = 'welcome' | 'editor'
@@ -23,6 +26,19 @@ function AppContent() {
 
   // Enable undo/redo keyboard shortcuts
   useUndoRedo()
+
+  // EPUB generation hook
+  const {
+    state: epubState,
+    progress: epubProgress,
+    error: epubError,
+    result: epubResult,
+    isGenerating,
+    generate: generateEpub,
+    cancel: cancelEpub,
+    reset: resetEpub,
+    saveFile: saveEpubFile,
+  } = useEpubGeneration()
 
   const handleProjectOpen = (book: Book, filePath: string) => {
     setCurrentBook(book)
@@ -96,6 +112,48 @@ function AppContent() {
     // This will be implemented by specific components
   }
 
+  // Handle EPUB export
+  const handleExportEpub = async () => {
+    if (!currentBook) {
+      alert('No book loaded')
+      return
+    }
+
+    try {
+      // Generate EPUB with current book data
+      // Using empty arrays for styles and images for now
+      await generateEpub(currentBook, [], [])
+    } catch (error) {
+      console.error('Failed to start EPUB generation:', error)
+      alert('Failed to start EPUB generation: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
+
+  // Handle EPUB generation completion - auto-save file
+  useEffect(() => {
+    if (epubState === 'completed' && epubResult) {
+      saveEpubFile()
+        .then(() => {
+          console.log('EPUB file saved successfully')
+          alert(`EPUB generated successfully!\n\nFile: ${epubResult.fileName}\nSize: ${formatFileSize(epubResult.fileSize)}`)
+          resetEpub()
+        })
+        .catch((error) => {
+          console.error('Failed to save EPUB file:', error)
+          alert('Failed to save EPUB file: ' + (error instanceof Error ? error.message : 'Unknown error'))
+        })
+    }
+  }, [epubState, epubResult, saveEpubFile, resetEpub])
+
+  // Handle EPUB generation error
+  useEffect(() => {
+    if (epubState === 'error' && epubError) {
+      console.error('EPUB generation error:', epubError)
+      alert(`EPUB generation failed:\n\n${epubError.message}${epubError.details ? '\n\n' + epubError.details : ''}`)
+      resetEpub()
+    }
+  }, [epubState, epubError, resetEpub])
+
   return (
     <DndContext
       onDragStart={handleDragStart}
@@ -124,6 +182,13 @@ function AppContent() {
                   <span className="file-path">{currentFilePath}</span>
                 )}
               </div>
+              <button
+                onClick={handleExportEpub}
+                className="export-button"
+                disabled={isGenerating || !currentBook}
+              >
+                {isGenerating ? 'Exporting...' : 'Export EPUB'}
+              </button>
             </header>
             <main className="editor-main">
               <div className="editor-placeholder">
@@ -154,6 +219,14 @@ function AppContent() {
         <PreferencesDialog
           isOpen={showPreferences}
           onClose={() => setShowPreferences(false)}
+        />
+
+        <GenerationProgressModal
+          isOpen={isGenerating}
+          onCancel={() => cancelEpub('User cancelled')}
+          progress={epubProgress?.percentage || 0}
+          status={epubProgress?.status || 'Initializing...'}
+          generationType="EPUB"
         />
       </div>
     </DndContext>

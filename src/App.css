@@ -60,6 +60,29 @@
   font-family: 'Monaco', 'Courier New', monospace;
 }
 
+.export-button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #646cff;
+  cursor: pointer;
+  transition: all 0.25s;
+  color: white;
+}
+
+.export-button:hover:not(:disabled) {
+  background-color: #535bf2;
+}
+
+.export-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .editor-main {
   flex: 1;
   padding: 2rem;

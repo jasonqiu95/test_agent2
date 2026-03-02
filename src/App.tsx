@@ -14,6 +14,8 @@ import { GenerationProgressModal } from './components/GenerationProgressModal/Ge
 import { getPersistenceService } from './services/persistence'
 import { getRecentProjectsService } from './services/recentProjects'
 import { formatFileSize } from './services/epub-generation'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeToggle } from './components/ThemeToggle'
 import type { Book } from './types/book'
 
 type AppView = 'welcome' | 'editor'
@@ -252,6 +254,7 @@ function AppContent() {
                 {currentFilePath && (
                   <span className="file-path">{currentFilePath}</span>
                 )}
+                <ThemeToggle />
                 <button
                   onClick={handleExportPdf}
                   className="export-pdf-button"
@@ -323,7 +326,9 @@ function AppContent() {
 function App() {
   return (
     <Provider store={store}>
-      <AppContent />
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </Provider>
   )
 }

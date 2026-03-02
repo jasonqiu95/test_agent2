@@ -338,3 +338,136 @@
   outline: 2px solid #0066cc;
   outline-offset: 1px;
 }
+
+/* Blockquote styles */
+.ProseMirror blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em 0.5em 1.5em;
+  border-left: 4px solid #007bff;
+  background-color: #f8f9fa;
+  font-style: italic;
+  color: #495057;
+}
+
+.ProseMirror blockquote p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror blockquote p:first-child {
+  margin-top: 0;
+}
+
+.ProseMirror blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Nested blockquotes */
+.ProseMirror blockquote blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid #6c757d;
+  background-color: #e9ecef;
+}
+
+.ProseMirror blockquote blockquote blockquote {
+  border-left: 2px solid #adb5bd;
+  background-color: #dee2e6;
+}
+
+/* Verse styles */
+.ProseMirror .verse {
+  margin: 1.5em 0;
+  padding: 1em;
+  text-align: center;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  line-height: 1.8;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.ProseMirror .verse-line {
+  display: block;
+  white-space: pre-wrap;
+  margin: 0.25em 0;
+  min-height: 1.8em;
+}
+
+.ProseMirror .verse-line:empty::before {
+  content: '\200B'; /* Zero-width space to maintain line height */
+}
+
+/* Empty verse placeholder */
+.ProseMirror .verse .verse-line.is-empty::before {
+  content: 'Enter verse line...';
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+  float: left;
+}
+
+/* Dark mode support for blockquotes and verses */
+@media (prefers-color-scheme: dark) {
+  .ProseMirror blockquote {
+    background-color: #212529;
+    color: #dee2e6;
+    border-left-color: #0d6efd;
+  }
+
+  .ProseMirror blockquote blockquote {
+    background-color: #343a40;
+    border-left-color: #6c757d;
+  }
+
+  .ProseMirror blockquote blockquote blockquote {
+    background-color: #495057;
+    border-left-color: #adb5bd;
+  }
+
+  .ProseMirror .verse {
+    background-color: #212529;
+    border-top-color: #495057;
+    border-bottom-color: #495057;
+  }
+
+  .ProseMirror .verse-line.is-empty::before {
+    color: #6c757d;
+  }
+}
+
+/* Print styles for blockquotes and verses */
+@media print {
+  .ProseMirror blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background-color: transparent;
+    border-left-color: #000;
+  }
+
+  .ProseMirror .verse {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background-color: transparent;
+  }
+}
+
+/* Toolbar divider */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #dee2e6;
+  margin: 0 8px;
+}
+
+/* Active state for block-level buttons */
+.toolbar-btn-blockquote.active,
+.toolbar-btn-verse.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.toolbar-btn-blockquote.active:hover,
+.toolbar-btn-verse.active:hover {
+  background-color: #0056b3;
+}

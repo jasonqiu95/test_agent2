@@ -6,6 +6,7 @@
 import React from 'react';
 import { EditorView } from 'prosemirror-view';
 import { EditorState } from 'prosemirror-state';
+import { toggleBlockquote, toggleVerse, isBlockquoteActive, isVerseActive } from '../../editor/commands';
 
 export interface ToolbarProps {
   editorView: EditorView | null;
@@ -16,6 +17,8 @@ export interface FormatState {
   bold: boolean;
   italic: boolean;
   code: boolean;
+  blockquote: boolean;
+  verse: boolean;
   hasSelection: boolean;
 }
 
@@ -26,6 +29,10 @@ export function getFormatState(state: EditorState): FormatState {
   const { from, to, empty } = state.selection;
   const hasSelection = !empty;
 
+  // Check block-level formatting
+  const blockquote = isBlockquoteActive(state);
+  const verse = isVerseActive(state);
+
   // For collapsed selection (cursor), check stored marks
   if (empty) {
     const storedMarks = state.storedMarks || state.selection.$from.marks();
@@ -33,6 +40,8 @@ export function getFormatState(state: EditorState): FormatState {
       bold: storedMarks.some(mark => mark.type.name === 'strong'),
       italic: storedMarks.some(mark => mark.type.name === 'em'),
       code: storedMarks.some(mark => mark.type.name === 'code'),
+      blockquote,
+      verse,
       hasSelection: false,
     };
   }
@@ -47,6 +56,8 @@ export function getFormatState(state: EditorState): FormatState {
     bold: strongMark ? doc.rangeHasMark(from, to, strongMark) : false,
     italic: emMark ? doc.rangeHasMark(from, to, emMark) : false,
     code: codeMark ? doc.rangeHasMark(from, to, codeMark) : false,
+    blockquote,
+    verse,
     hasSelection,
   };
 }
@@ -78,6 +89,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     bold: false,
     italic: false,
     code: false,
+    blockquote: false,
+    verse: false,
     hasSelection: false,
   });
 
@@ -88,6 +101,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
         bold: false,
         italic: false,
         code: false,
+        blockquote: false,
+        verse: false,
         hasSelection: false,
       });
       return;
@@ -124,6 +139,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
   const handleItalic = () => handleFormat('em');
   const handleCode = () => handleFormat('code');
 
+  const handleBlockquote = () => {
+    if (editorView) {
+      const command = toggleBlockquote(editorView.state.schema);
+      command(editorView.state, editorView.dispatch);
+      onFormat?.('blockquote');
+    }
+  };
+
+  const handleVerse = () => {
+    if (editorView) {
+      const command = toggleVerse(editorView.state.schema);
+      command(editorView.state, editorView.dispatch);
+      onFormat?.('verse');
+    }
+  };
+
   return (
     <div className="formatting-toolbar" data-testid="formatting-toolbar">
       <button
@@ -157,6 +188,30 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
         aria-pressed={formatState.code}
       >
         <code>&lt;/&gt;</code>
+      </button>
+
+      <div className="toolbar-divider" />
+
+      <button
+        className={`toolbar-btn toolbar-btn-blockquote ${formatState.blockquote ? 'active' : ''}`}
+        onClick={handleBlockquote}
+        disabled={!editorView}
+        title="Blockquote (Ctrl+Shift+9)"
+        data-testid="btn-blockquote"
+        aria-pressed={formatState.blockquote}
+      >
+        <span style={{ fontFamily: 'Georgia, serif', fontSize: '1.2em' }}>"</span>
+      </button>
+
+      <button
+        className={`toolbar-btn toolbar-btn-verse ${formatState.verse ? 'active' : ''}`}
+        onClick={handleVerse}
+        disabled={!editorView}
+        title="Verse (Ctrl+Shift+V)"
+        data-testid="btn-verse"
+        aria-pressed={formatState.verse}
+      >
+        <span style={{ fontFamily: 'serif', fontSize: '0.9em' }}>⋮</span>
       </button>
 
       <div className="toolbar-status" data-testid="toolbar-status">

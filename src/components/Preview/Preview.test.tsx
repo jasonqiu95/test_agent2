@@ -18,6 +18,7 @@ import {
   renderWithProviders,
   mockElement,
   mockStyleConfig,
+  mockBook,
   mockRequestIdleCallback,
   cleanupMocks,
   userEvent,
@@ -197,81 +198,533 @@ describe('Preview Component Test Infrastructure', () => {
  * ===========================================================================
  * COMPREHENSIVE PREVIEW PANEL COMPONENT TESTS
  * ===========================================================================
- *
- * Below are example tests for the actual PreviewPanel component.
- * These tests require the usePreviewUpdate hook mock to be properly configured.
- *
- * To use these tests:
- * 1. Ensure the manual mock in src/hooks/__mocks__/usePreviewUpdate.ts is working
- * 2. Uncomment the tests below
- * 3. Import PreviewPanel: import { PreviewPanel } from './PreviewPanel';
- * 4. Run the tests
- *
- * Example test structure:
- *
- * describe('PreviewPanel Component', () => {
- *   describe('Rendering', () => {
- *     it('should render preview panel with header', () => {
- *       renderWithProviders(<PreviewPanel content="<p>Test content</p>" />);
- *       expect(screen.getByText('Preview')).toBeInTheDocument();
- *     });
- *
- *     it('should render preview content when provided', () => {
- *       renderWithProviders(<PreviewPanel content="<p>Test content</p>" />);
- *       // Add assertions based on mock behavior
- *     });
- *
- *     it('should apply custom className', () => {
- *       const { container } = renderWithProviders(
- *         <PreviewPanel content="<p>Test</p>" className="custom-preview" />
- *       );
- *       const previewPanel = container.querySelector('.preview-panel');
- *       expect(previewPanel).toHaveClass('custom-preview');
- *     });
- *   });
- *
- *   describe('Loading State', () => {
- *     it('should show loading indicator when updating', () => {
- *       // Configure mock to return isUpdating: true
- *       // Add test implementation
- *     });
- *   });
- *
- *   describe('Content Updates', () => {
- *     it('should trigger update when content changes', () => {
- *       // Test debounced content updates
- *     });
- *
- *     it('should call onPreviewUpdate callback', async () => {
- *       const onPreviewUpdate = jest.fn();
- *       renderWithProviders(
- *         <PreviewPanel content="<p>Test</p>" onPreviewUpdate={onPreviewUpdate} />
- *       );
- *       await waitFor(() => expect(onPreviewUpdate).toHaveBeenCalled());
- *     });
- *   });
- *
- *   describe('Chapter Navigation', () => {
- *     it('should cancel pending updates when chapter changes', () => {
- *       // Test chapter switching behavior
- *     });
- *   });
- *
- *   describe('Debounce Configuration', () => {
- *     it('should use custom debounce delay', () => {
- *       renderWithProviders(
- *         <PreviewPanel content="<p>Test</p>" debounceDelay={1000} />
- *       );
- *       // Verify debounce delay is applied
- *     });
- *   });
- *
- *   describe('Accessibility', () => {
- *     it('should have accessible heading', () => {
- *       renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
- *       const heading = screen.getByRole('heading', { level: 2 });
- *       expect(heading).toHaveTextContent('Preview');
- *     });
- *   });
- * });
  */
+
+import { PreviewPanel } from './PreviewPanel';
+import { updateChapter } from '../../slices/bookSlice';
+
+// Get the mocked hook to control its behavior
+const mockUsePreviewUpdate = jest.requireMock('../../hooks/usePreviewUpdate')
+  .usePreviewUpdate as jest.MockedFunction<any>;
+
+describe('PreviewPanel Live Content Update Synchronization', () => {
+  let triggerUpdateMock: jest.Mock;
+  let cancelPendingUpdatesMock: jest.Mock;
+  let onUpdateStartMock: jest.Mock;
+  let onUpdateEndMock: jest.Mock;
+
+  beforeEach(() => {
+    // Mock requestIdleCallback for preview updates
+    mockRequestIdleCallback();
+
+    // Create fresh mocks for each test
+    triggerUpdateMock = jest.fn();
+    cancelPendingUpdatesMock = jest.fn();
+    onUpdateStartMock = jest.fn();
+    onUpdateEndMock = jest.fn();
+
+    // Set up default mock return value
+    mockUsePreviewUpdate.mockReturnValue({
+      previewContent: '<p>Test preview content</p>',
+      isUpdating: false,
+      triggerUpdate: triggerUpdateMock,
+      cancelPendingUpdates: cancelPendingUpdatesMock,
+    });
+
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Clean up mocked functions
+    cleanupMocks();
+
+    // Reset all mocks
+    jest.resetAllMocks();
+  });
+
+  describe('Live Content Updates', () => {
+    it('should update preview immediately when editor content changes', async () => {
+      // Configure mock to simulate immediate update
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Initial content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Initial content</p>" />
+      );
+
+      // Verify initial trigger
+      expect(triggerUpdateMock).toHaveBeenCalledWith(
+        '<p>Initial content</p>',
+        'text-edit'
+      );
+
+      // Update content
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Updated content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      rerender(<PreviewPanel content="<p>Updated content</p>" />);
+
+      // Verify triggerUpdate was called with new content
+      await waitFor(() => {
+        expect(triggerUpdateMock).toHaveBeenCalledWith(
+          '<p>Updated content</p>',
+          'text-edit'
+        );
+      });
+    });
+
+    it('should trigger preview update when Redux state changes via updateChapter action', async () => {
+      const { store } = renderWithProviders(<PreviewPanel content="<p>Test</p>" />, {
+        preloadedState: {
+          book: {
+            currentBook: {
+              ...mockBook,
+              chapters: [
+                {
+                  id: 'chapter-1',
+                  title: 'Chapter 1',
+                  content: [],
+                  order: 0,
+                },
+              ],
+            },
+            books: [],
+            loading: false,
+            error: null,
+          },
+        },
+      });
+
+      // Dispatch Redux action to update chapter
+      const chapterUpdates = {
+        title: 'Chapter 1 Updated',
+        content: [{ type: 'paragraph', text: 'New content from Redux' }],
+      };
+
+      store.dispatch(updateChapter({ id: 'chapter-1', updates: chapterUpdates }));
+
+      // Verify Redux state was updated
+      const state = store.getState();
+      const updatedChapter = state.book.currentBook?.chapters[0];
+      expect(updatedChapter?.title).toBe('Chapter 1 Updated');
+      expect(updatedChapter?.content).toEqual([
+        { type: 'paragraph', text: 'New content from Redux' },
+      ]);
+    });
+
+    it('should handle multiple rapid content changes correctly', async () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content 1</p>',
+        isUpdating: true,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Content 1</p>" debounceDelay={400} />
+      );
+
+      // Simulate rapid content changes
+      const changes = [
+        '<p>Content 2</p>',
+        '<p>Content 3</p>',
+        '<p>Content 4</p>',
+        '<p>Final content</p>',
+      ];
+
+      changes.forEach((content) => {
+        rerender(<PreviewPanel content={content} debounceDelay={400} />);
+      });
+
+      // Verify triggerUpdate was called for each change
+      await waitFor(() => {
+        expect(triggerUpdateMock).toHaveBeenCalledTimes(5); // Initial + 4 updates
+      });
+
+      // Verify the last call was with the final content
+      expect(triggerUpdateMock).toHaveBeenLastCalledWith(
+        '<p>Final content</p>',
+        'text-edit'
+      );
+    });
+
+    it('should properly debounce text edit updates', async () => {
+      const debounceDelay = 400;
+
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Initial</p>',
+        isUpdating: true,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(
+        <PreviewPanel
+          content="<p>Initial</p>"
+          updateType="text-edit"
+          debounceDelay={debounceDelay}
+        />
+      );
+
+      // Verify debounce delay was passed to the hook
+      expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          debounceDelay,
+        })
+      );
+    });
+
+    it('should update immediately for navigation events', async () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Chapter 1</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(
+        <PreviewPanel content="<p>Chapter 1</p>" updateType="navigation" />
+      );
+
+      // Verify triggerUpdate was called with navigation type
+      expect(triggerUpdateMock).toHaveBeenCalledWith(
+        '<p>Chapter 1</p>',
+        'navigation'
+      );
+    });
+  });
+
+  describe('Loading States', () => {
+    it('should show loading indicator when preview is updating', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: true,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
+
+      const loadingIndicator = screen.getByTitle('Updating preview...');
+      expect(loadingIndicator).toBeInTheDocument();
+
+      const spinner = document.querySelector('.preview-panel__spinner');
+      expect(spinner).toBeInTheDocument();
+    });
+
+    it('should hide loading indicator when update completes', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
+
+      const loadingIndicator = screen.queryByTitle('Updating preview...');
+      expect(loadingIndicator).not.toBeInTheDocument();
+    });
+
+    it('should transition from loading to loaded state', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: true,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Content</p>" />
+      );
+
+      // Verify loading state
+      expect(screen.getByTitle('Updating preview...')).toBeInTheDocument();
+
+      // Simulate update completion
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      rerender(<PreviewPanel content="<p>Content</p>" />);
+
+      // Verify loading state is gone
+      expect(screen.queryByTitle('Updating preview...')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Chapter Navigation and Update Cancellation', () => {
+    it('should cancel pending updates when chapter changes', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Chapter 1</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Chapter 1</p>" chapterId="chapter-1" />
+      );
+
+      // Change chapter
+      rerender(
+        <PreviewPanel content="<p>Chapter 2</p>" chapterId="chapter-2" />
+      );
+
+      // Verify cancelPendingUpdates was called when chapter changed
+      expect(cancelPendingUpdatesMock).toHaveBeenCalled();
+    });
+
+    it('should not cancel updates when chapter ID stays the same', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Content 1</p>" chapterId="chapter-1" />
+      );
+
+      // Reset mock to track new calls
+      cancelPendingUpdatesMock.mockClear();
+
+      // Update content but keep same chapter
+      rerender(
+        <PreviewPanel content="<p>Content 2</p>" chapterId="chapter-1" />
+      );
+
+      // Verify cancelPendingUpdates was not called
+      expect(cancelPendingUpdatesMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Callback Integration', () => {
+    it('should call onPreviewUpdate callback when update completes', async () => {
+      const onPreviewUpdate = jest.fn();
+      const testContent = '<p>Test preview content</p>';
+
+      // Configure mock to simulate update lifecycle
+      mockUsePreviewUpdate.mockImplementation((options) => {
+        // Simulate calling onUpdateEnd
+        setTimeout(() => {
+          if (options.onUpdateEnd) {
+            options.onUpdateEnd();
+          }
+        }, 0);
+
+        return {
+          previewContent: testContent,
+          isUpdating: false,
+          triggerUpdate: triggerUpdateMock,
+          cancelPendingUpdates: cancelPendingUpdatesMock,
+        };
+      });
+
+      renderWithProviders(
+        <PreviewPanel content="<p>Test</p>" onPreviewUpdate={onPreviewUpdate} />
+      );
+
+      await waitFor(() => {
+        expect(onPreviewUpdate).toHaveBeenCalledWith(testContent);
+      });
+    });
+
+    it('should pass update callbacks to usePreviewUpdate hook', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
+
+      // Verify hook was called with callbacks
+      expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onUpdateStart: expect.any(Function),
+          onUpdateEnd: expect.any(Function),
+        })
+      );
+    });
+  });
+
+  describe('Debounce Configuration', () => {
+    it('should use default debounce delay of 400ms', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
+
+      expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          debounceDelay: 400,
+        })
+      );
+    });
+
+    it('should use custom debounce delay when provided', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(
+        <PreviewPanel content="<p>Content</p>" debounceDelay={1000} />
+      );
+
+      expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          debounceDelay: 1000,
+        })
+      );
+    });
+
+    it('should enable requestIdleCallback by default', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Content</p>" />);
+
+      expect(mockUsePreviewUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useIdleCallback: true,
+        })
+      );
+    });
+  });
+
+  describe('Content Rendering', () => {
+    it('should render preview content when available', () => {
+      const testContent = '<p>Test preview content</p>';
+
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: testContent,
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { container } = renderWithProviders(
+        <PreviewPanel content={testContent} />
+      );
+
+      const previewText = container.querySelector('.preview-panel__text');
+      expect(previewText).toBeInTheDocument();
+      expect(previewText?.innerHTML).toBe(testContent);
+    });
+
+    it('should show placeholder when no content available', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="" />);
+
+      expect(screen.getByText('No content to preview')).toBeInTheDocument();
+    });
+
+    it('should update rendered content when preview content changes', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Initial content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { container, rerender } = renderWithProviders(
+        <PreviewPanel content="<p>Initial content</p>" />
+      );
+
+      // Verify initial content
+      let previewText = container.querySelector('.preview-panel__text');
+      expect(previewText?.innerHTML).toBe('<p>Initial content</p>');
+
+      // Update to new content
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Updated content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      rerender(<PreviewPanel content="<p>Updated content</p>" />);
+
+      // Verify updated content
+      previewText = container.querySelector('.preview-panel__text');
+      expect(previewText?.innerHTML).toBe('<p>Updated content</p>');
+    });
+  });
+
+  describe('Component Styling and Accessibility', () => {
+    it('should render preview panel with header', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Test content</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Test content</p>" />);
+
+      expect(screen.getByText('Preview')).toBeInTheDocument();
+    });
+
+    it('should apply custom className', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Test</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      const { container } = renderWithProviders(
+        <PreviewPanel content="<p>Test</p>" className="custom-preview" />
+      );
+
+      const previewPanel = container.querySelector('.preview-panel');
+      expect(previewPanel).toHaveClass('preview-panel', 'custom-preview');
+    });
+
+    it('should have accessible heading', () => {
+      mockUsePreviewUpdate.mockReturnValue({
+        previewContent: '<p>Test</p>',
+        isUpdating: false,
+        triggerUpdate: triggerUpdateMock,
+        cancelPendingUpdates: cancelPendingUpdatesMock,
+      });
+
+      renderWithProviders(<PreviewPanel content="<p>Test</p>" />);
+
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Preview');
+    });
+  });
+});

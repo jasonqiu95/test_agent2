@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BookStyle } from '../../types/style';
+import { BookStyle, HeadingStyle } from '../../types/style';
 import { StylePreviewPanel } from './StylePreviewPanel';
 import { OrnamentalBreaksSection } from './sections';
 import { FontSelector } from './FontSelector';
+import { HeadingStyleSection } from './sections/HeadingStyleSection';
 import './StyleEditor.css';
 
 export interface StyleEditorProps {
@@ -49,6 +50,18 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     });
   };
 
+  const handleHeadingChange = (
+    level: 'h1' | 'h2' | 'h3' | 'h4',
+    updatedHeadingStyle: HeadingStyle
+  ) => {
+    handleStyleChange({
+      headings: {
+        ...currentStyle.headings,
+        [level]: updatedHeadingStyle,
+      },
+    });
+  };
+
   return (
     <div className="style-editor">
       <div className="style-editor__container">
@@ -74,6 +87,35 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 allowCustom={true}
                 enableGoogleFonts={true}
               />
+            </div>
+          </div>
+
+          {/* Heading Styles Section */}
+          <div className="style-editor__section">
+            <h2 className="style-editor__section-title">Heading Styles</h2>
+            <div className="style-editor__section-content">
+              <HeadingStyleSection
+                headingLevel="h1"
+                headingStyle={currentStyle.headings.h1}
+                onChange={(style) => handleHeadingChange('h1', style)}
+              />
+              <HeadingStyleSection
+                headingLevel="h2"
+                headingStyle={currentStyle.headings.h2}
+                onChange={(style) => handleHeadingChange('h2', style)}
+              />
+              <HeadingStyleSection
+                headingLevel="h3"
+                headingStyle={currentStyle.headings.h3}
+                onChange={(style) => handleHeadingChange('h3', style)}
+              />
+              {currentStyle.headings.h4 && (
+                <HeadingStyleSection
+                  headingLevel="h4"
+                  headingStyle={currentStyle.headings.h4}
+                  onChange={(style) => handleHeadingChange('h4', style)}
+                />
+              )}
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Provider } from 'react-redux'
+import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 import { store } from './store'
 import { useUndoRedo } from './hooks/useUndoRedo'
 import UndoRedoStatus from './components/UndoRedoStatus'
@@ -78,61 +79,84 @@ function AppContent() {
     setCurrentFilePath('')
   }
 
+  // Drag and drop event handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    console.log('Drag started:', event)
+    // Additional drag start logic will be implemented by specific components
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    // Handle drag over events for drop zone highlighting
+    // This will be implemented by specific components
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    console.log('Drag ended:', event)
+    // Handle reordering logic here
+    // This will be implemented by specific components
+  }
+
   return (
-    <div className="app">
-      {currentView === 'welcome' ? (
-        <WelcomeScreen
-          onProjectOpen={handleProjectOpen}
-          onNewProject={handleNewProject}
-          onImportProject={handleImportProject}
-        />
-      ) : (
-        <div className="editor-view">
-          <header className="editor-header">
-            <button onClick={handleBackToWelcome} className="back-button">
-              ← Back to Welcome
-            </button>
-            <h1 className="editor-title">
-              {currentBook?.title || 'Untitled'}
-            </h1>
-            <UndoRedoStatus />
-            <div className="editor-info">
-              {currentFilePath && (
-                <span className="file-path">{currentFilePath}</span>
-              )}
-            </div>
-          </header>
-          <main className="editor-main">
-            <div className="editor-placeholder">
-              <h2>Editor View</h2>
-              <p>Book: {currentBook?.title}</p>
-              <p>Chapters: {currentBook?.chapters.length || 0}</p>
-              <p>Authors: {currentBook?.authors.map(a => a.name).join(', ') || 'None'}</p>
-              <p className="editor-note">
-                This is a placeholder. The full editor implementation would go here.
-              </p>
-            </div>
-          </main>
-        </div>
-      )}
-
-      {showImportDialog && (
-        <div className="import-dialog-overlay">
-          <div className="import-dialog-content">
-            <h2>Import Document</h2>
-            <p>Document import functionality will be integrated here.</p>
-            <button onClick={() => setShowImportDialog(false)}>
-              Close
-            </button>
+    <DndContext
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="app">
+        {currentView === 'welcome' ? (
+          <WelcomeScreen
+            onProjectOpen={handleProjectOpen}
+            onNewProject={handleNewProject}
+            onImportProject={handleImportProject}
+          />
+        ) : (
+          <div className="editor-view">
+            <header className="editor-header">
+              <button onClick={handleBackToWelcome} className="back-button">
+                ← Back to Welcome
+              </button>
+              <h1 className="editor-title">
+                {currentBook?.title || 'Untitled'}
+              </h1>
+              <UndoRedoStatus />
+              <div className="editor-info">
+                {currentFilePath && (
+                  <span className="file-path">{currentFilePath}</span>
+                )}
+              </div>
+            </header>
+            <main className="editor-main">
+              <div className="editor-placeholder">
+                <h2>Editor View</h2>
+                <p>Book: {currentBook?.title}</p>
+                <p>Chapters: {currentBook?.chapters.length || 0}</p>
+                <p>Authors: {currentBook?.authors.map(a => a.name).join(', ') || 'None'}</p>
+                <p className="editor-note">
+                  This is a placeholder. The full editor implementation would go here.
+                </p>
+              </div>
+            </main>
           </div>
-        </div>
-      )}
+        )}
 
-      <PreferencesDialog
-        isOpen={showPreferences}
-        onClose={() => setShowPreferences(false)}
-      />
-    </div>
+        {showImportDialog && (
+          <div className="import-dialog-overlay">
+            <div className="import-dialog-content">
+              <h2>Import Document</h2>
+              <p>Document import functionality will be integrated here.</p>
+              <button onClick={() => setShowImportDialog(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        <PreferencesDialog
+          isOpen={showPreferences}
+          onClose={() => setShowPreferences(false)}
+        />
+      </div>
+    </DndContext>
   )
 }
 

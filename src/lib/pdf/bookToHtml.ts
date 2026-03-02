@@ -375,6 +375,8 @@ export interface BookToHtmlOptions {
   footnoteConfig?: FootnoteConfig;
   /** Endnote configuration */
   endnoteConfig?: FootnoteConfig;
+  /** Generate full HTML document with DOCTYPE, html, head, and body tags (default: false) */
+  generateFullDocument?: boolean;
 }
 
 /**
@@ -1052,14 +1054,115 @@ export class HtmlConverter {
     }
 
     // Wrap in main container if semantic tags are enabled
+    let bodyContent: string;
     if (this.options.useSemanticTags) {
       const prefix = this.options.classPrefix || 'book';
       const bookClasses = [generateClassName('container', undefined, prefix)];
       const roleAttr = this.options.includeAria ? ' role="main"' : '';
-      return `<main class="${bookClasses.join(' ')}"${roleAttr}>\n${fragments.join('\n\n')}\n</main>`;
+      bodyContent = `<main class="${bookClasses.join(' ')}"${roleAttr}>\n${fragments.join('\n\n')}\n</main>`;
+    } else {
+      bodyContent = fragments.join('\n\n');
     }
 
-    return fragments.join('\n\n');
+    // Wrap in full HTML document if requested
+    if (this.options.generateFullDocument) {
+      const htmlLang = this.book.metadata?.language || 'en';
+      return `<!DOCTYPE html>
+<html lang="${htmlLang}">
+<head>
+${this.generateHtmlHead()}
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`;
+    }
+
+    return bodyContent;
+  }
+
+  /**
+   * Generate HTML head section with metadata
+   */
+  private generateHtmlHead(): string {
+    const fragments: string[] = [];
+    const escape = this.options.escapeHtml || escapeHtml;
+
+    // Charset
+    fragments.push('  <meta charset="UTF-8">');
+
+    // Title
+    if (this.book.title) {
+      const fullTitle = this.book.subtitle
+        ? `${escape(this.book.title)}: ${escape(this.book.subtitle)}`
+        : escape(this.book.title);
+      fragments.push(`  <title>${fullTitle}</title>`);
+    }
+
+    // Viewport meta tag for responsive design
+    fragments.push('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+
+    // Authors
+    if (this.book.authors && this.book.authors.length > 0) {
+      const authorNames = this.book.authors
+        .map(author => escape(author.name))
+        .join(', ');
+      fragments.push(`  <meta name="author" content="${authorNames}">`);
+    }
+
+    // Description
+    if (this.book.metadata?.description) {
+      fragments.push(`  <meta name="description" content="${escape(this.book.metadata.description)}">`);
+    }
+
+    // ISBN
+    if (this.book.metadata?.isbn) {
+      fragments.push(`  <meta name="isbn" content="${escape(this.book.metadata.isbn)}">`);
+    }
+
+    // ISBN-13
+    if (this.book.metadata?.isbn13) {
+      fragments.push(`  <meta name="isbn-13" content="${escape(this.book.metadata.isbn13)}">`);
+    }
+
+    // Language
+    if (this.book.metadata?.language) {
+      fragments.push(`  <meta name="language" content="${escape(this.book.metadata.language)}">`);
+    }
+
+    // Publisher
+    if (this.book.metadata?.publisher) {
+      fragments.push(`  <meta name="publisher" content="${escape(this.book.metadata.publisher)}">`);
+    }
+
+    // Publication date
+    if (this.book.metadata?.publicationDate) {
+      const dateStr = this.book.metadata.publicationDate instanceof Date
+        ? this.book.metadata.publicationDate.toISOString().split('T')[0]
+        : String(this.book.metadata.publicationDate);
+      fragments.push(`  <meta name="publication-date" content="${escape(dateStr)}">`);
+    }
+
+    // Keywords
+    if (this.book.metadata?.keywords && this.book.metadata.keywords.length > 0) {
+      const keywords = this.book.metadata.keywords.map(k => escape(k)).join(', ');
+      fragments.push(`  <meta name="keywords" content="${keywords}">`);
+    }
+
+    // Genre
+    if (this.book.metadata?.genre && this.book.metadata.genre.length > 0) {
+      const genres = this.book.metadata.genre.map(g => escape(g)).join(', ');
+      fragments.push(`  <meta name="genre" content="${genres}">`);
+    }
+
+    // Custom metadata from options
+    if (this.options.metadata) {
+      for (const [key, value] of Object.entries(this.options.metadata)) {
+        fragments.push(`  <meta name="${escape(key)}" content="${escape(value)}">`);
+      }
+    }
+
+    return fragments.join('\n');
   }
 
   /**

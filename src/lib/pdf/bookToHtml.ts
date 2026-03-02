@@ -32,7 +32,7 @@ import { Chapter } from '../../types/chapter';
 import { Element, ElementType, MatterType } from '../../types/element';
 import { TextBlock } from '../../types/textBlock';
 import { BookStyle, Style } from '../../types/style';
-import { Break, TextFeature } from '../../types/textFeature';
+import { Break, TextFeature, Image, Figure, ImageAlignment, ImageSizing } from '../../types/textFeature';
 
 /**
  * Ornamental break style options
@@ -1254,12 +1254,49 @@ export class HtmlConverter {
    * Convert a single text block to HTML
    */
   private convertTextBlock(block: TextBlock): string {
-    // Only handle paragraph blocks in this implementation
-    if (block.blockType !== 'paragraph') {
-      return '';
+    const fragments: string[] = [];
+
+    // Process text features first (images, figures, breaks, etc.)
+    if (block.features && block.features.length > 0) {
+      for (const feature of block.features) {
+        const featureHtml = this.convertTextFeature(feature);
+        if (featureHtml) {
+          fragments.push(featureHtml);
+        }
+      }
     }
 
-    return this.convertParagraph(block);
+    // Process the main block content
+    if (block.blockType === 'paragraph') {
+      const paragraphHtml = this.convertParagraph(block);
+      if (paragraphHtml) {
+        fragments.push(paragraphHtml);
+      }
+    }
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert a text feature to HTML
+   */
+  private convertTextFeature(feature: TextFeature): string {
+    const prefix = this.options.classPrefix || 'book';
+
+    switch (feature.type) {
+      case 'image':
+        return generateImage(feature as Image, prefix);
+
+      case 'figure':
+        return generateFigure(feature as Figure, prefix);
+
+      case 'break':
+        return this.convertBreak(feature as Break);
+
+      // Other feature types can be added here
+      default:
+        return '';
+    }
   }
 
   /**
@@ -2185,6 +2222,164 @@ export function generateOrnamentalBreakFromStyle(
 }
 
 /**
+ * Generate CSS classes for images
+ * Returns array of CSS class names for image elements
+ */
+export function generateImageClasses(
+  image: Image,
+  classPrefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix: classPrefix });
+  builder.element(CssClassNames.ELEMENT.IMAGE);
+
+  const classes = builder.build();
+
+  // Add alignment class
+  if (image.alignment) {
+    classes.push(
+      `${classPrefix}-element-${CssClassNames.ELEMENT.IMAGE}-${image.alignment}`
+    );
+  }
+
+  // Add sizing class
+  if (image.sizing) {
+    classes.push(
+      `${classPrefix}-element-${CssClassNames.ELEMENT.IMAGE}-size-${image.sizing}`
+    );
+  }
+
+  // Add responsive class
+  classes.push(
+    `${classPrefix}-element-${CssClassNames.ELEMENT.IMAGE}-responsive`
+  );
+
+  // Add base64 indicator class if applicable
+  if (image.isBase64) {
+    classes.push(
+      `${classPrefix}-element-${CssClassNames.ELEMENT.IMAGE}-embedded`
+    );
+  }
+
+  // Add custom classes
+  if (image.cssClasses && image.cssClasses.length > 0) {
+    classes.push(...image.cssClasses);
+  }
+
+  return classes;
+}
+
+/**
+ * Generate HTML for an inline image
+ * Converts Image feature to HTML <img> element with appropriate attributes
+ */
+export function generateImage(
+  image: Image,
+  classPrefix: string = 'book'
+): string {
+  const classes = generateImageClasses(image, classPrefix);
+
+  // Build attributes
+  const attributes: string[] = [];
+
+  // Add class attribute
+  if (classes.length > 0) {
+    attributes.push(`class="${classes.join(' ')}"`);
+  }
+
+  // Add src attribute (escape quotes in URL)
+  const src = image.src.replace(/"/g, '&quot;');
+  attributes.push(`src="${src}"`);
+
+  // Add alt attribute (required for accessibility)
+  const alt = escapeHtml(image.alt);
+  attributes.push(`alt="${alt}"`);
+
+  // Add title attribute if provided
+  if (image.title) {
+    const title = escapeHtml(image.title);
+    attributes.push(`title="${title}"`);
+  }
+
+  // Add width if specified
+  if (image.width) {
+    attributes.push(`width="${escapeHtml(image.width)}"`);
+  }
+
+  // Add height if specified
+  if (image.height) {
+    attributes.push(`height="${escapeHtml(image.height)}"`);
+  }
+
+  // Add loading="lazy" for better performance
+  attributes.push('loading="lazy"');
+
+  return `<img ${attributes.join(' ')} />`;
+}
+
+/**
+ * Generate CSS classes for figures
+ * Returns array of CSS class names for figure elements
+ */
+export function generateFigureClasses(
+  figure: Figure,
+  classPrefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix: classPrefix });
+  builder.element(CssClassNames.ELEMENT.FIGURE);
+
+  const classes = builder.build();
+
+  // Add alignment class
+  if (figure.alignment) {
+    classes.push(
+      `${classPrefix}-element-${CssClassNames.ELEMENT.FIGURE}-${figure.alignment}`
+    );
+  }
+
+  // Add caption indicator class if caption is present
+  if (figure.caption) {
+    classes.push(
+      `${classPrefix}-element-${CssClassNames.ELEMENT.FIGURE}-with-caption`
+    );
+  }
+
+  // Add custom classes
+  if (figure.cssClasses && figure.cssClasses.length > 0) {
+    classes.push(...figure.cssClasses);
+  }
+
+  return classes;
+}
+
+/**
+ * Generate HTML for a figure element
+ * Wraps an image in <figure> with optional <figcaption>
+ */
+export function generateFigure(
+  figure: Figure,
+  classPrefix: string = 'book'
+): string {
+  const classes = generateFigureClasses(figure, classPrefix);
+  const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+  // Generate the image HTML
+  const imageHtml = generateImage(figure.image, classPrefix);
+
+  // Generate caption if provided
+  let captionHtml = '';
+  if (figure.caption) {
+    const captionClasses = [
+      `${classPrefix}-element-${CssClassNames.ELEMENT.CAPTION}`,
+    ];
+    const captionClassAttr = ` class="${captionClasses.join(' ')}"`;
+    const captionContent = escapeHtml(figure.caption);
+    captionHtml = `\n  <figcaption${captionClassAttr}>${captionContent}</figcaption>`;
+  }
+
+  return `<figure${classAttr}>\n  ${imageHtml}${captionHtml}\n</figure>`;
+}
+
+/**
  * Generate CSS for break elements
  * Returns CSS rules for scene breaks, page breaks, and ornamental breaks
  */
@@ -2262,6 +2457,187 @@ export function generateBreakStyles(classPrefix: string = 'book'): string {
   .${classPrefix}-page-break {
     display: block;
     visibility: visible;
+  }
+}
+`.trim();
+}
+
+/**
+ * Generate CSS for image and figure elements
+ * Returns CSS rules for inline images and figure wrappers
+ */
+export function generateImageStyles(classPrefix: string = 'book'): string {
+  return `
+/* Base Image Styles */
+.${classPrefix}-element-image {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.${classPrefix}-element-image-responsive {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Image Sizing */
+.${classPrefix}-element-image-size-small {
+  max-width: 200px;
+}
+
+.${classPrefix}-element-image-size-medium {
+  max-width: 400px;
+}
+
+.${classPrefix}-element-image-size-large {
+  max-width: 600px;
+}
+
+.${classPrefix}-element-image-size-full {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Image Alignment */
+.${classPrefix}-element-image-left {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 0.5em;
+}
+
+.${classPrefix}-element-image-right {
+  float: right;
+  margin-left: 1em;
+  margin-bottom: 0.5em;
+}
+
+.${classPrefix}-element-image-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.${classPrefix}-element-image-full-width {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Base64 Embedded Images */
+.${classPrefix}-element-image-embedded {
+  /* Styling for base64 embedded images */
+}
+
+/* Figure Styles */
+.${classPrefix}-element-figure {
+  margin: 1.5em 0;
+  padding: 0;
+  display: block;
+}
+
+.${classPrefix}-element-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Figure Alignment */
+.${classPrefix}-element-figure-left {
+  float: left;
+  margin-right: 1.5em;
+  margin-bottom: 1em;
+  max-width: 50%;
+}
+
+.${classPrefix}-element-figure-right {
+  float: right;
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+  max-width: 50%;
+}
+
+.${classPrefix}-element-figure-center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.${classPrefix}-element-figure-full-width {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Figure Caption */
+.${classPrefix}-element-caption {
+  font-size: 0.9em;
+  font-style: italic;
+  color: #666;
+  text-align: center;
+  margin-top: 0.5em;
+  padding: 0 1em;
+}
+
+.${classPrefix}-element-figure-with-caption {
+  /* Additional styling for figures with captions */
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  .${classPrefix}-element-image-left,
+  .${classPrefix}-element-image-right {
+    float: none;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 1em;
+  }
+
+  .${classPrefix}-element-figure-left,
+  .${classPrefix}-element-figure-right {
+    float: none;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 1.5em;
+  }
+
+  .${classPrefix}-element-image-size-small,
+  .${classPrefix}-element-image-size-medium,
+  .${classPrefix}-element-image-size-large {
+    max-width: 100%;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .${classPrefix}-element-figure {
+    page-break-inside: avoid;
+    margin: 1em 0;
+  }
+
+  .${classPrefix}-element-image-left,
+  .${classPrefix}-element-image-right {
+    float: none;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .${classPrefix}-element-figure-left,
+  .${classPrefix}-element-figure-right {
+    float: none;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .${classPrefix}-element-caption {
+    page-break-before: avoid;
+    color: #000;
   }
 }
 `.trim();

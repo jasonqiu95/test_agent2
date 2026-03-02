@@ -58,6 +58,10 @@ export interface FirstParagraphStyle {
   fontVariant?: string;
   letterSpacing?: string;
   fontSize?: string;
+  indent?: {
+    enabled: boolean;
+    value?: string;
+  };
 }
 
 export interface SpacingConfig {

@@ -1,27 +1,18 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { selectZoomLevel } from '../../store/previewSlice';
+import { ZoomControls } from './ZoomControls';
 import './PreviewPanel.css';
 
 export const PreviewPanel = ({
   content = null,
   onClose = () => {},
 }) => {
-  const [zoom, setZoom] = useState(100);
+  const zoom = useSelector(selectZoomLevel);
   const [currentPage, setCurrentPage] = useState(1);
   const [deviceMode, setDeviceMode] = useState('desktop'); // desktop, tablet, mobile
 
   const totalPages = 1; // Placeholder - will be calculated from actual content
-
-  const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 10, 200));
-  };
-
-  const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 10, 50));
-  };
-
-  const handleZoomReset = () => {
-    setZoom(100);
-  };
 
   const handleDeviceChange = (device) => {
     setDeviceMode(device);
@@ -80,35 +71,7 @@ export const PreviewPanel = ({
           </div>
 
           {/* Zoom Controls */}
-          <div className="preview-zoom-controls">
-            <button
-              className="preview-zoom-btn"
-              onClick={handleZoomOut}
-              disabled={zoom <= 50}
-              title="Zoom out"
-              aria-label="Zoom out"
-            >
-              −
-            </button>
-            <span className="preview-zoom-display">{zoom}%</span>
-            <button
-              className="preview-zoom-btn"
-              onClick={handleZoomIn}
-              disabled={zoom >= 200}
-              title="Zoom in"
-              aria-label="Zoom in"
-            >
-              +
-            </button>
-            <button
-              className="preview-zoom-btn"
-              onClick={handleZoomReset}
-              title="Reset zoom"
-              aria-label="Reset zoom"
-            >
-              ⟲
-            </button>
-          </div>
+          <ZoomControls />
         </div>
 
         <div className="preview-panel-header-right">

@@ -101,6 +101,19 @@
   padding: 0;
 }
 
+.navigator-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+}
+
+.navigator-empty-section {
+  padding: 1rem 1.5rem;
+  color: #888;
+  font-size: 14px;
+  font-style: italic;
+}
+
 .navigator-section {
   margin-bottom: 1rem;
 }
@@ -114,6 +127,7 @@
   background: #f5f5f5;
   border-radius: 4px;
   transition: background-color 0.2s;
+  margin-bottom: 0.5rem;
 }
 
 .navigator-section-header:hover {
@@ -123,6 +137,31 @@
 .navigator-section-header:focus {
   outline: 2px solid #0066cc;
   outline-offset: 2px;
+}
+
+.section-toggle {
+  margin-right: 0.5rem;
+  font-size: 0.8em;
+  transition: transform 0.2s;
+  display: inline-block;
+  width: 12px;
+}
+
+.section-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.section-title {
+  font-weight: 600;
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.section-count {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 0.5rem;
 }
 
 .navigator-section-icon {

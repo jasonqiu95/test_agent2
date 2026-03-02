@@ -1,41 +1,68 @@
-import React, { useState, useCallback, KeyboardEvent, MouseEvent } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectCurrentBook } from '../../slices/bookSlice';
+import React, { useState, useCallback, KeyboardEvent, MouseEvent, DragEvent } from 'react';
 import { Chapter } from '../../types/chapter';
 import { Element } from '../../types/element';
 import { BookStyle } from '../../types/style';
+import { Book } from '../../types/book';
+import { DragTypes } from '../../constants/dragTypes';
+import type { TreeItemDragData } from '../../types/drag';
 import './Navigator.css';
 
 export type NavigatorView = 'contents' | 'styles';
+export type SectionType = 'frontMatter' | 'chapters' | 'backMatter';
 
 export interface NavigatorItem {
   id: string;
   type: 'chapter' | 'element' | 'style';
   title: string;
   data: Chapter | Element | BookStyle;
+  section?: SectionType;
+}
+
+export interface ReorderParams {
+  itemId: string;
+  itemType: 'frontMatter' | 'chapter' | 'backMatter';
+  fromIndex: number;
+  toIndex: number;
+  section: SectionType;
 }
 
 export interface NavigatorProps {
+  book?: Book;
   view?: NavigatorView;
   onViewChange?: (view: NavigatorView) => void;
   selectedIds?: string[];
-  onSelect?: (ids: string[]) => void;
+  onSelect?: (ids: string[] | string, type?: string) => void;
   multiSelect?: boolean;
   className?: string;
+  onReorder?: (params: ReorderParams) => void;
+  disabled?: boolean;
 }
 
 export const Navigator: React.FC<NavigatorProps> = ({
+  book: bookProp,
   view: controlledView,
   onViewChange,
   selectedIds: controlledSelectedIds,
   onSelect,
   multiSelect = true,
   className = '',
+  onReorder,
+  disabled = false,
 }) => {
   const [internalView, setInternalView] = useState<NavigatorView>(controlledView || 'contents');
   const [internalSelectedIds, setInternalSelectedIds] = useState<string[]>([]);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const book = useSelector(selectCurrentBook);
+
+  // Use book prop if provided, otherwise try Redux (for backwards compatibility)
+  const book = bookProp;
+
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [draggedItemData, setDraggedItemData] = useState<TreeItemDragData | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<SectionType>>(new Set());
 
   // Determine if selection is controlled or uncontrolled
   const isControlled = controlledSelectedIds !== undefined;
@@ -68,6 +95,37 @@ export const Navigator: React.FC<NavigatorProps> = ({
     [isControlled, onSelect]
   );
 
+  // Get items by section
+  const getSectionItems = useCallback((section: SectionType): NavigatorItem[] => {
+    if (!book) return [];
+
+    if (section === 'frontMatter') {
+      return book.frontMatter?.map((element) => ({
+        id: element.id,
+        type: 'element' as const,
+        title: element.title,
+        data: element,
+        section: 'frontMatter' as const,
+      })) || [];
+    } else if (section === 'chapters') {
+      return book.chapters?.map((chapter) => ({
+        id: chapter.id,
+        type: 'chapter' as const,
+        title: chapter.title,
+        data: chapter,
+        section: 'chapters' as const,
+      })) || [];
+    } else {
+      return book.backMatter?.map((element) => ({
+        id: element.id,
+        type: 'element' as const,
+        title: element.title,
+        data: element,
+        section: 'backMatter' as const,
+      })) || [];
+    }
+  }, [book]);
+
   // Get items based on current view
   const getItems = useCallback((): NavigatorItem[] => {
     if (!book) return [];
@@ -82,6 +140,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
           type: 'element',
           title: element.title,
           data: element,
+          section: 'frontMatter',
         });
       });
 
@@ -92,6 +151,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
           type: 'chapter',
           title: chapter.title,
           data: chapter,
+          section: 'chapters',
         });
       });
 
@@ -102,6 +162,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
           type: 'element',
           title: element.title,
           data: element,
+          section: 'backMatter',
         });
       });
 
@@ -196,6 +257,234 @@ export const Navigator: React.FC<NavigatorProps> = ({
     setLastSelectedIndex(null);
   }, [handleSelectionChange]);
 
+  // Drag handlers
+  const handleDragStart = useCallback(
+    (e: DragEvent<HTMLLIElement>, item: NavigatorItem, index: number) => {
+      if (disabled) return;
+
+      console.log('dragstart:', { itemId: item.id, index, section: item.section });
+
+      const dragData: TreeItemDragData = {
+        type: item.section === 'frontMatter'
+          ? DragTypes.FRONT_MATTER_ITEM
+          : item.section === 'chapters'
+          ? DragTypes.CHAPTER_ITEM
+          : DragTypes.BACK_MATTER_ITEM,
+        itemId: item.id,
+        payload: {
+          index,
+          title: item.title,
+          ...(item.type === 'chapter' ? { chapterId: item.id } : {}),
+        },
+      };
+
+      setIsDragging(true);
+      setDraggedItemId(item.id);
+      setDraggedItemData(dragData);
+
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+
+      // Add dragging class
+      (e.currentTarget as HTMLElement).classList.add('dragging');
+    },
+    [disabled]
+  );
+
+  const handleDragEnd = useCallback((e: DragEvent<HTMLLIElement>) => {
+    setIsDragging(false);
+    setDraggedItemId(null);
+    setDraggedItemData(null);
+    setDropTargetId(null);
+    setDropPosition(null);
+
+    // Remove dragging class
+    (e.currentTarget as HTMLElement).classList.remove('dragging');
+
+    // Remove all drop-target classes
+    document.querySelectorAll('.drop-target').forEach((el) => {
+      el.classList.remove('drop-target');
+    });
+  }, []);
+
+  const calculateDropPosition = useCallback((e: DragEvent<HTMLLIElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midPoint = rect.top + rect.height / 2;
+    return e.clientY < midPoint ? 'before' : 'after';
+  }, []);
+
+  const handleDragOver = useCallback(
+    (e: DragEvent<HTMLLIElement>, targetItem: NavigatorItem) => {
+      if (disabled) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!draggedItemId) {
+        console.log('dragover: no draggedItemId');
+        return;
+      }
+
+      console.log('dragover:', { targetItem: targetItem.id, draggedItemId });
+
+      // Calculate drop position
+      const position = calculateDropPosition(e);
+      setDropTargetId(targetItem.id);
+      setDropPosition(position);
+
+      // Add drop-target class
+      e.currentTarget.classList.add('drop-target');
+
+      e.dataTransfer.dropEffect = 'move';
+    },
+    [disabled, draggedItemId, calculateDropPosition]
+  );
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLLIElement>) => {
+    e.currentTarget.classList.remove('drop-target');
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: DragEvent<HTMLLIElement>, targetItem: NavigatorItem, targetIndex: number) => {
+      console.log('handleDrop called:', { targetItem: targetItem.id, targetIndex, draggedItemId, disabled, hasOnReorder: !!onReorder });
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (disabled || !draggedItemId || !onReorder) {
+        console.log('handleDrop early return:', { disabled, draggedItemId, hasOnReorder: !!onReorder });
+        return;
+      }
+
+      try {
+        // Try to get drag data from dataTransfer (for real browser) or use state (for tests)
+        let dragData: TreeItemDragData | null = null;
+
+        const dragDataStr = e.dataTransfer.getData('application/json');
+        console.log('dragDataStr:', dragDataStr);
+
+        if (dragDataStr) {
+          dragData = JSON.parse(dragDataStr) as TreeItemDragData;
+        } else if (draggedItemData) {
+          // Fall back to state data (for test environment)
+          dragData = draggedItemData;
+        }
+
+        if (!dragData) {
+          console.log('No drag data available');
+          return;
+        }
+
+        console.log('dragData:', dragData);
+
+        // Get source section
+        const sourceSection =
+          dragData.type === DragTypes.FRONT_MATTER_ITEM
+            ? 'frontMatter'
+            : dragData.type === DragTypes.CHAPTER_ITEM
+            ? 'chapters'
+            : 'backMatter';
+
+        console.log('sourceSection:', sourceSection, 'targetSection:', targetItem.section);
+
+        // Validate: can only drop within same section
+        if (sourceSection !== targetItem.section) {
+          console.log('Section mismatch - skipping');
+          return;
+        }
+
+        // Get source and target indices
+        const sectionItems = getSectionItems(sourceSection);
+        console.log('sectionItems:', sectionItems.map(i => i.id));
+        const sourceIndex = sectionItems.findIndex((item) => item.id === draggedItemId);
+        console.log('sourceIndex:', sourceIndex);
+
+        if (sourceIndex === -1) {
+          console.log('Source index not found');
+          return;
+        }
+
+        // Calculate final target index based on drop position
+        const position = calculateDropPosition(e);
+        let finalTargetIndex = targetIndex;
+
+        console.log('Drop debug:', {
+          draggedItemId,
+          targetItemId: targetItem.id,
+          sourceIndex,
+          targetIndex,
+          position,
+          sourceSection,
+          targetSection: targetItem.section
+        });
+
+        // Don't reorder if dropping in the same position
+        if (
+          sourceIndex === finalTargetIndex ||
+          (position === 'before' && sourceIndex === finalTargetIndex) ||
+          (position === 'after' && sourceIndex === finalTargetIndex - 1)
+        ) {
+          console.log('Skipping reorder - same position');
+          return;
+        }
+
+        const itemType =
+          sourceSection === 'frontMatter' ? 'frontMatter' :
+          sourceSection === 'chapters' ? 'chapter' :
+          'backMatter';
+
+        console.log('Calling onReorder with:', {
+          itemId: draggedItemId,
+          itemType,
+          fromIndex: sourceIndex,
+          toIndex: finalTargetIndex,
+          section: sourceSection,
+        });
+
+        onReorder({
+          itemId: draggedItemId,
+          itemType,
+          fromIndex: sourceIndex,
+          toIndex: finalTargetIndex,
+          section: sourceSection,
+        });
+      } catch (error) {
+        console.error('Error handling drop:', error);
+      } finally {
+        // Clean up
+        e.currentTarget.classList.remove('drop-target');
+      }
+    },
+    [disabled, draggedItemId, draggedItemData, onReorder, getSectionItems, calculateDropPosition]
+  );
+
+  const handleSectionToggle = useCallback((section: SectionType) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleKeyDownItem = useCallback(
+    (e: KeyboardEvent<HTMLLIElement>, itemId: string, itemType: string) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onSelect?.(itemId, itemType);
+      } else if (e.key === 'Escape' && isDragging) {
+        setIsDragging(false);
+        setDraggedItemId(null);
+        setDropTargetId(null);
+        setDropPosition(null);
+      }
+    },
+    [isDragging, onSelect]
+  );
+
   if (!book) {
     return (
       <div className={`navigator ${className}`}>
@@ -224,6 +513,80 @@ export const Navigator: React.FC<NavigatorProps> = ({
     );
   }
 
+  // Render section
+  const renderSection = (section: SectionType, title: string) => {
+    const sectionItems = getSectionItems(section);
+    const isCollapsed = collapsedSections.has(section);
+
+    return (
+      <div key={section} className="navigator-section">
+        <div
+          className="navigator-section-header"
+          onClick={() => handleSectionToggle(section)}
+          aria-label={`${title} section`}
+        >
+          <span className={`section-toggle ${isCollapsed ? 'collapsed' : ''}`}>▼</span>
+          <span className="section-title">{title}</span>
+          <span className="section-count">({sectionItems.length})</span>
+        </div>
+        {!isCollapsed && (
+          <ul className="navigator-section-list" data-section={section}>
+            {sectionItems.length === 0 ? (
+              <li className="navigator-empty-section">No items</li>
+            ) : (
+              sectionItems.map((item, index) => {
+                const itemType = section === 'chapters' ? 'chapter' : section === 'frontMatter' ? 'element' : 'element';
+                const showDropZoneBefore = dropTargetId === item.id && dropPosition === 'before';
+                const showDropZoneAfter = dropTargetId === item.id && dropPosition === 'after';
+
+                return (
+                  <React.Fragment key={item.id}>
+                    {showDropZoneBefore && (
+                      <div
+                        className="drop-zone drop-zone-before"
+                        data-testid={`drop-zone-before-${item.id}`}
+                      />
+                    )}
+                    <li
+                      className={`navigator-item ${selectedIds.includes(item.id) ? 'selected' : ''} ${
+                        itemType
+                      } ${draggedItemId === item.id ? 'dragging' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleItemClick(item.id, index, e);
+                      }}
+                      onDragStart={(e) => handleDragStart(e, item, index)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, item)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, item, index)}
+                      onKeyDown={(e) => handleKeyDownItem(e, item.id, itemType)}
+                      draggable={!disabled}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${item.title} - ${itemType}`}
+                      data-testid={`navigator-item-${item.id}`}
+                      data-item-id={item.id}
+                      data-item-type={itemType}
+                    >
+                      <span className="navigator-item-title">{item.title}</span>
+                    </li>
+                    {showDropZoneAfter && (
+                      <div
+                        className="drop-zone drop-zone-after"
+                        data-testid={`drop-zone-after-${item.id}`}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
+          </ul>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={`navigator ${className}`} onKeyDown={handleKeyDown} tabIndex={0}>
       <div className="navigator-header">
@@ -246,32 +609,42 @@ export const Navigator: React.FC<NavigatorProps> = ({
       </div>
 
       <div className="navigator-content" onClick={handleBlankAreaClick}>
-        {items.length === 0 ? (
-          <div className="navigator-empty">
-            No {currentView === 'contents' ? 'content' : 'styles'} available
-          </div>
+        {currentView === 'contents' ? (
+          <>
+            {renderSection('frontMatter', 'Front Matter')}
+            {renderSection('chapters', 'Chapters')}
+            {renderSection('backMatter', 'Back Matter')}
+          </>
         ) : (
-          <ul className="navigator-list">
-            {items.map((item, index) => (
-              <li
-                key={item.id}
-                className={`navigator-item ${selectedIds.includes(item.id) ? 'selected' : ''} ${
-                  item.type
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleItemClick(item.id, index, e);
-                }}
-                data-testid={`navigator-item-${item.id}`}
-                data-item-id={item.id}
-                data-item-type={item.type}
-              >
-                <span className="navigator-item-title">{item.title}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            {items.length === 0 ? (
+              <div className="navigator-empty">No styles available</div>
+            ) : (
+              <ul className="navigator-list">
+                {items.map((item, index) => (
+                  <li
+                    key={item.id}
+                    className={`navigator-item ${selectedIds.includes(item.id) ? 'selected' : ''} ${
+                      item.type
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleItemClick(item.id, index, e);
+                    }}
+                    data-testid={`navigator-item-${item.id}`}
+                    data-item-id={item.id}
+                    data-item-type={item.type}
+                  >
+                    <span className="navigator-item-title">{item.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </div>
+
+      {isDragging && <div className="drag-overlay" data-testid="drag-overlay" />}
     </div>
   );
 };

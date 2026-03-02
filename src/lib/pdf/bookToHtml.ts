@@ -1488,7 +1488,28 @@ ${bodyContent}
   }
 
   /**
+   * Get the conventional sort order for back matter elements
+   * Lower numbers appear first
+   */
+  private getBackMatterSortOrder(elementType: ElementType): number {
+    const order: Record<string, number> = {
+      'epilogue': 1,
+      'afterword': 2,
+      'acknowledgments': 3,
+      'appendix': 4,
+      'glossary': 5,
+      'about-author': 6,
+      'also-by': 7,
+      'bibliography': 8,
+      'index': 9,
+    };
+    return order[elementType] ?? 99; // Other types go last
+  }
+
+  /**
    * Convert back matter to HTML
+   * Ensures proper ordering: epilogue, afterword, acknowledgments, appendices,
+   * glossary, about author, also by, bibliography, index
    */
   private convertBackMatter(): string {
     if (!this.book.backMatter || this.book.backMatter.length === 0) {
@@ -1496,7 +1517,18 @@ ${bodyContent}
     }
 
     this.resetContextForSection('back-matter');
-    const elementsHtml = this.book.backMatter
+
+    // Sort back matter elements in conventional order
+    const sortedBackMatter = [...this.book.backMatter].sort((a, b) => {
+      // Use explicit order if specified
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      // Otherwise use conventional ordering
+      return this.getBackMatterSortOrder(a.type) - this.getBackMatterSortOrder(b.type);
+    });
+
+    const elementsHtml = sortedBackMatter
       .map((element, index) => {
         this.updateContext({ currentElement: element, elementIndex: index });
         return this.convertElement(element);
@@ -1523,6 +1555,7 @@ ${bodyContent}
       case 'foreword':
       case 'preface':
       case 'introduction':
+      case 'prologue':
         return this.convertIntroductoryElement(element);
       case 'epilogue':
       case 'afterword':
@@ -1535,6 +1568,12 @@ ${bodyContent}
         return this.convertAlsoBy(element);
       case 'bibliography':
         return this.convertBibliography(element);
+      case 'appendix':
+        return this.convertAppendix(element);
+      case 'glossary':
+        return this.convertGlossary(element);
+      case 'index':
+        return this.convertIndex(element);
       default:
         return this.convertGenericElement(element);
     }
@@ -2297,6 +2336,177 @@ ${bodyContent}
       const contentClasses = [
         generateClassName('element-content', undefined, prefix),
         generateClassName('bibliography-content', undefined, prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert an appendix element to HTML
+   */
+  private convertAppendix(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'appendix', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      const elementId = `element-${element.id}`;
+      fragments.push(
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('appendix-content', undefined, prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert a glossary element to HTML
+   */
+  private convertGlossary(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'glossary', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      const elementId = `element-${element.id}`;
+      fragments.push(
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content with special glossary styling
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('glossary-content', undefined, prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert an index element to HTML
+   */
+  private convertIndex(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'index', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      const elementId = `element-${element.id}`;
+      fragments.push(
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content with special index styling
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('index-content', undefined, prefix),
       ];
       const contentHtml = element.content
         .map((block) => this.convertTextBlock(block))

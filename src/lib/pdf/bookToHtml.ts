@@ -168,6 +168,13 @@ export const CssClassNames = {
     CAPTION: 'caption',
     SEPARATOR: 'separator',
     ORNAMENTAL_BREAK: 'ornamental-break',
+    TOC_ENTRY: 'toc-entry',
+    TOC_PART: 'toc-part',
+    TOC_CHAPTER: 'toc-chapter',
+    TOC_SECTION: 'toc-section',
+    TOC_LINK: 'toc-link',
+    TOC_TITLE: 'toc-title',
+    TOC_PAGE_NUMBER: 'toc-page-number',
   },
 
   // Typography elements
@@ -299,6 +306,14 @@ export interface BookToHtmlOptions {
   styleConfig?: BookStyle;
   /** Generate table of contents */
   includeToc?: boolean;
+  /** TOC depth: 'parts' (parts only), 'chapters' (parts + chapters), 'subheads' (parts + chapters + headings) */
+  tocDepth?: 'parts' | 'chapters' | 'subheads';
+  /** Include page numbers in TOC (placeholders for print) */
+  tocIncludePageNumbers?: boolean;
+  /** TOC variant: 'front-matter' (full TOC in front matter) or 'navigation' (compact nav TOC) */
+  tocVariant?: 'front-matter' | 'navigation';
+  /** Maximum heading level to include in TOC (1-6) when tocDepth is 'subheads' */
+  tocMaxHeadingLevel?: number;
   /** Custom HTML escaping function */
   escapeHtml?: (text: string) => string;
   /** Custom metadata to include in HTML head */
@@ -876,6 +891,10 @@ export class HtmlConverter {
       useSemanticTags: true,
       includeAria: true,
       includeToc: true,
+      tocDepth: 'chapters',
+      tocIncludePageNumbers: false,
+      tocVariant: 'front-matter',
+      tocMaxHeadingLevel: 3,
       htmlVersion: 'html5',
       includeChapterNumbers: true,
       ...options,
@@ -915,6 +934,21 @@ export class HtmlConverter {
     const frontMatterHtml = this.convertFrontMatter();
     if (frontMatterHtml) {
       fragments.push(frontMatterHtml);
+    }
+
+    // Generate and insert table of contents
+    if (this.options.includeToc) {
+      const tocHtml = generateTocHtml(this.book, this.options);
+      if (tocHtml) {
+        // Insert TOC based on variant
+        if (this.options.tocVariant === 'navigation') {
+          // Navigation TOC goes at the beginning
+          fragments.unshift(tocHtml);
+        } else {
+          // Front-matter TOC goes after front matter, before chapters
+          fragments.push(tocHtml);
+        }
+      }
     }
 
     // Convert chapters
@@ -1346,8 +1380,9 @@ export class HtmlConverter {
       const headingLevel = this.context.currentHeadingLevel;
       const headingTag = this.getHeadingTag(headingLevel);
       const titleClasses = [generateClassName('element-title', undefined, prefix)];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1506,8 +1541,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1619,8 +1655,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1674,8 +1711,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1727,8 +1765,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1780,8 +1819,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1836,8 +1876,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1893,8 +1934,9 @@ export class HtmlConverter {
         generateClassName('element-title', undefined, prefix),
         generateClassName('text', 'center', prefix),
       ];
+      const elementId = `element-${element.id}`;
       fragments.push(
-        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+        `<${headingTag} id="${elementId}" class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
       );
     }
 
@@ -1925,24 +1967,6 @@ export class HtmlConverter {
    * Convert a single text block to HTML
    */
   private convertTextBlock(block: TextBlock): string {
-<<<<<<< HEAD
-    switch (block.blockType) {
-      case 'paragraph':
-        return this.convertParagraph(block);
-
-      case 'heading':
-        return this.convertHeading(block);
-
-      case 'list':
-        return this.convertList(block);
-
-      case 'preformatted':
-        return this.convertPreformatted(block);
-
-      case 'code':
-        return this.convertCode(block);
-
-=======
     const fragments: string[] = [];
 
     // Process text features first (images, figures, breaks, etc.)
@@ -1955,35 +1979,29 @@ export class HtmlConverter {
       }
     }
 
-    // Process the main block content
-    if (block.blockType === 'paragraph') {
-      const paragraphHtml = this.convertParagraph(block);
-      if (paragraphHtml) {
-        fragments.push(paragraphHtml);
-      }
-    }
+    // Process the main block content based on block type
+    let blockHtml = '';
+    switch (block.blockType) {
+      case 'paragraph':
+        blockHtml = this.convertParagraph(block);
+        break;
 
-    return fragments.join('\n');
-  }
+      case 'heading':
+        blockHtml = this.convertHeading(block);
+        break;
 
-  /**
-   * Convert a text feature to HTML
-   */
-  private convertTextFeature(feature: TextFeature): string {
-    const prefix = this.options.classPrefix || 'book';
+      case 'list':
+        blockHtml = this.convertList(block);
+        break;
 
-    switch (feature.type) {
-      case 'image':
-        return generateImage(feature as Image, prefix);
+      case 'preformatted':
+        blockHtml = this.convertPreformatted(block);
+        break;
 
-      case 'figure':
-        return generateFigure(feature as Figure, prefix);
+      case 'code':
+        blockHtml = this.convertCode(block);
+        break;
 
-      case 'break':
-        return this.convertBreak(feature as Break);
-
-      // Other feature types can be added here
->>>>>>> agent/implement-inline-images-and-figures
       default:
         return '';
     }
@@ -3708,6 +3726,261 @@ export function generateOrnamentalBreakFromStyle(
   };
 
   return generateOrnamentalBreak(config, classPrefix);
+}
+
+// ============================================================================
+// Table of Contents Generation Functions
+// ============================================================================
+
+/**
+ * TOC entry represents a single item in the table of contents
+ */
+export interface TocEntry {
+  /** Entry ID for linking */
+  id: string;
+  /** Display title */
+  title: string;
+  /** Entry type: 'part', 'chapter', 'section', 'element' */
+  type: 'part' | 'chapter' | 'section' | 'element';
+  /** Hierarchy level (1 = top level, 2 = nested, etc.) */
+  level: number;
+  /** Child entries for hierarchical structure */
+  children?: TocEntry[];
+  /** Page number (placeholder for print TOC) */
+  pageNumber?: string;
+  /** Chapter or part number for display */
+  number?: number | string;
+  /** Whether this is from front/back matter */
+  matterType?: 'front' | 'body' | 'back';
+}
+
+/**
+ * Collect TOC entries from book structure
+ */
+export function collectTocEntries(
+  book: Book,
+  options: BookToHtmlOptions
+): TocEntry[] {
+  const entries: TocEntry[] = [];
+  const tocDepth = options.tocDepth || 'chapters';
+  const maxHeadingLevel = options.tocMaxHeadingLevel || 3;
+
+  // Helper to extract heading entries from content
+  const extractHeadingsFromContent = (
+    content: TextBlock[],
+    chapterId: string,
+    chapterNumber?: number
+  ): TocEntry[] => {
+    if (tocDepth !== 'subheads') {
+      return [];
+    }
+
+    const headings: TocEntry[] = [];
+    let headingCounter = 1;
+
+    for (const block of content) {
+      if (block.blockType === 'heading' && block.level && block.level <= maxHeadingLevel) {
+        const headingId = `chapter-${chapterNumber || chapterId}-heading-${headingCounter}`;
+        headings.push({
+          id: headingId,
+          title: block.content || '',
+          type: 'section',
+          level: block.level + 2, // Offset by 2 (book title=1, chapter=2, so h1=3)
+          pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
+        });
+        headingCounter++;
+      }
+    }
+
+    return headings;
+  };
+
+  // Collect front matter entries
+  if (book.frontMatter) {
+    for (const element of book.frontMatter) {
+      if (element.includeInToc !== false) {
+        entries.push({
+          id: `element-${element.id}`,
+          title: element.title || element.type,
+          type: 'element',
+          level: 1,
+          matterType: 'front',
+          pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
+        });
+      }
+    }
+  }
+
+  // Collect chapters with optional parts and subheadings
+  if (book.chapters && book.chapters.length > 0) {
+    let currentPart: TocEntry | null = null;
+
+    for (const chapter of book.chapters) {
+      if (chapter.includeInToc === false) {
+        continue;
+      }
+
+      // Handle parts
+      if (chapter.partNumber !== undefined && chapter.partTitle) {
+        if (!currentPart || currentPart.number !== chapter.partNumber) {
+          currentPart = {
+            id: `part-${chapter.partNumber}`,
+            title: chapter.partTitle,
+            type: 'part',
+            level: 1,
+            number: chapter.partNumber,
+            children: [],
+            matterType: 'body',
+            pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
+          };
+          entries.push(currentPart);
+        }
+      } else {
+        currentPart = null;
+      }
+
+      // Create chapter entry
+      const chapterTitle = chapter.number !== undefined
+        ? `${options.includeChapterNumbers ? `Chapter ${chapter.number}: ` : ''}${chapter.title}`
+        : chapter.title;
+
+      const chapterEntry: TocEntry = {
+        id: chapter.number !== undefined ? `chapter-${chapter.number}-heading` : `chapter-${chapter.id}-heading`,
+        title: chapterTitle,
+        type: 'chapter',
+        level: currentPart ? 2 : 1,
+        number: chapter.number,
+        matterType: 'body',
+        pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
+      };
+
+      // Add subheadings if depth allows
+      if (tocDepth === 'subheads' && chapter.content) {
+        const headings = extractHeadingsFromContent(
+          chapter.content,
+          chapter.id,
+          chapter.number
+        );
+        if (headings.length > 0) {
+          chapterEntry.children = headings;
+        }
+      }
+
+      // Add to part or top level
+      if (currentPart && tocDepth !== 'parts') {
+        currentPart.children = currentPart.children || [];
+        currentPart.children.push(chapterEntry);
+      } else if (!currentPart) {
+        entries.push(chapterEntry);
+      }
+    }
+  }
+
+  // Collect back matter entries
+  if (book.backMatter) {
+    for (const element of book.backMatter) {
+      if (element.includeInToc !== false) {
+        entries.push({
+          id: `element-${element.id}`,
+          title: element.title || element.type,
+          type: 'element',
+          level: 1,
+          matterType: 'back',
+          pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+/**
+ * Generate HTML for a single TOC entry
+ */
+function generateTocEntryHtml(
+  entry: TocEntry,
+  classPrefix: string,
+  includePageNumbers: boolean
+): string {
+  const linkClass = generateClassName(CssClassNames.ELEMENT.TOC_LINK, undefined, classPrefix);
+  const titleClass = generateClassName(CssClassNames.ELEMENT.TOC_TITLE, undefined, classPrefix);
+
+  // Build entry classes based on type and level
+  const entryClasses = [
+    generateClassName(CssClassNames.ELEMENT.TOC_ENTRY, undefined, classPrefix),
+    generateClassName(CssClassNames.ELEMENT.TOC_ENTRY, entry.type, classPrefix),
+    generateClassName(CssClassNames.ELEMENT.TOC_ENTRY, `level-${entry.level}`, classPrefix),
+  ];
+
+  // Generate link with title
+  const linkHtml = `<a href="#${entry.id}" class="${linkClass}">
+    <span class="${titleClass}">${escapeHtml(entry.title)}</span>${
+    includePageNumbers && entry.pageNumber
+      ? `<span class="${generateClassName(CssClassNames.ELEMENT.TOC_PAGE_NUMBER, undefined, classPrefix)}">${entry.pageNumber}</span>`
+      : ''
+  }</a>`;
+
+  // Generate children if any
+  let childrenHtml = '';
+  if (entry.children && entry.children.length > 0) {
+    const childItems = entry.children.map(child =>
+      generateTocEntryHtml(child, classPrefix, includePageNumbers)
+    ).join('\n');
+    childrenHtml = `\n<ol>\n${childItems}\n</ol>`;
+  }
+
+  return `<li class="${entryClasses.join(' ')}">${linkHtml}${childrenHtml}</li>`;
+}
+
+/**
+ * Generate complete TOC HTML from book structure
+ */
+export function generateTocHtml(
+  book: Book,
+  options: BookToHtmlOptions
+): string {
+  if (!options.includeToc) {
+    return '';
+  }
+
+  const classPrefix = options.classPrefix || 'book';
+  const tocVariant = options.tocVariant || 'front-matter';
+  const includePageNumbers = options.tocIncludePageNumbers || false;
+
+  // Collect TOC entries
+  const entries = collectTocEntries(book, options);
+
+  if (entries.length === 0) {
+    return '';
+  }
+
+  // Build TOC classes
+  const tocClasses = [
+    generateClassName(CssClassNames.SECTION.TOC, undefined, classPrefix),
+    generateClassName(CssClassNames.SECTION.TOC, tocVariant, classPrefix),
+  ];
+
+  // Build ARIA attributes
+  const ariaLabel = 'aria-label="Table of Contents"';
+  const roleAttr = options.includeAria ? ' role="doc-toc"' : '';
+
+  // Generate TOC entries HTML
+  const entriesHtml = entries.map(entry =>
+    generateTocEntryHtml(entry, classPrefix, includePageNumbers)
+  ).join('\n');
+
+  // Build TOC title
+  const tocTitleClass = generateClassName(CssClassNames.ELEMENT.TITLE, 'toc', classPrefix);
+  const tocTitle = `<h1 class="${tocTitleClass}">Contents</h1>`;
+
+  // Wrap in nav element with semantic markup
+  return `<nav class="${tocClasses.join(' ')}"${roleAttr} ${ariaLabel}>
+${tocTitle}
+<ol>
+${entriesHtml}
+</ol>
+</nav>`;
 }
 
 /**

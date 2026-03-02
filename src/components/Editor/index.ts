@@ -6,3 +6,5 @@ export * from './Editor';
 export * from './EditorToolbar';
 export * from './EditorContent';
 export * from './LoadingOverlay';
+export * from './Toolbar';
+export * from './HeadingNavigation';

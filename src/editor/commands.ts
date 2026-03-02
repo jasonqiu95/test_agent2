@@ -5,7 +5,7 @@
 
 import { Command } from 'prosemirror-state';
 import { toggleMark, setBlockType, lift, wrapIn } from 'prosemirror-commands';
-import { Schema, NodeType as PMNodeType } from 'prosemirror-model';
+import { Schema, NodeType as PMNodeType, Node as PMNode } from 'prosemirror-model';
 import { MarkType, NodeType } from './types';
 import { EditorState } from 'prosemirror-state';
 
@@ -739,6 +739,164 @@ export function setSubheading(level: 2 | 3 | 4 | 5 | 6): Command {
 }
 
 /**
+ * Find the highest existing marker number of a specific type in the document
+ * @param state - Editor state
+ * @param markerType - Node type (FOOTNOTE_MARKER or ENDNOTE_MARKER)
+ * @returns The highest marker number found, or 0 if none exist
+ */
+export function findHighestMarkerNumber(state: EditorState, markerType: NodeType): number {
+  let highestNumber = 0;
+  const nodeType = state.schema.nodes[markerType];
+
+  if (!nodeType) return 0;
+
+  state.doc.descendants((node) => {
+    if (node.type === nodeType) {
+      const number = node.attrs.number as number;
+      if (number > highestNumber) {
+        highestNumber = number;
+      }
+    }
+  });
+
+  return highestNumber;
+}
+
+/**
+ * Generate a unique note ID
+ * @param prefix - Prefix for the ID (e.g., 'fn' for footnote, 'en' for endnote)
+ * @returns A unique note ID
+ */
+function generateNoteId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Insert a footnote marker at the current cursor position
+ * Automatically assigns the next available number
+ * @returns A ProseMirror command function
+ */
+export function insertFootnoteMarker(): Command {
+  return (state, dispatch) => {
+    const footnoteMarkerType = state.schema.nodes[NodeType.FOOTNOTE_MARKER];
+
+    if (!footnoteMarkerType) {
+      return false;
+    }
+
+    const { $from } = state.selection;
+
+    // Check if we can insert an inline node at the current position
+    if (!$from.parent.type.spec.content?.includes('inline')) {
+      return false;
+    }
+
+    // Find the highest existing footnote marker number
+    const highestNumber = findHighestMarkerNumber(state, NodeType.FOOTNOTE_MARKER);
+    const newNumber = highestNumber + 1;
+    const noteId = generateNoteId('fn');
+
+    // Create the footnote marker node
+    const footnoteMarker = footnoteMarkerType.create({
+      number: newNumber,
+      noteId,
+    });
+
+    if (dispatch) {
+      const tr = state.tr.replaceSelectionWith(footnoteMarker, false);
+      dispatch(tr);
+    }
+
+    return true;
+  };
+}
+
+/**
+ * Insert an endnote marker at the current cursor position
+ * Automatically assigns the next available number
+ * @returns A ProseMirror command function
+ */
+export function insertEndnoteMarker(): Command {
+  return (state, dispatch) => {
+    const endnoteMarkerType = state.schema.nodes[NodeType.ENDNOTE_MARKER];
+
+    if (!endnoteMarkerType) {
+      return false;
+    }
+
+    const { $from } = state.selection;
+
+    // Check if we can insert an inline node at the current position
+    if (!$from.parent.type.spec.content?.includes('inline')) {
+      return false;
+    }
+
+    // Find the highest existing endnote marker number
+    const highestNumber = findHighestMarkerNumber(state, NodeType.ENDNOTE_MARKER);
+    const newNumber = highestNumber + 1;
+    const noteId = generateNoteId('en');
+
+    // Create the endnote marker node
+    const endnoteMarker = endnoteMarkerType.create({
+      number: newNumber,
+      noteId,
+    });
+
+    if (dispatch) {
+      const tr = state.tr.replaceSelectionWith(endnoteMarker, false);
+      dispatch(tr);
+    }
+
+    return true;
+  };
+}
+
+/**
+ * Renumber all markers of a specific type in the document
+ * Used after inserting or deleting markers to maintain sequential numbering
+ * @param markerType - Node type (FOOTNOTE_MARKER or ENDNOTE_MARKER)
+ * @returns A ProseMirror command function
+ */
+export function renumberMarkers(markerType: NodeType): Command {
+  return (state, dispatch) => {
+    const nodeType = state.schema.nodes[markerType];
+
+    if (!nodeType) {
+      return false;
+    }
+
+    if (!dispatch) {
+      return true;
+    }
+
+    const tr = state.tr;
+    let currentNumber = 1;
+    const markerPositions: Array<{ pos: number; node: PMNode }> = [];
+
+    // Collect all marker positions
+    state.doc.descendants((node, pos) => {
+      if (node.type === nodeType) {
+        markerPositions.push({ pos, node });
+      }
+    });
+
+    // Update each marker with sequential numbering
+    markerPositions.forEach(({ pos, node }) => {
+      tr.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        number: currentNumber++,
+      });
+    });
+
+    if (markerPositions.length > 0) {
+      dispatch(tr);
+    }
+
+    return true;
+  };
+}
+
+/**
  * Helper function to create all formatting commands for a schema
  *
  * @param schema - ProseMirror schema
@@ -776,5 +934,8 @@ export function createFormattingCommands(schema: Schema) {
     // Scene and ornamental break commands
     insertSceneBreak: insertSceneBreak,
     insertOrnamentalBreak: insertOrnamentalBreak,
+    // Footnote and endnote marker commands
+    insertFootnoteMarker: insertFootnoteMarker,
+    insertEndnoteMarker: insertEndnoteMarker,
   };
 }

@@ -23,6 +23,8 @@ export enum NodeType {
   VERSE_LINE = 'verse_line',
   IMAGE = 'image',
   HARD_BREAK = 'hard_break',
+  FOOTNOTE_MARKER = 'footnote_marker',
+  ENDNOTE_MARKER = 'endnote_marker',
   TEXT = 'text',
 }
 
@@ -98,6 +100,22 @@ export interface OrderedListAttrs {
 }
 
 /**
+ * Attributes for footnote marker nodes
+ */
+export interface FootnoteMarkerAttrs {
+  number: number;
+  noteId: string;
+}
+
+/**
+ * Attributes for endnote marker nodes
+ */
+export interface EndnoteMarkerAttrs {
+  number: number;
+  noteId: string;
+}
+
+/**
  * Editor configuration options
  */
 export interface EditorConfig {
@@ -152,6 +170,8 @@ export type NodeAttrs =
   | VerseAttrs
   | ImageAttrs
   | OrderedListAttrs
+  | FootnoteMarkerAttrs
+  | EndnoteMarkerAttrs
   | Record<string, any>;
 
 /**

@@ -14,6 +14,8 @@ import {
   ImageAttrs,
   LinkAttrs,
   OrderedListAttrs,
+  FootnoteMarkerAttrs,
+  EndnoteMarkerAttrs,
 } from './types';
 import { imageNodeSpec } from './nodes';
 
@@ -238,6 +240,76 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: 'br' }],
     toDOM() {
       return ['br'];
+    },
+  },
+
+  // Footnote marker node - inline superscript number linking to footnote
+  [NodeType.FOOTNOTE_MARKER]: {
+    inline: true,
+    group: 'inline',
+    attrs: {
+      number: { default: 1 },
+      noteId: { default: '' },
+    } as Record<keyof FootnoteMarkerAttrs, { default: number | string }>,
+    atom: true,
+    parseDOM: [
+      {
+        tag: 'sup.footnote-marker',
+        getAttrs(dom) {
+          const element = dom as HTMLElement;
+          return {
+            number: parseInt(element.getAttribute('data-number') || '1', 10),
+            noteId: element.getAttribute('data-note-id') || '',
+          };
+        },
+      },
+    ],
+    toDOM(node) {
+      const attrs = node.attrs as FootnoteMarkerAttrs;
+      return [
+        'sup',
+        {
+          class: 'footnote-marker',
+          'data-number': attrs.number,
+          'data-note-id': attrs.noteId,
+        },
+        attrs.number.toString(),
+      ];
+    },
+  },
+
+  // Endnote marker node - inline superscript number linking to endnote
+  [NodeType.ENDNOTE_MARKER]: {
+    inline: true,
+    group: 'inline',
+    attrs: {
+      number: { default: 1 },
+      noteId: { default: '' },
+    } as Record<keyof EndnoteMarkerAttrs, { default: number | string }>,
+    atom: true,
+    parseDOM: [
+      {
+        tag: 'sup.endnote-marker',
+        getAttrs(dom) {
+          const element = dom as HTMLElement;
+          return {
+            number: parseInt(element.getAttribute('data-number') || '1', 10),
+            noteId: element.getAttribute('data-note-id') || '',
+          };
+        },
+      },
+    ],
+    toDOM(node) {
+      const attrs = node.attrs as EndnoteMarkerAttrs;
+      return [
+        'sup',
+        {
+          class: 'endnote-marker',
+          'data-number': attrs.number,
+          'data-note-id': attrs.noteId,
+        },
+        attrs.number.toString(),
+      ];
     },
   },
 

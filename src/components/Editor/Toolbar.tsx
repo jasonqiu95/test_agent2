@@ -6,7 +6,14 @@
 import React from 'react';
 import { EditorView } from 'prosemirror-view';
 import { EditorState } from 'prosemirror-state';
-import { toggleBlockquote, toggleVerse, isBlockquoteActive, isVerseActive } from '../../editor/commands';
+import {
+  toggleBlockquote,
+  toggleVerse,
+  isBlockquoteActive,
+  isVerseActive,
+  insertFootnoteMarker,
+  insertEndnoteMarker,
+} from '../../editor/commands';
 
 export interface ToolbarProps {
   editorView: EditorView | null;
@@ -210,6 +217,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     }
   };
 
+  const handleFootnoteMarker = () => {
+    if (editorView) {
+      const command = insertFootnoteMarker();
+      command(editorView.state, editorView.dispatch);
+      onFormat?.('footnote-marker');
+    }
+  };
+
+  const handleEndnoteMarker = () => {
+    if (editorView) {
+      const command = insertEndnoteMarker();
+      command(editorView.state, editorView.dispatch);
+      onFormat?.('endnote-marker');
+    }
+  };
+
   // Determine selected value for dropdown
   const getHeadingValue = () => {
     if (formatState.headingLevel === 0) return '0';
@@ -295,6 +318,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
         aria-pressed={formatState.verse}
       >
         <span style={{ fontFamily: 'serif', fontSize: '0.9em' }}>⋮</span>
+      </button>
+
+      <div className="toolbar-divider" />
+
+      <button
+        className="toolbar-btn toolbar-btn-footnote"
+        onClick={handleFootnoteMarker}
+        disabled={!editorView}
+        title="Insert Footnote Marker"
+        data-testid="btn-footnote-marker"
+      >
+        <span style={{ fontSize: '1.1em' }}>¹</span>
+      </button>
+
+      <button
+        className="toolbar-btn toolbar-btn-endnote"
+        onClick={handleEndnoteMarker}
+        disabled={!editorView}
+        title="Insert Endnote Marker"
+        data-testid="btn-endnote-marker"
+      >
+        <span style={{ fontSize: '1.1em' }}>²</span>
       </button>
 
       <div className="toolbar-status" data-testid="toolbar-status">

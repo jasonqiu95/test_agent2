@@ -1,9 +1,9 @@
 .navigator-panel {
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--color-bg-elevated);
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px var(--color-shadow), 0 2px 4px var(--color-shadow);
   height: 100%;
   overflow: hidden;
 }
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border-default);
   flex-shrink: 0;
 }
 
@@ -21,7 +21,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .navigator-panel-close {
@@ -29,7 +29,7 @@
   border: none;
   font-size: 2rem;
   line-height: 1;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -42,8 +42,8 @@
 }
 
 .navigator-panel-close:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .navigator-panel-content {
@@ -58,35 +58,6 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border-default);
   flex-shrink: 0;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .navigator-panel {
-    background: #1f2937;
-    color: #f9fafb;
-  }
-
-  .navigator-panel-header {
-    border-bottom-color: #374151;
-  }
-
-  .navigator-panel-title {
-    color: #f9fafb;
-  }
-
-  .navigator-panel-close {
-    color: #9ca3af;
-  }
-
-  .navigator-panel-close:hover {
-    background-color: #374151;
-    color: #f9fafb;
-  }
-
-  .navigator-panel-footer {
-    border-top-color: #374151;
-  }
 }

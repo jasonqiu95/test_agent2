@@ -1185,6 +1185,40 @@ export class HtmlConverter {
    * Convert a single element (front/back matter) to HTML
    */
   private convertElement(element: Element): string {
+    // Route to specialized conversion methods based on element type
+    switch (element.type) {
+      case 'title-page':
+        return this.convertTitlePage(element);
+      case 'copyright':
+        return this.convertCopyright(element);
+      case 'dedication':
+        return this.convertDedication(element);
+      case 'epigraph':
+        return this.convertEpigraph(element);
+      case 'foreword':
+      case 'preface':
+      case 'introduction':
+        return this.convertIntroductoryElement(element);
+      case 'epilogue':
+      case 'afterword':
+        return this.convertConcludingElement(element);
+      case 'acknowledgments':
+        return this.convertAcknowledgments(element);
+      case 'about-author':
+        return this.convertAboutAuthor(element);
+      case 'also-by':
+        return this.convertAlsoBy(element);
+      case 'bibliography':
+        return this.convertBibliography(element);
+      default:
+        return this.convertGenericElement(element);
+    }
+  }
+
+  /**
+   * Convert a generic element to HTML (fallback for unspecified types)
+   */
+  private convertGenericElement(element: Element): string {
     const fragments: string[] = [];
     const useSemanticTags = this.options.useSemanticTags ?? true;
     const includeAria = this.options.includeAria ?? true;
@@ -1245,6 +1279,555 @@ export class HtmlConverter {
     }
 
     // Close element container
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Add matter type class to tag config
+   */
+  private addMatterTypeClass(tagConfig: SemanticTagConfig, element: Element): void {
+    const prefix = this.options.classPrefix || 'book';
+    const matterClass = generateClassName('element', element.matter, prefix);
+    tagConfig.classes.push(matterClass);
+  }
+
+  /**
+   * Convert title page to HTML
+   * Title page typically includes book title, subtitle, author name, and publisher info
+   */
+  private convertTitlePage(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    // Add special classes for title page
+    tagConfig.classes.push(generateClassName('element', 'title-page', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'after', prefix));
+
+    // Add data attributes
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Title page content is typically center-aligned
+    const contentClasses = [
+      generateClassName('element-content', undefined, prefix),
+      generateClassName('text', 'center', prefix),
+      generateClassName('title-page-content', undefined, prefix),
+    ];
+
+    fragments.push(`<div class="${contentClasses.join(' ')}">`);
+
+    // Render content blocks with special styling
+    if (element.content && element.content.length > 0) {
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(contentHtml);
+      }
+    }
+
+    fragments.push('</div>');
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert copyright page to HTML
+   * Copyright page includes copyright notice, ISBN, publisher info, etc.
+   */
+  private convertCopyright(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'copyright', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'after', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Copyright content typically uses small text
+    const contentClasses = [
+      generateClassName('element-content', undefined, prefix),
+      generateClassName('copyright-content', undefined, prefix),
+    ];
+
+    fragments.push(`<div class="${contentClasses.join(' ')}">`);
+
+    if (element.content && element.content.length > 0) {
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(contentHtml);
+      }
+    }
+
+    fragments.push('</div>');
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert dedication to HTML
+   * Dedication is typically short, centered, and italicized
+   */
+  private convertDedication(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'dedication', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'after', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add optional title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Dedication content is centered and often italicized
+    const contentClasses = [
+      generateClassName('element-content', undefined, prefix),
+      generateClassName('text', 'center', prefix),
+      generateClassName('dedication-content', undefined, prefix),
+    ];
+
+    fragments.push(`<div class="${contentClasses.join(' ')}">`);
+
+    if (element.content && element.content.length > 0) {
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(contentHtml);
+      }
+    }
+
+    fragments.push('</div>');
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert epigraph to HTML
+   * Epigraph is a short quotation at the beginning, typically right-aligned
+   */
+  private convertEpigraph(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'epigraph', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'after', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Epigraph content is typically right-aligned or centered
+    const contentClasses = [
+      generateClassName('element-content', undefined, prefix),
+      generateClassName('text', 'right', prefix),
+      generateClassName('epigraph-content', undefined, prefix),
+    ];
+
+    fragments.push(`<div class="${contentClasses.join(' ')}">`);
+
+    if (element.content && element.content.length > 0) {
+      // Wrap epigraph in blockquote for semantic meaning
+      fragments.push('<blockquote>');
+
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(contentHtml);
+      }
+
+      fragments.push('</blockquote>');
+    }
+
+    fragments.push('</div>');
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert introductory elements (foreword, preface, introduction) to HTML
+   * These elements typically have a title and standard text formatting
+   */
+  private convertIntroductoryElement(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', element.type, prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('element', 'introductory', prefix));
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [generateClassName('element-content', undefined, prefix)];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert concluding elements (epilogue, afterword) to HTML
+   * These elements typically have a title and standard text formatting
+   */
+  private convertConcludingElement(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', element.type, prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('element', 'concluding', prefix));
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [generateClassName('element-content', undefined, prefix)];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert acknowledgments to HTML
+   */
+  private convertAcknowledgments(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'acknowledgments', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [generateClassName('element-content', undefined, prefix)];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert "About the Author" to HTML
+   */
+  private convertAboutAuthor(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'about-author', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content with special styling for author bio
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('author-bio', undefined, prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert "Also By" (list of author's other works) to HTML
+   */
+  private convertAlsoBy(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'also-by', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content formatted as a list
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('also-by-list', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert bibliography to HTML
+   */
+  private convertBibliography(element: Element): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    tagConfig.classes.push(generateClassName('element', 'bibliography', prefix));
+    this.addMatterTypeClass(tagConfig, element);
+    tagConfig.classes.push(generateClassName('page-break', 'before', prefix));
+
+    tagConfig.dataAttributes = {
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [
+        generateClassName('element-title', undefined, prefix),
+        generateClassName('text', 'center', prefix),
+      ];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add content with special bibliography styling
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [
+        generateClassName('element-content', undefined, prefix),
+        generateClassName('bibliography-content', undefined, prefix),
+      ];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
     fragments.push(`</${tagConfig.tag}>`);
 
     return fragments.join('\n');
@@ -1903,15 +2486,19 @@ export function selectElementTag(
   }
 
   const roleMap: Partial<Record<ElementType, string>> = {
-    preface: 'doc-preface',
-    foreword: 'doc-foreword',
-    prologue: 'doc-prologue',
-    epilogue: 'doc-epilogue',
-    introduction: 'doc-introduction',
+    'title-page': 'doc-cover',
+    copyright: 'doc-credit',
     dedication: 'doc-dedication',
     epigraph: 'doc-epigraph',
-    acknowledgments: 'doc-acknowledgments',
+    foreword: 'doc-foreword',
+    preface: 'doc-preface',
+    introduction: 'doc-introduction',
+    prologue: 'doc-prologue',
+    epilogue: 'doc-epilogue',
     afterword: 'doc-afterword',
+    acknowledgments: 'doc-acknowledgments',
+    'about-author': 'doc-credit',
+    'also-by': 'doc-credit',
     appendix: 'doc-appendix',
     glossary: 'doc-glossary',
     bibliography: 'doc-bibliography',

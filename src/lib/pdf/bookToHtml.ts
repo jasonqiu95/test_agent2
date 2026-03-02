@@ -3288,7 +3288,6 @@ export function generateListClasses(
 }
 
 /**
-<<<<<<< HEAD
  * Generate classes for blockquote
  *
  * @param quoteType Type of quote (block, inline, epigraph)
@@ -3305,7 +3304,12 @@ export function generateBlockquoteClasses(
 
   if (quoteType) {
     builder.modifier('quote', quoteType);
-=======
+  }
+
+  return builder.build();
+}
+
+/**
  * Generate classes for heading elements
  *
  * @param level Heading level (1-6, where 2-6 are subheads within chapters)
@@ -3355,14 +3359,12 @@ export function generateHeadingClasses(
 
   if (config?.smallCaps) {
     builder.add(CssClassNames.TYPOGRAPHY.SMALL_CAPS);
->>>>>>> agent/implement-subheads-and-section-headings
   }
 
   return builder.build();
 }
 
 /**
-<<<<<<< HEAD
  * Generate classes for verse/poetry
  *
  * @param stanza Optional stanza number
@@ -3403,7 +3405,9 @@ export function generateVerseLineClasses(
   }
 
   return builder.build();
-=======
+}
+
+/**
  * Format heading number based on numbering style
  *
  * @param number The heading number
@@ -3498,7 +3502,6 @@ export function updateHeadingHierarchy(
 
   // Update parent level
   hierarchy.parentLevel = level;
->>>>>>> agent/implement-subheads-and-section-headings
 }
 
 /**
@@ -4134,10 +4137,13 @@ export function collectTocEntries(
             type: 'part',
             level: 1,
             number: chapter.partNumber,
-            children: [],
             matterType: 'body',
             pageNumber: options.tocIncludePageNumbers ? '000' : undefined,
           };
+          // Only include children array if tocDepth allows chapter details
+          if (tocDepth !== 'parts') {
+            currentPart.children = [];
+          }
           entries.push(currentPart);
         }
       } else {
@@ -4267,8 +4273,9 @@ export function generateTocHtml(
   ];
 
   // Build ARIA attributes
-  const ariaLabel = 'aria-label="Table of Contents"';
-  const roleAttr = options.includeAria ? ' role="doc-toc"' : '';
+  const includeAria = options.includeAria ?? true;
+  const ariaLabel = includeAria ? ' aria-label="Table of Contents"' : '';
+  const roleAttr = includeAria ? ' role="doc-toc"' : '';
 
   // Generate TOC entries HTML
   const entriesHtml = entries.map(entry =>
@@ -4276,11 +4283,11 @@ export function generateTocHtml(
   ).join('\n');
 
   // Build TOC title
-  const tocTitleClass = generateClassName(CssClassNames.ELEMENT.TITLE, 'toc', classPrefix);
+  const tocTitleClass = generateClassName('element-title', 'toc', classPrefix);
   const tocTitle = `<h1 class="${tocTitleClass}">Contents</h1>`;
 
   // Wrap in nav element with semantic markup
-  return `<nav class="${tocClasses.join(' ')}"${roleAttr} ${ariaLabel}>
+  return `<nav class="${tocClasses.join(' ')}"${roleAttr}${ariaLabel}>
 ${tocTitle}
 <ol>
 ${entriesHtml}

@@ -2,7 +2,7 @@
  * EPUB 3 Module
  *
  * Provides utilities for creating EPUB 3 compliant documents and structures,
- * including XHTML templates and block element conversion functions.
+ * including XHTML templates, block element conversion, and inline formatting functions.
  */
 
 // XHTML Template exports
@@ -26,3 +26,18 @@ export {
   type BlockConverterOptions,
   type ConversionResult,
 } from './block-converter';
+
+// Inline Converter exports
+export {
+  escapeHtml,
+  convertInlineText,
+  convertLink,
+  convertImage,
+  convertFootnote,
+  convertTextSegment,
+  convertRichText,
+  convertContent,
+  createInlineText,
+  createLink,
+  parseSimpleFormatting,
+} from './inline-converter';

@@ -45,5 +45,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true
+  },
+  worker: {
+    format: 'es',
+    plugins: () => []
   }
 })

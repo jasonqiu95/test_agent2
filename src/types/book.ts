@@ -6,6 +6,7 @@ import { Metadata } from './common';
 import { Chapter } from './chapter';
 import { Element } from './element';
 import { Style } from './style';
+import { Endnote, NoteNumberingConfig } from './notes';
 
 export interface BookMetadata extends Omit<Metadata, 'id'> {
   isbn?: string;
@@ -45,4 +46,7 @@ export interface Book extends Metadata {
   pageCount?: number;
   coverImage?: string;
   status?: 'draft' | 'review' | 'published' | 'archived';
+  endnotes?: Endnote[]; // Book-level endnotes (when not grouped by chapter)
+  footnoteConfig?: NoteNumberingConfig; // Global footnote numbering configuration
+  endnoteConfig?: NoteNumberingConfig; // Global endnote numbering configuration
 }

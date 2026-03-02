@@ -10,6 +10,7 @@ export * from './element';
 export * from './chapter';
 export * from './book';
 export * from './inlineText';
+export * from './notes';
 export * from './pdf';
 export * from './epub';
 export * from './preferences';

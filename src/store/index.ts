@@ -10,6 +10,7 @@ import bookReducer from '../slices/bookSlice';
 import selectionReducer from './selectionSlice';
 import undoReducer from '../slices/undoSlice';
 import previewReducer from './previewSlice';
+import editorReducer from './editorSlice';
 import undoMiddleware from './middleware/undoMiddleware';
 
 export const store = configureStore({
@@ -18,15 +19,32 @@ export const store = configureStore({
     selection: selectionReducer,
     undo: undoReducer,
     preview: previewReducer,
+    editor: editorReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types for serialization checks
-        ignoredActions: ['book/setBook', 'book/addChapter', 'book/addFrontMatter', 'book/addBackMatter', 'undo/addToHistory'],
+        ignoredActions: [
+          'book/setBook',
+          'book/addChapter',
+          'book/addFrontMatter',
+          'book/addBackMatter',
+          'undo/addToHistory',
+          'editor/setEditorContent',
+          'editor/updateEditorContent',
+          'editor/loadChapterContent',
+        ],
         // Ignore these paths in the state
-        ignoredActionPaths: ['payload.stateBefore', 'payload.stateAfter', 'payload.action'],
-        ignoredPaths: ['book.book.createdAt', 'book.book.updatedAt', 'book.book.metadata.publicationDate', 'undo.past', 'undo.future'],
+        ignoredActionPaths: ['payload.stateBefore', 'payload.stateAfter', 'payload.action', 'payload.content'],
+        ignoredPaths: [
+          'book.book.createdAt',
+          'book.book.updatedAt',
+          'book.book.metadata.publicationDate',
+          'undo.past',
+          'undo.future',
+          'editor.content',
+        ],
       },
     }).concat(undoMiddleware),
 });

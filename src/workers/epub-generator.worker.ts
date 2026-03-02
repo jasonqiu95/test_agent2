@@ -16,6 +16,7 @@ import {
   ProgressMessage,
   ErrorMessage,
   CompleteMessage,
+  CancelledMessage,
 } from './types';
 
 /**
@@ -25,6 +26,9 @@ interface WorkerState {
   isProcessing: boolean;
   isCancelled: boolean;
   workerId: string;
+  activeResources: Set<string>;
+  partialFiles: string[];
+  currentProgress: number;
 }
 
 // Initialize worker state
@@ -32,6 +36,9 @@ const state: WorkerState = {
   isProcessing: false,
   isCancelled: false,
   workerId: crypto.randomUUID(),
+  activeResources: new Set(),
+  partialFiles: [],
+  currentProgress: 0,
 };
 
 /**
@@ -39,6 +46,64 @@ const state: WorkerState = {
  */
 function postMessageToMain(message: WorkerToMainMessage): void {
   self.postMessage(message);
+}
+
+/**
+ * Register a resource that needs cleanup
+ */
+function registerResource(resourceId: string): void {
+  state.activeResources.add(resourceId);
+}
+
+/**
+ * Unregister a resource after cleanup
+ */
+function unregisterResource(resourceId: string): void {
+  state.activeResources.delete(resourceId);
+}
+
+/**
+ * Clean up all active resources and partial files
+ */
+async function cleanupResources(): Promise<string[]> {
+  const cleanedResources: string[] = [];
+
+  // Clean up active resources
+  for (const resourceId of state.activeResources) {
+    try {
+      // TODO: Implement actual resource cleanup based on resource type
+      // This could include closing file handles, releasing memory buffers, etc.
+      cleanedResources.push(resourceId);
+    } catch (error) {
+      console.error(`Failed to cleanup resource ${resourceId}:`, error);
+    }
+  }
+
+  // Clean up partial files
+  for (const filePath of state.partialFiles) {
+    try {
+      // TODO: Implement actual file cleanup
+      // In a real implementation, this would delete temporary files
+      cleanedResources.push(filePath);
+    } catch (error) {
+      console.error(`Failed to cleanup partial file ${filePath}:`, error);
+    }
+  }
+
+  state.activeResources.clear();
+  state.partialFiles = [];
+
+  return cleanedResources;
+}
+
+/**
+ * Check if cancellation has been requested and throw if so
+ * This should be called periodically during long operations
+ */
+function checkCancellation(): void {
+  if (state.isCancelled) {
+    throw new Error('CANCELLATION_REQUESTED');
+  }
 }
 
 /**
@@ -58,6 +123,9 @@ async function handleInitialize(message: Extract<MainToWorkerMessage, { type: Wo
 
   state.isProcessing = true;
   state.isCancelled = false;
+  state.currentProgress = 0;
+
+  const startTime = Date.now();
 
   try {
     // Send initial progress
@@ -68,17 +136,28 @@ async function handleInitialize(message: Extract<MainToWorkerMessage, { type: Wo
       })
     );
 
+    // Register initial resources
+    registerResource('epub-builder');
+    registerResource('content-processor');
+
+    // Check cancellation before starting
+    checkCancellation();
+
     // TODO: Implement actual EPUB generation logic
     // For now, this is a skeleton that demonstrates the message flow
 
-    // Simulate some work with progress updates
+    // Simulate some work with progress updates and frequent cancellation checks
     for (let i = 0; i <= 100; i += 10) {
-      if (state.isCancelled) {
-        throw new Error('Generation cancelled by user');
-      }
+      // Check for cancellation at the start of each iteration
+      checkCancellation();
 
-      // Simulate processing time
+      state.currentProgress = i;
+
+      // Simulate processing time with periodic cancellation checks
       await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Check again after async operation
+      checkCancellation();
 
       postMessageToMain(
         createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
@@ -86,11 +165,29 @@ async function handleInitialize(message: Extract<MainToWorkerMessage, { type: Wo
           status: i < 100 ? `Processing... ${i}%` : 'Finalizing...',
         })
       );
+
+      // For demonstration: simulate creating temporary files at certain points
+      if (i === 30) {
+        const tempFile = `temp-chapter-${i}.tmp`;
+        state.partialFiles.push(tempFile);
+        registerResource(tempFile);
+      }
+      if (i === 60) {
+        const tempFile = `temp-images-${i}.tmp`;
+        state.partialFiles.push(tempFile);
+        registerResource(tempFile);
+      }
     }
+
+    // Final cancellation check before completing
+    checkCancellation();
 
     // For now, return a dummy buffer
     // TODO: Replace with actual EPUB buffer
     const dummyBuffer = new ArrayBuffer(0);
+
+    // Clean up resources on successful completion
+    await cleanupResources();
 
     postMessageToMain(
       createWorkerMessage<CompleteMessage>(WorkerMessageType.COMPLETE, {
@@ -99,23 +196,47 @@ async function handleInitialize(message: Extract<MainToWorkerMessage, { type: Wo
         fileSize: dummyBuffer.byteLength,
         mimeType: 'application/epub+zip',
         metadata: {
-          processingTimeMs: Date.now() - message.timestamp,
+          processingTimeMs: Date.now() - startTime,
         },
       })
     );
   } catch (error) {
     const err = error as Error;
-    postMessageToMain(
-      createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
-        code: 'GENERATION_ERROR',
-        message: err.message || 'Unknown error occurred',
-        details: err.stack,
-        recoverable: false,
-      })
-    );
+
+    // Check if this is a cancellation
+    if (err.message === 'CANCELLATION_REQUESTED') {
+      // Clean up resources
+      const cleanedResources = await cleanupResources();
+
+      postMessageToMain(
+        createWorkerMessage<CancelledMessage>(WorkerMessageType.CANCELLED, {
+          reason: 'Generation cancelled by user',
+          partialProgress: state.currentProgress,
+          cleanedUp: true,
+          resourcesReleased: cleanedResources,
+        })
+      );
+    } else {
+      // This is an actual error, attempt cleanup anyway
+      try {
+        await cleanupResources();
+      } catch (cleanupError) {
+        console.error('Failed to cleanup after error:', cleanupError);
+      }
+
+      postMessageToMain(
+        createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
+          code: 'GENERATION_ERROR',
+          message: err.message || 'Unknown error occurred',
+          details: err.stack,
+          recoverable: false,
+        })
+      );
+    }
   } finally {
     state.isProcessing = false;
     state.isCancelled = false;
+    state.currentProgress = 0;
   }
 }
 
@@ -124,16 +245,19 @@ async function handleInitialize(message: Extract<MainToWorkerMessage, { type: Wo
  */
 function handleCancel(message: Extract<MainToWorkerMessage, { type: WorkerMessageType.CANCEL }>): void {
   if (!state.isProcessing) {
+    // Not processing, nothing to cancel
     return;
   }
 
+  // Set the cancellation flag
   state.isCancelled = true;
 
+  // Send progress update to inform user that cancellation is in progress
   postMessageToMain(
-    createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
-      code: 'CANCELLED',
-      message: message.data.reason || 'Generation cancelled',
-      recoverable: true,
+    createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
+      percentage: state.currentProgress,
+      status: 'Cancelling generation and cleaning up...',
+      details: message.data.reason,
     })
   );
 }

@@ -7,6 +7,7 @@
 export * from './previewRenderer';
 export * from './errorHandler';
 export * from './asyncErrorHandler';
+export * from './fontLoader';
 
 // Cache utilities
 export {

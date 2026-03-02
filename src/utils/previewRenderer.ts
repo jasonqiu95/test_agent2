@@ -8,6 +8,10 @@
 
 import { Element } from '../types/element';
 import { BookStyle } from '../types/style';
+import {
+  generateFontLoadingConfig,
+  extractFontFamilies,
+} from './fontLoader';
 
 /**
  * Device type options for preview rendering
@@ -40,6 +44,10 @@ export interface PreviewResult {
   css: string;
   /** Estimated number of pages for the rendered content */
   pageCount: number;
+  /** Google Fonts URL for loading fonts (if applicable) */
+  googleFontsUrl?: string;
+  /** Custom @font-face rules for custom fonts */
+  fontFaceRules?: string;
 }
 
 /**
@@ -166,11 +174,14 @@ export function renderPreview(
     useInlineStyles: options?.useInlineStyles ?? false,
   };
 
+  // Generate font loading configuration
+  const fontConfig = generateFontLoadingConfig(styleConfig);
+
   // Generate HTML content
   const html = generateHTML(elementData, styleConfig, renderOptions);
 
-  // Generate CSS styles
-  const css = generateCSS(styleConfig, deviceConfig, renderOptions);
+  // Generate CSS styles (including font-face rules)
+  const css = generateCSS(styleConfig, deviceConfig, renderOptions, fontConfig.fontFaceRules);
 
   // Calculate estimated page count
   const pageCount = calculatePageCount(elementData, styleConfig, deviceConfig);
@@ -179,6 +190,8 @@ export function renderPreview(
     html,
     css,
     pageCount,
+    googleFontsUrl: fontConfig.googleFontsUrl || undefined,
+    fontFaceRules: fontConfig.fontFaceRules || undefined,
   };
 }
 
@@ -219,28 +232,41 @@ function generateHTML(
  * @param {BookStyle} styleConfig - Style configuration
  * @param {DeviceConfig} deviceConfig - Device configuration
  * @param {Required<RenderOptions>} options - Rendering options
+ * @param {string} fontFaceRules - @font-face rules for custom fonts
  * @returns {string} Generated CSS string
  * @private
  */
 function generateCSS(
   styleConfig: BookStyle,
   deviceConfig: DeviceConfig,
-  options: Required<RenderOptions>
+  options: Required<RenderOptions>,
+  fontFaceRules: string = ''
 ): string {
-  // TODO: Implement CSS generation logic
-  // This will be implemented in subsequent tasks
-
   const { classPrefix } = options;
   const { fonts, colors, body, spacing } = styleConfig;
 
-  return `
+  // Extract font families and create proper fallback chains
+  const bodyFont = extractFontFamilies(fonts.body);
+  const headingFont = extractFontFamilies(fonts.heading);
+
+  // Build CSS with font-face rules first
+  const cssParts: string[] = [];
+
+  // Add custom font-face rules if provided
+  if (fontFaceRules) {
+    cssParts.push(fontFaceRules);
+  }
+
+  // Add main styles
+  cssParts.push(`
     .${classPrefix}-container {
-      font-family: ${fonts.body}, ${fonts.fallback};
+      font-family: ${bodyFont.fallbackChain};
       font-size: ${body.fontSize};
       line-height: ${body.lineHeight};
       color: ${colors.text};
       max-width: ${deviceConfig.pageWidth}px;
       margin: 0 auto;
+      background-color: ${colors.background || 'transparent'};
     }
 
     .${classPrefix}-element {
@@ -248,17 +274,118 @@ function generateCSS(
     }
 
     .${classPrefix}-title {
-      font-family: ${fonts.heading}, ${fonts.fallback};
+      font-family: ${headingFont.fallbackChain};
       font-size: ${styleConfig.headings.h1.fontSize};
       font-weight: ${styleConfig.headings.h1.fontWeight || 'bold'};
+      line-height: ${styleConfig.headings.h1.lineHeight || '1.2'};
       color: ${colors.heading};
+      margin-top: ${styleConfig.headings.h1.marginTop || '0'};
       margin-bottom: ${styleConfig.headings.h1.marginBottom || '2rem'};
+      text-transform: ${styleConfig.headings.h1.textTransform || 'none'};
+      letter-spacing: ${styleConfig.headings.h1.letterSpacing || 'normal'};
     }
 
     .${classPrefix}-content {
       text-align: ${body.textAlign || 'left'};
     }
-  `.trim();
+
+    .${classPrefix}-content p {
+      margin-bottom: ${spacing.paragraphSpacing};
+    }
+
+    /* Drop cap styling */
+    ${
+      styleConfig.dropCap.enabled
+        ? `
+    .${classPrefix}-content p:first-of-type::first-letter {
+      float: left;
+      font-size: ${styleConfig.dropCap.fontSize || '4em'};
+      font-weight: ${styleConfig.dropCap.fontWeight || 'bold'};
+      line-height: ${styleConfig.dropCap.lines || 3};
+      margin-right: ${styleConfig.dropCap.marginRight || '0.1em'};
+      color: ${styleConfig.dropCap.color || colors.accent || colors.heading};
+      ${styleConfig.dropCap.fontFamily ? `font-family: ${extractFontFamilies(styleConfig.dropCap.fontFamily).fallbackChain};` : ''}
+    }
+    `
+        : ''
+    }
+
+    /* First paragraph styling */
+    ${
+      styleConfig.firstParagraph.enabled
+        ? `
+    .${classPrefix}-content p:first-of-type {
+      ${styleConfig.firstParagraph.fontVariant ? `font-variant: ${styleConfig.firstParagraph.fontVariant};` : ''}
+      ${styleConfig.firstParagraph.textTransform ? `text-transform: ${styleConfig.firstParagraph.textTransform};` : ''}
+      ${styleConfig.firstParagraph.letterSpacing ? `letter-spacing: ${styleConfig.firstParagraph.letterSpacing};` : ''}
+      ${styleConfig.firstParagraph.fontSize ? `font-size: ${styleConfig.firstParagraph.fontSize};` : ''}
+    }
+    `
+        : ''
+    }
+
+    /* Ornamental break styling */
+    ${
+      styleConfig.ornamentalBreak.enabled
+        ? `
+    .${classPrefix}-ornamental-break {
+      text-align: center;
+      font-size: ${styleConfig.ornamentalBreak.fontSize || '1.5em'};
+      margin: ${styleConfig.ornamentalBreak.spacing || '2em'} 0;
+      color: ${colors.accent || colors.text};
+    }
+    .${classPrefix}-ornamental-break::before {
+      content: "${styleConfig.ornamentalBreak.symbol || '* * *'}";
+    }
+    `
+        : ''
+    }
+
+    /* Heading styles for h2, h3, h4 */
+    .${classPrefix}-content h2 {
+      font-family: ${headingFont.fallbackChain};
+      font-size: ${styleConfig.headings.h2.fontSize};
+      font-weight: ${styleConfig.headings.h2.fontWeight || 'bold'};
+      line-height: ${styleConfig.headings.h2.lineHeight || '1.3'};
+      color: ${styleConfig.headings.h2.color || colors.heading};
+      margin-top: ${styleConfig.headings.h2.marginTop || '1.5em'};
+      margin-bottom: ${styleConfig.headings.h2.marginBottom || '1em'};
+      text-transform: ${styleConfig.headings.h2.textTransform || 'none'};
+      letter-spacing: ${styleConfig.headings.h2.letterSpacing || 'normal'};
+    }
+
+    .${classPrefix}-content h3 {
+      font-family: ${headingFont.fallbackChain};
+      font-size: ${styleConfig.headings.h3.fontSize};
+      font-weight: ${styleConfig.headings.h3.fontWeight || 'bold'};
+      line-height: ${styleConfig.headings.h3.lineHeight || '1.4'};
+      color: ${styleConfig.headings.h3.color || colors.heading};
+      margin-top: ${styleConfig.headings.h3.marginTop || '1.25em'};
+      margin-bottom: ${styleConfig.headings.h3.marginBottom || '0.75em'};
+      text-transform: ${styleConfig.headings.h3.textTransform || 'none'};
+      letter-spacing: ${styleConfig.headings.h3.letterSpacing || 'normal'};
+    }
+
+    ${
+      styleConfig.headings.h4
+        ? `
+    .${classPrefix}-content h4 {
+      font-family: ${headingFont.fallbackChain};
+      font-size: ${styleConfig.headings.h4.fontSize};
+      font-weight: ${styleConfig.headings.h4.fontWeight || 'bold'};
+      line-height: ${styleConfig.headings.h4.lineHeight || '1.4'};
+      color: ${styleConfig.headings.h4.color || colors.heading};
+      margin-top: ${styleConfig.headings.h4.marginTop || '1em'};
+      margin-bottom: ${styleConfig.headings.h4.marginBottom || '0.5em'};
+      text-transform: ${styleConfig.headings.h4.textTransform || 'none'};
+      letter-spacing: ${styleConfig.headings.h4.letterSpacing || 'normal'};
+    }
+    `
+        : ''
+    }
+  `);
+
+  return cssParts.join('\n\n').trim();
 }
 
 /**

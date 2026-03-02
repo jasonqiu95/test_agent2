@@ -260,6 +260,7 @@ export const createMockHandlers = () => ({
   onClose: jest.fn(),
   onChapterSelect: jest.fn(),
   onElementSelect: jest.fn(),
+  onSelect: jest.fn(),
   onNavigate: jest.fn(),
   onExpand: jest.fn(),
   onCollapse: jest.fn(),

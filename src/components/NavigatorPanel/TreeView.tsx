@@ -76,7 +76,7 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
   };
 
   return (
-    <div className="tree-view">
+    <div className="tree-view" role="tree" aria-label="Book structure">
       {sections.map((section) => {
         const isExpanded = expandedSections.has(section.id);
         const hasItems = section.items && section.items.length > 0;
@@ -86,7 +86,7 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
             <div
               className="tree-section-header"
               onClick={() => toggleSection(section.id)}
-              role="button"
+              role="treeitem"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -107,14 +107,14 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
             </div>
 
             {isExpanded && (
-              <div className="tree-section-items">
+              <div className="tree-section-items" role="group">
                 {hasItems ? (
                   section.items.map((item) => (
                     <div
                       key={item.id}
                       className={`tree-item ${selectedId === item.id ? 'selected' : ''}`}
                       onClick={() => handleItemClick(item.id, section.type)}
-                      role="button"
+                      role="treeitem"
                       tabIndex={0}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {

@@ -316,3 +316,214 @@
 .status-indicator {
   font-weight: 600;
 }
+
+/* Formatting Toolbar */
+.formatting-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+}
+
+.toolbar-select {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.toolbar-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+.toolbar-btn {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.toolbar-status {
+  margin-left: auto;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Heading Styles in Editor */
+.editor-block.block-heading {
+  border-left: 4px solid #3498db;
+}
+
+.editor-block.block-heading .block-textarea {
+  font-weight: 600;
+}
+
+/* Heading level indicators */
+.block-heading[data-level="1"] .block-textarea {
+  font-size: 24px;
+}
+
+.block-heading[data-level="2"] .block-textarea {
+  font-size: 20px;
+}
+
+.block-heading[data-level="3"] .block-textarea {
+  font-size: 18px;
+}
+
+.block-heading[data-level="4"] .block-textarea {
+  font-size: 16px;
+}
+
+.block-heading[data-level="5"] .block-textarea {
+  font-size: 15px;
+}
+
+.block-heading[data-level="6"] .block-textarea {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Heading numbering */
+.block-heading .block-number {
+  display: inline-block;
+  margin-right: 8px;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Heading Navigation */
+.heading-navigation {
+  background: white;
+  border-left: 1px solid #ddd;
+  height: 100%;
+  overflow-y: auto;
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.heading-nav-header {
+  padding: 16px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f5f5f5;
+}
+
+.heading-nav-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.heading-count {
+  background: #3498db;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.heading-nav-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.heading-nav-list {
+  padding: 8px 0;
+}
+
+.heading-nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  color: #333;
+  border-left: 3px solid transparent;
+}
+
+.heading-nav-item:hover {
+  background: #f5f5f5;
+}
+
+.heading-nav-item.active {
+  background: #e8f4f8;
+  border-left-color: #3498db;
+  font-weight: 600;
+}
+
+.heading-nav-item .heading-number {
+  margin-right: 8px;
+  color: #666;
+  font-weight: 600;
+  min-width: 32px;
+}
+
+.heading-nav-item .heading-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heading-nav-item.heading-level-2 {
+  font-size: 14px;
+}
+
+.heading-nav-item.heading-level-3 {
+  font-size: 13px;
+}
+
+.heading-nav-item.heading-level-4,
+.heading-nav-item.heading-level-5,
+.heading-nav-item.heading-level-6 {
+  font-size: 12px;
+  color: #666;
+}

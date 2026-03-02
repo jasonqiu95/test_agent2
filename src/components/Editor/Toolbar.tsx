@@ -20,18 +20,29 @@ export interface FormatState {
   blockquote: boolean;
   verse: boolean;
   hasSelection: boolean;
+  headingLevel: number | null; // 0 for paragraph, 1-6 for headings
 }
 
 /**
  * Get the active format state from the current selection
  */
 export function getFormatState(state: EditorState): FormatState {
-  const { from, to, empty } = state.selection;
+  const { from, to, empty, $from } = state.selection;
   const hasSelection = !empty;
 
   // Check block-level formatting
   const blockquote = isBlockquoteActive(state);
   const verse = isVerseActive(state);
+
+  // Get heading level from current block
+  const currentBlock = $from.parent;
+  let headingLevel: number | null = null;
+
+  if (currentBlock.type.name === 'heading') {
+    headingLevel = currentBlock.attrs.level;
+  } else if (currentBlock.type.name === 'paragraph') {
+    headingLevel = 0; // 0 indicates paragraph
+  }
 
   // For collapsed selection (cursor), check stored marks
   if (empty) {
@@ -43,6 +54,7 @@ export function getFormatState(state: EditorState): FormatState {
       blockquote,
       verse,
       hasSelection: false,
+      headingLevel,
     };
   }
 
@@ -59,6 +71,7 @@ export function getFormatState(state: EditorState): FormatState {
     blockquote,
     verse,
     hasSelection,
+    headingLevel,
   };
 }
 
@@ -84,6 +97,38 @@ export function toggleFormat(view: EditorView, markType: string): void {
   dispatch(tr);
 }
 
+/**
+ * Set the block type to a specific heading level or paragraph
+ * @param view - The editor view
+ * @param level - Heading level (0 for paragraph, 1-6 for headings)
+ */
+export function setBlockHeading(view: EditorView, level: number): void {
+  const { state, dispatch } = view;
+  const { $from, $to } = state.selection;
+
+  if (level === 0) {
+    // Convert to paragraph
+    const paragraphType = state.schema.nodes.paragraph;
+    if (!paragraphType) return;
+
+    const range = $from.blockRange($to);
+    if (!range) return;
+
+    const tr = state.tr.setBlockType(range.start, range.end, paragraphType);
+    dispatch(tr);
+  } else if (level >= 1 && level <= 6) {
+    // Convert to heading
+    const headingType = state.schema.nodes.heading;
+    if (!headingType) return;
+
+    const range = $from.blockRange($to);
+    if (!range) return;
+
+    const tr = state.tr.setBlockType(range.start, range.end, headingType, { level });
+    dispatch(tr);
+  }
+}
+
 export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
   const [formatState, setFormatState] = React.useState<FormatState>({
     bold: false,
@@ -92,6 +137,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     blockquote: false,
     verse: false,
     hasSelection: false,
+    headingLevel: null,
   });
 
   // Update format state when editor view changes
@@ -104,6 +150,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
         blockquote: false,
         verse: false,
         hasSelection: false,
+        headingLevel: null,
       });
       return;
     }
@@ -135,6 +182,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     }
   };
 
+  const handleHeadingChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (editorView) {
+      const level = parseInt(event.target.value, 10);
+      setBlockHeading(editorView, level);
+      onFormat?.(`heading-${level}`);
+    }
+  };
+
   const handleBold = () => handleFormat('strong');
   const handleItalic = () => handleFormat('em');
   const handleCode = () => handleFormat('code');
@@ -155,8 +210,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     }
   };
 
+  // Determine selected value for dropdown
+  const getHeadingValue = () => {
+    if (formatState.headingLevel === 0) return '0';
+    if (formatState.headingLevel !== null && formatState.headingLevel >= 1 && formatState.headingLevel <= 6) {
+      return formatState.headingLevel.toString();
+    }
+    return '';
+  };
+
   return (
     <div className="formatting-toolbar" data-testid="formatting-toolbar">
+      <select
+        className="toolbar-select toolbar-heading-select"
+        value={getHeadingValue()}
+        onChange={handleHeadingChange}
+        disabled={!editorView}
+        title="Text Style"
+        data-testid="heading-select"
+      >
+        <option value="" disabled>Style</option>
+        <option value="0">Paragraph</option>
+        <option value="2">Heading 2</option>
+        <option value="3">Heading 3</option>
+        <option value="4">Heading 4</option>
+        <option value="5">Heading 5</option>
+        <option value="6">Heading 6</option>
+      </select>
+
+      <div className="toolbar-separator" />
+
       <button
         className={`toolbar-btn toolbar-btn-bold ${formatState.bold ? 'active' : ''}`}
         onClick={handleBold}

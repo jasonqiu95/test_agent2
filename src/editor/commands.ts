@@ -575,6 +575,94 @@ export function convertSelectedBlocks(
 }
 
 /**
+ * Insert a subheading at the current cursor position
+ * Subheadings are heading levels 2-6 (h1 is reserved for chapter titles)
+ *
+ * @param level - Subheading level (2-6)
+ * @returns A ProseMirror command function
+ */
+export function insertSubheading(level: 2 | 3 | 4 | 5 | 6): Command {
+  return (state, dispatch) => {
+    const { $from, $to } = state.selection;
+    const headingType = state.schema.nodes[NodeType.HEADING];
+
+    if (!headingType) {
+      return false;
+    }
+
+    // Validate level (must be 2-6 for subheadings)
+    if (level < 2 || level > 6) {
+      return false;
+    }
+
+    if (!dispatch) {
+      return true;
+    }
+
+    // Create a new heading node
+    const heading = headingType.create({ level });
+
+    // Insert the heading at the current position
+    const tr = state.tr;
+    tr.replaceSelectionWith(heading);
+    dispatch(tr);
+
+    return true;
+  };
+}
+
+/**
+ * Toggle subheading formatting on the selected block(s)
+ * If the current block is a subheading with the same level, convert to paragraph
+ * If the current block is another type, convert to the specified subheading level
+ *
+ * @param level - Subheading level (2-6)
+ * @returns A ProseMirror command function
+ */
+export function toggleSubheading(level: 2 | 3 | 4 | 5 | 6): Command {
+  return (state, dispatch) => {
+    const { $from } = state.selection;
+    const headingType = state.schema.nodes[NodeType.HEADING];
+    const paragraphType = state.schema.nodes[NodeType.PARAGRAPH];
+
+    if (!headingType || !paragraphType) {
+      return false;
+    }
+
+    // Validate level (must be 2-6 for subheadings)
+    if (level < 2 || level > 6) {
+      return false;
+    }
+
+    // Get the current block node
+    const currentBlock = $from.parent;
+
+    // If already a heading with the same level, convert to paragraph
+    if (currentBlock.type === headingType && currentBlock.attrs.level === level) {
+      return setParagraph()(state, dispatch);
+    }
+
+    // Otherwise, convert to the specified subheading level
+    return setHeading(level)(state, dispatch);
+  };
+}
+
+/**
+ * Set a subheading level (2-6)
+ * Convenience function that calls setHeading with validation
+ *
+ * @param level - Subheading level (2-6)
+ * @returns A ProseMirror command function
+ */
+export function setSubheading(level: 2 | 3 | 4 | 5 | 6): Command {
+  // Validate level
+  if (level < 2 || level > 6) {
+    return () => false;
+  }
+  return setHeading(level);
+}
+
+/**
  * Helper function to create all formatting commands for a schema
  *
  * @param schema - ProseMirror schema
@@ -598,5 +686,16 @@ export function createFormattingCommands(schema: Schema) {
     insertBlockquote: insertBlockquote(schema),
     toggleVerse: toggleVerse(schema),
     insertVerse: insertVerse(schema),
+    // Subheading commands (h2-h6 only)
+    setSubheading2: setSubheading(2),
+    setSubheading3: setSubheading(3),
+    setSubheading4: setSubheading(4),
+    setSubheading5: setSubheading(5),
+    setSubheading6: setSubheading(6),
+    toggleSubheading2: toggleSubheading(2),
+    toggleSubheading3: toggleSubheading(3),
+    toggleSubheading4: toggleSubheading(4),
+    toggleSubheading5: toggleSubheading(5),
+    toggleSubheading6: toggleSubheading(6),
   };
 }

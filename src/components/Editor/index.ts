@@ -7,3 +7,5 @@ export * from './EditorToolbar';
 export * from './EditorContent';
 export * from './LoadingOverlay';
 export * from './SearchDialog';
+export * from './Toolbar';
+export * from './HeadingNavigation';

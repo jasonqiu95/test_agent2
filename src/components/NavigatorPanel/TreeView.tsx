@@ -4,6 +4,8 @@ import { Chapter } from '../../types/chapter';
 import { Element } from '../../types/element';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setSelectedElement } from '../../store/selectionSlice';
+import { deleteFrontMatter, deleteChapter, deleteBackMatter } from '../../store/bookSlice';
+import { ConfirmationDialog } from './ConfirmationDialog';
 import './TreeView.css';
 
 export interface TreeViewProps {
@@ -27,6 +29,17 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['frontMatter', 'chapters', 'backMatter'])
   );
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    itemId: string;
+    itemTitle: string;
+    itemType: 'frontMatter' | 'chapter' | 'backMatter';
+  }>({
+    isOpen: false,
+    itemId: '',
+    itemTitle: '',
+    itemType: 'frontMatter',
+  });
 
   // Use Redux state if available, otherwise fall back to prop
   const activeSelectedId = selectedElementId || selectedId;
@@ -88,6 +101,50 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
     return item.title;
   };
 
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    item: Element | Chapter,
+    type: 'frontMatter' | 'chapters' | 'backMatter'
+  ) => {
+    e.stopPropagation();
+    const itemType =
+      type === 'chapters' ? 'chapter' : type === 'frontMatter' ? 'frontMatter' : 'backMatter';
+    setDeleteDialog({
+      isOpen: true,
+      itemId: item.id,
+      itemTitle: getItemTitle(item, type),
+      itemType,
+    });
+  };
+
+  const handleDeleteConfirm = () => {
+    const { itemId, itemType } = deleteDialog;
+
+    if (itemType === 'frontMatter') {
+      dispatch(deleteFrontMatter(itemId));
+    } else if (itemType === 'chapter') {
+      dispatch(deleteChapter(itemId));
+    } else if (itemType === 'backMatter') {
+      dispatch(deleteBackMatter(itemId));
+    }
+
+    setDeleteDialog({
+      isOpen: false,
+      itemId: '',
+      itemTitle: '',
+      itemType: 'frontMatter',
+    });
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({
+      isOpen: false,
+      itemId: '',
+      itemTitle: '',
+      itemType: 'frontMatter',
+    });
+  };
+
   // Get all visible items for keyboard navigation
   const getAllVisibleItems = () => {
     const items: Array<{ id: string; type: 'frontMatter' | 'chapters' | 'backMatter' }> = [];
@@ -101,7 +158,7 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
     return items;
   };
 
-  // Keyboard navigation
+  // Keyboard navigation for arrow keys and Enter
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const visibleItems = getAllVisibleItems();
@@ -143,69 +200,132 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
     }
   }, [activeSelectedId, expandedSections, dispatch]);
 
+  // Keyboard handler for Delete key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' && activeSelectedId && !deleteDialog.isOpen) {
+        const allItems = [
+          ...book.frontMatter.map((item) => ({ ...item, sectionType: 'frontMatter' as const })),
+          ...book.chapters.map((item) => ({ ...item, sectionType: 'chapters' as const })),
+          ...book.backMatter.map((item) => ({ ...item, sectionType: 'backMatter' as const })),
+        ];
+
+        const selectedItem = allItems.find((item) => item.id === activeSelectedId);
+        if (selectedItem) {
+          const itemType =
+            selectedItem.sectionType === 'chapters'
+              ? 'chapter'
+              : selectedItem.sectionType === 'frontMatter'
+              ? 'frontMatter'
+              : 'backMatter';
+
+          setDeleteDialog({
+            isOpen: true,
+            itemId: selectedItem.id,
+            itemTitle: getItemTitle(selectedItem, selectedItem.sectionType),
+            itemType,
+          });
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeSelectedId, book, deleteDialog.isOpen]);
+
   return (
-    <div className="tree-view" ref={treeViewRef} tabIndex={0} role="tree" aria-label="Book structure">
-      {sections.map((section) => {
-        const isExpanded = expandedSections.has(section.id);
-        const hasItems = section.items && section.items.length > 0;
+    <>
+      <div className="tree-view" ref={treeViewRef} tabIndex={0} role="tree" aria-label="Book structure">
+        {sections.map((section) => {
+          const isExpanded = expandedSections.has(section.id);
+          const hasItems = section.items && section.items.length > 0;
 
-        return (
-          <div key={section.id} className="tree-section">
-            <div
-              className="tree-section-header"
-              onClick={() => toggleSection(section.id)}
-              role="treeitem"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleSection(section.id);
-                }
-              }}
-              aria-expanded={isExpanded}
-              aria-label={`${section.title} section`}
-            >
-              <span className={`tree-section-icon ${isExpanded ? 'expanded' : 'collapsed'}`}>
-                {isExpanded ? '▼' : '▶'}
-              </span>
-              <span className="tree-section-title">{section.title}</span>
-              {hasItems && (
-                <span className="tree-section-count">({section.items.length})</span>
-              )}
-            </div>
-
-            {isExpanded && (
-              <div className="tree-section-items" role="group">
-                {hasItems ? (
-                  section.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`tree-item ${activeSelectedId === item.id ? 'selected' : ''}`}
-                      onClick={() => handleItemClick(item.id, section.type)}
-                      role="treeitem"
-                      tabIndex={-1}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleItemClick(item.id, section.type);
-                        }
-                      }}
-                      aria-selected={activeSelectedId === item.id}
-                      aria-label={getItemTitle(item, section.type)}
-                    >
-                      <span className="tree-item-title">
-                        {getItemTitle(item, section.type)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="tree-empty-message">No items</div>
+          return (
+            <div key={section.id} className="tree-section">
+              <div
+                className="tree-section-header"
+                onClick={() => toggleSection(section.id)}
+                role="treeitem"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection(section.id);
+                  }
+                }}
+                aria-expanded={isExpanded}
+                aria-label={`${section.title} section`}
+              >
+                <span className={`tree-section-icon ${isExpanded ? 'expanded' : 'collapsed'}`}>
+                  {isExpanded ? '▼' : '▶'}
+                </span>
+                <span className="tree-section-title">{section.title}</span>
+                {hasItems && (
+                  <span className="tree-section-count">({section.items.length})</span>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+
+              {isExpanded && (
+                <div className="tree-section-items" role="group">
+                  {hasItems ? (
+                    section.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`tree-item ${activeSelectedId === item.id ? 'selected' : ''}`}
+                        onClick={() => handleItemClick(item.id, section.type)}
+                        role="treeitem"
+                        tabIndex={-1}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleItemClick(item.id, section.type);
+                          }
+                        }}
+                        aria-selected={activeSelectedId === item.id}
+                        aria-label={getItemTitle(item, section.type)}
+                      >
+                        <span className="tree-item-title">
+                          {getItemTitle(item, section.type)}
+                        </span>
+                        <button
+                          className="tree-item-delete"
+                          onClick={(e) => handleDeleteClick(e, item, section.type)}
+                          aria-label={`Delete ${getItemTitle(item, section.type)}`}
+                          title="Delete"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M6 2V3H3V4H4V13C4 13.5304 4.21071 14.0391 4.58579 14.4142C4.96086 14.7893 5.46957 15 6 15H10C10.5304 15 11.0391 14.7893 11.4142 14.4142C11.7893 14.0391 12 13.5304 12 13V4H13V3H10V2H6ZM5 4H11V13C11 13.2652 10.8946 13.5196 10.7071 13.7071C10.5196 13.8946 10.2652 14 10 14H6C5.73478 14 5.48043 13.8946 5.29289 13.7071C5.10536 13.5196 5 13.2652 5 13V4Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="tree-empty-message">No items</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <ConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        title="Delete Item"
+        message={`Are you sure you want to delete "${deleteDialog.itemTitle}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
+    </>
   );
 };

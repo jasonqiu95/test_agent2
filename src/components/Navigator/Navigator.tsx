@@ -1,10 +1,11 @@
 import React, { useState, useCallback, KeyboardEvent, MouseEvent, DragEvent } from 'react';
 import { Chapter } from '../../types/chapter';
 import { Element } from '../../types/element';
-import { BookStyle } from '../../types/style';
 import { Book } from '../../types/book';
+import { BookStyle } from '../../types/style';
 import { DragTypes } from '../../constants/dragTypes';
 import type { TreeItemDragData } from '../../types/drag';
+import { TreeNode } from './TreeNode';
 import './Navigator.css';
 
 export type NavigatorView = 'contents' | 'styles';
@@ -485,6 +486,7 @@ export const Navigator: React.FC<NavigatorProps> = ({
     [isDragging, onSelect]
   );
 
+
   if (!book) {
     return (
       <div className={`navigator ${className}`}>
@@ -589,6 +591,8 @@ export const Navigator: React.FC<NavigatorProps> = ({
 
   return (
     <div className={`navigator ${className}`} onKeyDown={handleKeyDown} tabIndex={0}>
+      {isDragging && <div className="drag-overlay" data-testid="drag-overlay"></div>}
+
       <div className="navigator-header">
         <div className="navigator-view-switcher">
           <button

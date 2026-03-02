@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { SearchBar, ElementTypeFilter } from './SearchBar';
 import './NavigatorPanel.css';
 
 export interface NavigatorPanelProps {
@@ -7,6 +8,12 @@ export interface NavigatorPanelProps {
   footer?: React.ReactNode;
   onClose?: () => void;
   className?: string;
+  showSearch?: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  typeFilter?: ElementTypeFilter;
+  onTypeFilterChange?: (filter: ElementTypeFilter) => void;
+  showTypeFilter?: boolean;
 }
 
 export const NavigatorPanel: React.FC<NavigatorPanelProps> = ({
@@ -15,7 +22,21 @@ export const NavigatorPanel: React.FC<NavigatorPanelProps> = ({
   footer,
   onClose,
   className = '',
+  showSearch = false,
+  searchQuery: controlledSearchQuery,
+  onSearchChange: controlledOnSearchChange,
+  typeFilter: controlledTypeFilter,
+  onTypeFilterChange: controlledOnTypeFilterChange,
+  showTypeFilter = true,
 }) => {
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [internalTypeFilter, setInternalTypeFilter] = useState<ElementTypeFilter>('all');
+
+  const searchQuery = controlledSearchQuery !== undefined ? controlledSearchQuery : internalSearchQuery;
+  const onSearchChange = controlledOnSearchChange || setInternalSearchQuery;
+  const typeFilter = controlledTypeFilter !== undefined ? controlledTypeFilter : internalTypeFilter;
+  const onTypeFilterChange = controlledOnTypeFilterChange || setInternalTypeFilter;
+
   return (
     <div className={`navigator-panel ${className}`}>
       <div className="navigator-panel-header">
@@ -30,6 +51,16 @@ export const NavigatorPanel: React.FC<NavigatorPanelProps> = ({
           </button>
         )}
       </div>
+
+      {showSearch && (
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          typeFilter={typeFilter}
+          onTypeFilterChange={onTypeFilterChange}
+          showTypeFilter={showTypeFilter}
+        />
+      )}
 
       <div className="navigator-panel-content">
         {children}

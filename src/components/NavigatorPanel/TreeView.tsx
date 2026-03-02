@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Book } from '../../types/book';
 import { Chapter } from '../../types/chapter';
 import { Element } from '../../types/element';
+import { useTreeFilter, UseTreeFilterOptions } from '../../hooks/useTreeFilter';
 import './TreeView.css';
 
 export interface TreeViewProps {
   book: Book;
   selectedId?: string;
   onSelect?: (id: string, type: 'frontMatter' | 'chapter' | 'backMatter') => void;
+  filterOptions?: UseTreeFilterOptions;
 }
 
 interface TreeSection {
@@ -17,31 +19,27 @@ interface TreeSection {
   items: (Element | Chapter)[];
 }
 
-export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }) => {
+export const TreeView: React.FC<TreeViewProps> = ({
+  book,
+  selectedId,
+  onSelect,
+  filterOptions = { searchQuery: '', typeFilter: 'all' }
+}) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['frontMatter', 'chapters', 'backMatter'])
   );
 
-  const sections: TreeSection[] = [
-    {
-      id: 'frontMatter',
-      title: 'Front Matter',
-      type: 'frontMatter',
-      items: book.frontMatter || [],
-    },
-    {
-      id: 'chapters',
-      title: 'Chapters',
-      type: 'chapters',
-      items: book.chapters || [],
-    },
-    {
-      id: 'backMatter',
-      title: 'Back Matter',
-      type: 'backMatter',
-      items: book.backMatter || [],
-    },
-  ];
+  const { filteredSections, hasActiveFilter } = useTreeFilter(book, filterOptions);
+
+  // Auto-expand sections when filtering
+  useEffect(() => {
+    if (hasActiveFilter) {
+      const visibleSections = filteredSections
+        .filter(section => section.visible)
+        .map(section => section.id);
+      setExpandedSections(new Set(visibleSections));
+    }
+  }, [hasActiveFilter, filteredSections]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {
@@ -75,11 +73,48 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
     return item.title;
   };
 
+  const highlightText = (text: string, matches: Array<{ start: number; end: number; field: 'title' | 'type' }>): React.ReactNode => {
+    if (!matches || matches.length === 0) {
+      return text;
+    }
+
+    const titleMatches = matches.filter(m => m.field === 'title');
+    if (titleMatches.length === 0) {
+      return text;
+    }
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    titleMatches.forEach((match, index) => {
+      if (match.start > lastIndex) {
+        parts.push(text.substring(lastIndex, match.start));
+      }
+      parts.push(
+        <mark key={index} className="search-highlight">
+          {text.substring(match.start, match.end)}
+        </mark>
+      );
+      lastIndex = match.end;
+    });
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
   return (
     <div className="tree-view">
-      {sections.map((section) => {
+      {filteredSections.map((section) => {
+        if (!section.visible) {
+          return null;
+        }
+
         const isExpanded = expandedSections.has(section.id);
-        const hasItems = section.items && section.items.length > 0;
+        const visibleItems = section.items.filter(fi => fi.visible);
+        const hasVisibleItems = visibleItems.length > 0;
 
         return (
           <div key={section.id} className="tree-section">
@@ -101,37 +136,46 @@ export const TreeView: React.FC<TreeViewProps> = ({ book, selectedId, onSelect }
                 {isExpanded ? '▼' : '▶'}
               </span>
               <span className="tree-section-title">{section.title}</span>
-              {hasItems && (
-                <span className="tree-section-count">({section.items.length})</span>
+              {hasVisibleItems && (
+                <span className="tree-section-count">
+                  ({hasActiveFilter ? `${visibleItems.length}/${section.items.length}` : section.items.length})
+                </span>
               )}
             </div>
 
             {isExpanded && (
               <div className="tree-section-items">
-                {hasItems ? (
-                  section.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`tree-item ${selectedId === item.id ? 'selected' : ''}`}
-                      onClick={() => handleItemClick(item.id, section.type)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleItemClick(item.id, section.type);
-                        }
-                      }}
-                      aria-selected={selectedId === item.id}
-                      aria-label={getItemTitle(item, section.type)}
-                    >
-                      <span className="tree-item-title">
-                        {getItemTitle(item, section.type)}
-                      </span>
-                    </div>
-                  ))
+                {hasVisibleItems ? (
+                  visibleItems.map((filteredItem) => {
+                    const item = filteredItem.item;
+                    const itemTitle = getItemTitle(item, section.type);
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`tree-item ${selectedId === item.id ? 'selected' : ''}`}
+                        onClick={() => handleItemClick(item.id, section.type)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleItemClick(item.id, section.type);
+                          }
+                        }}
+                        aria-selected={selectedId === item.id}
+                        aria-label={itemTitle}
+                      >
+                        <span className="tree-item-title">
+                          {highlightText(itemTitle, filteredItem.matches)}
+                        </span>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <div className="tree-empty-message">No items</div>
+                  <div className="tree-empty-message">
+                    {hasActiveFilter ? 'No matching items' : 'No items'}
+                  </div>
                 )}
               </div>
             )}

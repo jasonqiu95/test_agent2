@@ -3,41 +3,69 @@
  */
 
 import { ElementTemplate, TemplateCategory } from '../../types/template';
+import { titlePageTemplate } from './titlePage';
 import { copyrightTemplate } from './copyright';
 import { dedicationTemplate } from './dedication';
-import { aboutAuthorTemplate } from './aboutAuthor';
-import { alsoByTemplate } from './alsoBy';
-import { acknowledgementsTemplate } from './acknowledgments';
+import { epigraphTemplate } from './epigraph';
 import { forewordTemplate } from './foreword';
 import { prefaceTemplate } from './preface';
+import { acknowledgementsTemplate } from './acknowledgments';
+import { introductionTemplate } from './introduction';
+import { prologueTemplate } from './prologue';
 import { epilogueTemplate } from './epilogue';
+import { afterwordTemplate } from './afterword';
+import { aboutAuthorTemplate } from './aboutAuthor';
+import { bibliographyTemplate } from './bibliography';
+import { glossaryTemplate } from './glossary';
+import { indexTemplate } from './indexTemplate';
+import { appendixTemplate } from './appendix';
+import { alsoByTemplate } from './alsoBy';
 
 // Export individual templates
 export {
+  titlePageTemplate,
   copyrightTemplate,
   dedicationTemplate,
-  aboutAuthorTemplate,
-  alsoByTemplate,
-  acknowledgementsTemplate,
+  epigraphTemplate,
   forewordTemplate,
   prefaceTemplate,
+  acknowledgementsTemplate,
+  introductionTemplate,
+  prologueTemplate,
   epilogueTemplate,
+  afterwordTemplate,
+  aboutAuthorTemplate,
+  bibliographyTemplate,
+  glossaryTemplate,
+  indexTemplate,
+  appendixTemplate,
+  alsoByTemplate,
 };
 
 // Front matter templates
 export const frontMatterTemplates: ElementTemplate[] = [
+  titlePageTemplate,
   copyrightTemplate,
   dedicationTemplate,
-  alsoByTemplate,
+  epigraphTemplate,
   forewordTemplate,
   prefaceTemplate,
+  acknowledgementsTemplate,
+  introductionTemplate,
+  prologueTemplate,
+  alsoByTemplate,
 ];
 
 // Back matter templates
 export const backMatterTemplates: ElementTemplate[] = [
   epilogueTemplate,
-  acknowledgementsTemplate,
+  afterwordTemplate,
   aboutAuthorTemplate,
+  bibliographyTemplate,
+  glossaryTemplate,
+  indexTemplate,
+  appendixTemplate,
+  acknowledgementsTemplate,
 ];
 
 // All templates organized by category

@@ -1648,6 +1648,7 @@ export class HtmlConverter {
 
     fragments.push(`<div class="${contentClasses.join(' ')}">`);
 
+    // Add custom content blocks if provided
     if (element.content && element.content.length > 0) {
       const contentHtml = element.content
         .map((block) => this.convertTextBlock(block))
@@ -1657,6 +1658,101 @@ export class HtmlConverter {
       if (contentHtml) {
         fragments.push(contentHtml);
       }
+    }
+
+    // Build copyright information from book metadata
+    const copyrightInfo: string[] = [];
+    const metadata = this.book.metadata;
+
+    // Copyright notice
+    if (this.book.title) {
+      const year = metadata.publicationDate
+        ? new Date(metadata.publicationDate).getFullYear()
+        : new Date().getFullYear();
+
+      const authorNames = this.book.authors
+        .filter(author => author.role === 'author' || !author.role)
+        .map(author => author.name)
+        .join(', ');
+
+      if (authorNames) {
+        copyrightInfo.push(
+          `<p class="${generateClassName('copyright-notice', undefined, prefix)}">` +
+          `Copyright © ${year} by ${escapeHtml(authorNames)}` +
+          `</p>`
+        );
+      }
+    }
+
+    // Rights statement
+    if (metadata.rights) {
+      copyrightInfo.push(
+        `<p class="${generateClassName('copyright-rights', undefined, prefix)}">` +
+        escapeHtml(metadata.rights) +
+        `</p>`
+      );
+    } else {
+      copyrightInfo.push(
+        `<p class="${generateClassName('copyright-rights', undefined, prefix)}">` +
+        `All rights reserved.` +
+        `</p>`
+      );
+    }
+
+    // ISBN information
+    if (metadata.isbn13 || metadata.isbn) {
+      const isbnClasses = generateClassName('copyright-isbn', undefined, prefix);
+      if (metadata.isbn13) {
+        copyrightInfo.push(
+          `<p class="${isbnClasses}">ISBN-13: ${escapeHtml(metadata.isbn13)}</p>`
+        );
+      }
+      if (metadata.isbn && metadata.isbn !== metadata.isbn13) {
+        copyrightInfo.push(
+          `<p class="${isbnClasses}">ISBN-10: ${escapeHtml(metadata.isbn)}</p>`
+        );
+      }
+    }
+
+    // Publisher information
+    if (metadata.publisher) {
+      copyrightInfo.push(
+        `<p class="${generateClassName('copyright-publisher', undefined, prefix)}">` +
+        `Published by ${escapeHtml(metadata.publisher)}` +
+        `</p>`
+      );
+    }
+
+    // Publication date
+    if (metadata.publicationDate) {
+      const date = new Date(metadata.publicationDate);
+      const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      copyrightInfo.push(
+        `<p class="${generateClassName('copyright-date', undefined, prefix)}">` +
+        escapeHtml(formattedDate) +
+        `</p>`
+      );
+    }
+
+    // Edition information (if available)
+    if (metadata.edition) {
+      copyrightInfo.push(
+        `<p class="${generateClassName('copyright-edition', undefined, prefix)}">` +
+        escapeHtml(metadata.edition) +
+        `</p>`
+      );
+    }
+
+    // Add copyright information to fragments
+    if (copyrightInfo.length > 0) {
+      const copyrightBlock = `<div class="${generateClassName('copyright-info', undefined, prefix)}">` +
+        copyrightInfo.join('\n') +
+        `</div>`;
+      fragments.push(copyrightBlock);
     }
 
     fragments.push('</div>');

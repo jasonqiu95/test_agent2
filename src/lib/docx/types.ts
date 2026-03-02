@@ -116,3 +116,17 @@ export interface StructuredParseResult {
   document: StructuredDocument;
   messages: DocxMessage[];
 }
+
+/**
+ * Progress callback for reporting parsing progress
+ * Receives a number between 0 and 100 representing percentage complete
+ */
+export type ProgressCallback = (progress: number) => void;
+
+/**
+ * Cancellation token for aborting long-running parse operations
+ * Can check isCancelled property or call isCancelled() method
+ */
+export interface CancellationToken {
+  isCancelled: boolean | (() => boolean);
+}

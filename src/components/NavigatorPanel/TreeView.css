@@ -84,6 +84,7 @@
   border-radius: 4px;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  position: relative;
 }
 
 .tree-item:hover {
@@ -114,6 +115,39 @@
   white-space: nowrap;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.tree-item-delete {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6c757d;
+  transition: all 0.15s ease;
+}
+
+.tree-item:hover .tree-item-delete {
+  display: flex;
+}
+
+.tree-item-delete:hover {
+  background-color: #fff5f5;
+  color: #dc3545;
+}
+
+.tree-item-delete:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+  display: flex;
+}
+
+.tree-item-delete:active {
+  background-color: #fee;
 }
 
 /* Empty State */
@@ -170,5 +204,14 @@
 
   .tree-empty-message {
     color: #6c757d;
+  }
+
+  .tree-item-delete:hover {
+    background-color: #3d1e1e;
+    color: #ff6b6b;
+  }
+
+  .tree-item-delete:active {
+    background-color: #4a2424;
   }
 }

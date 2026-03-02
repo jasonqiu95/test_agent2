@@ -1,0 +1,31 @@
+.navigator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary, #ffffff);
+}
+
+.navigator-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.navigator-empty-state {
+  text-align: center;
+  color: var(--text-secondary, #666666);
+}
+
+.navigator-empty-message {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #333333);
+}
+
+.navigator-empty-hint {
+  font-size: 0.875rem;
+  margin: 0;
+  color: var(--text-secondary, #666666);
+}

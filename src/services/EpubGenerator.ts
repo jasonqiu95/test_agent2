@@ -204,20 +204,6 @@ ${navPoints}
   }
 
   /**
-   * Escapes XML special characters
-   * @param text - Text to escape
-   * @returns Escaped text safe for XML
-   */
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
-  }
-
-  /**
    * Generates a UUID for the EPUB
    * @returns A UUID string
    */
@@ -227,6 +213,233 @@ ${navPoints}
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
+  }
+
+  /**
+   * Generates the package.opf file with metadata, manifest, spine, and guide
+   * @param metadata - Book metadata to include in the OPF file
+   * @param manifestItems - Array of manifest items (files to include in EPUB)
+   * @param spineItems - Array of spine item IDs (reading order)
+   * @param guideItems - Array of guide items (optional)
+   * @returns The package.opf XML content as a string
+   */
+  generatePackageOpf(
+    metadata: {
+      title: string;
+      subtitle?: string;
+      authors: Array<{ name: string; role?: string }>;
+      isbn?: string;
+      isbn13?: string;
+      language?: string;
+      publisher?: string;
+      publicationDate?: Date;
+      description?: string;
+      rights?: string;
+      id?: string;
+    },
+    manifestItems: Array<{
+      id: string;
+      href: string;
+      mediaType: string;
+      properties?: string;
+    }> = [],
+    spineItems: Array<{ idref: string; linear?: boolean }> = [],
+    guideItems: Array<{
+      type: string;
+      title: string;
+      href: string;
+    }> = []
+  ): string {
+    // Generate unique identifier for the book
+    const bookId = metadata.id || metadata.isbn13 || metadata.isbn || `book-${Date.now()}`;
+
+    // Format publication date in YYYY-MM-DD format
+    const pubDate = metadata.publicationDate
+      ? metadata.publicationDate.toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+
+    // Build metadata section with Dublin Core elements
+    const metadataSection = this.buildMetadataSection(metadata, bookId, pubDate);
+
+    // Build manifest section
+    const manifestSection = this.buildManifestSection(manifestItems);
+
+    // Build spine section
+    const spineSection = this.buildSpineSection(spineItems);
+
+    // Build guide section (optional)
+    const guideSection = guideItems.length > 0 ? this.buildGuideSection(guideItems) : '';
+
+    // Combine all sections into complete package.opf
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="${metadata.language || 'en'}">
+${metadataSection}
+${manifestSection}
+${spineSection}${guideSection}
+</package>`;
+  }
+
+  /**
+   * Builds the metadata section with Dublin Core elements
+   * @param metadata - Book metadata
+   * @param bookId - Unique book identifier
+   * @param pubDate - Publication date string
+   * @returns Formatted metadata XML
+   */
+  private buildMetadataSection(
+    metadata: {
+      title: string;
+      subtitle?: string;
+      authors: Array<{ name: string; role?: string }>;
+      isbn?: string;
+      isbn13?: string;
+      language?: string;
+      publisher?: string;
+      description?: string;
+      rights?: string;
+    },
+    bookId: string,
+    pubDate: string
+  ): string {
+    let metadataXml = '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n';
+
+    // Unique identifier (required)
+    metadataXml += `    <dc:identifier id="bookid">${this.escapeXml(bookId)}</dc:identifier>\n`;
+
+    // Title (required)
+    metadataXml += `    <dc:title>${this.escapeXml(metadata.title)}</dc:title>\n`;
+
+    // Subtitle (if present)
+    if (metadata.subtitle) {
+      metadataXml += `    <meta property="title-type" refines="#title">main</meta>\n`;
+      metadataXml += `    <dc:title id="subtitle">${this.escapeXml(metadata.subtitle)}</dc:title>\n`;
+      metadataXml += `    <meta property="title-type" refines="#subtitle">subtitle</meta>\n`;
+    }
+
+    // Language (required)
+    metadataXml += `    <dc:language>${this.escapeXml(metadata.language || 'en')}</dc:language>\n`;
+
+    // Authors (required)
+    metadata.authors.forEach((author, index) => {
+      const authorId = `author${index + 1}`;
+      metadataXml += `    <dc:creator id="${authorId}">${this.escapeXml(author.name)}</dc:creator>\n`;
+
+      // Add role metadata if specified
+      const role = author.role || 'author';
+      metadataXml += `    <meta property="role" refines="#${authorId}" scheme="marc:relators">${role === 'author' ? 'aut' : role === 'editor' ? 'edt' : role === 'translator' ? 'trl' : 'ctb'}</meta>\n`;
+    });
+
+    // Publisher (optional)
+    if (metadata.publisher) {
+      metadataXml += `    <dc:publisher>${this.escapeXml(metadata.publisher)}</dc:publisher>\n`;
+    }
+
+    // Publication date (required)
+    metadataXml += `    <dc:date>${pubDate}</dc:date>\n`;
+
+    // ISBN (optional)
+    if (metadata.isbn13) {
+      metadataXml += `    <dc:identifier opf:scheme="ISBN">${this.escapeXml(metadata.isbn13)}</dc:identifier>\n`;
+    } else if (metadata.isbn) {
+      metadataXml += `    <dc:identifier opf:scheme="ISBN">${this.escapeXml(metadata.isbn)}</dc:identifier>\n`;
+    }
+
+    // Description (optional)
+    if (metadata.description) {
+      metadataXml += `    <dc:description>${this.escapeXml(metadata.description)}</dc:description>\n`;
+    }
+
+    // Rights (optional)
+    if (metadata.rights) {
+      metadataXml += `    <dc:rights>${this.escapeXml(metadata.rights)}</dc:rights>\n`;
+    }
+
+    // Modified timestamp (required for EPUB 3)
+    metadataXml += `    <meta property="dcterms:modified">${new Date().toISOString().split('.')[0]}Z</meta>\n`;
+
+    metadataXml += '  </metadata>\n';
+
+    return metadataXml;
+  }
+
+  /**
+   * Builds the manifest section listing all files in the EPUB
+   * @param manifestItems - Array of manifest items
+   * @returns Formatted manifest XML
+   */
+  private buildManifestSection(
+    manifestItems: Array<{
+      id: string;
+      href: string;
+      mediaType: string;
+      properties?: string;
+    }>
+  ): string {
+    let manifestXml = '  <manifest>\n';
+
+    // Add navigation document (required for EPUB 3)
+    if (!manifestItems.find(item => item.id === 'nav')) {
+      manifestXml += '    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>\n';
+    }
+
+    // Add all manifest items
+    manifestItems.forEach(item => {
+      manifestXml += `    <item id="${item.id}" href="${item.href}" media-type="${item.mediaType}"`;
+      if (item.properties) {
+        manifestXml += ` properties="${item.properties}"`;
+      }
+      manifestXml += '/>\n';
+    });
+
+    manifestXml += '  </manifest>\n';
+
+    return manifestXml;
+  }
+
+  /**
+   * Builds the spine section defining the reading order
+   * @param spineItems - Array of spine items
+   * @returns Formatted spine XML
+   */
+  private buildSpineSection(
+    spineItems: Array<{ idref: string; linear?: boolean }>
+  ): string {
+    let spineXml = '  <spine>\n';
+
+    spineItems.forEach(item => {
+      spineXml += `    <itemref idref="${item.idref}"`;
+      if (item.linear === false) {
+        spineXml += ' linear="no"';
+      }
+      spineXml += '/>\n';
+    });
+
+    spineXml += '  </spine>\n';
+
+    return spineXml;
+  }
+
+  /**
+   * Builds the guide section for special content references
+   * @param guideItems - Array of guide items
+   * @returns Formatted guide XML
+   */
+  private buildGuideSection(
+    guideItems: Array<{
+      type: string;
+      title: string;
+      href: string;
+    }>
+  ): string {
+    let guideXml = '  <guide>\n';
+
+    guideItems.forEach(item => {
+      guideXml += `    <reference type="${item.type}" title="${item.title}" href="${item.href}"/>\n`;
+    });
+
+    guideXml += '  </guide>\n';
+
+    return guideXml;
   }
 
   /**

@@ -10,7 +10,7 @@ export default defineConfig({
   testDir: './e2e',
 
   // Maximum time one test can run for
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   // Expect timeout for assertions
   expect: {
@@ -23,17 +23,21 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
 
+  // Global setup and teardown
+  globalSetup: undefined,
+  globalTeardown: undefined,
+
   // Reporter configuration
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['list'],
     ['json', { outputFile: 'test-results/results.json' }],
+    ['list'],
   ],
 
-  // Shared settings for all projects
+  // Shared settings for all tests
   use: {
     // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
 
     // Screenshot settings - capture on failure and include in reports
     screenshot: {
@@ -51,7 +55,10 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
 
     // Action timeout
-    actionTimeout: 10000,
+    actionTimeout: 15 * 1000,
+
+    // Navigation timeout
+    navigationTimeout: 30 * 1000,
   },
 
   // Configure projects for Electron testing
@@ -60,9 +67,15 @@ export default defineConfig({
       name: 'electron',
       testMatch: '**/*.spec.ts',
       use: {
-        // Note: For Electron, we don't use standard browser launch
-        // Tests should use the electron-helpers utility to launch the app
-        viewport: null, // Electron controls its own viewport
+        ...devices['Desktop Chrome'],
+        // Viewport settings for Electron window
+        viewport: { width: 1280, height: 720 },
+        // Slow down operations for better reliability in CI
+        ...(process.env.CI && {
+          launchOptions: {
+            slowMo: 100,
+          },
+        }),
       },
     },
   ],

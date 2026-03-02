@@ -1,5 +1,5 @@
 import { test, expect, _electron as electron } from '@playwright/test';
-import path from 'path';
+import * as path from 'path';
 
 /**
  * Example E2E test for the Electron application
@@ -67,10 +67,12 @@ test.describe('Electron App', () => {
     expect(window.isClosed()).toBe(false);
 
     // Get window dimensions
-    const size = await window.evaluate(() => ({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }));
+    const size = await window.evaluate(() => {
+      return {
+        width: (window as any).innerWidth,
+        height: (window as any).innerHeight,
+      };
+    });
 
     expect(size.width).toBeGreaterThan(0);
     expect(size.height).toBeGreaterThan(0);

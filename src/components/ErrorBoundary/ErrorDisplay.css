@@ -1,0 +1,222 @@
+.error-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.error-display--app {
+  min-height: 100vh;
+  background-color: #fff;
+}
+
+.error-display--layout {
+  min-height: 60vh;
+}
+
+.error-display--component {
+  min-height: 200px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+
+.error-display__container {
+  max-width: 600px;
+  text-align: center;
+}
+
+.error-display__icon {
+  color: #dc3545;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.error-display__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #212529;
+  margin: 0 0 1rem;
+}
+
+.error-display__message {
+  font-size: 1.125rem;
+  color: #495057;
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+}
+
+.error-display__file-path {
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-family: monospace;
+  background-color: #e9ecef;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin: 0 0 1.5rem;
+  word-break: break-all;
+}
+
+.error-display__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.error-display__button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.error-display__button--primary {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.error-display__button--primary:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.25);
+}
+
+.error-display__button--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.error-display__button--secondary:hover {
+  background-color: #5c636a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.25);
+}
+
+.error-display__button--tertiary {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.error-display__button--tertiary:hover {
+  background-color: #dee2e6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.error-display__details {
+  margin-top: 2rem;
+  text-align: left;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background-color: white;
+}
+
+.error-display__details summary {
+  padding: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+  user-select: none;
+}
+
+.error-display__details summary:hover {
+  background-color: #f8f9fa;
+}
+
+.error-display__technical {
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.error-display__technical p {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.error-display__stack {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #212529;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-display__help {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin: 2rem 0 0;
+  font-style: italic;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .error-display {
+    background-color: #212529;
+  }
+
+  .error-display--app {
+    background-color: #1a1d20;
+  }
+
+  .error-display--component {
+    border-color: #495057;
+  }
+
+  .error-display__title {
+    color: #f8f9fa;
+  }
+
+  .error-display__message {
+    color: #dee2e6;
+  }
+
+  .error-display__file-path {
+    color: #adb5bd;
+    background-color: #343a40;
+  }
+
+  .error-display__details {
+    border-color: #495057;
+    background-color: #1a1d20;
+  }
+
+  .error-display__details summary {
+    color: #dee2e6;
+  }
+
+  .error-display__details summary:hover {
+    background-color: #212529;
+  }
+
+  .error-display__technical {
+    border-color: #495057;
+  }
+
+  .error-display__technical p {
+    color: #dee2e6;
+  }
+
+  .error-display__stack {
+    background-color: #212529;
+    border-color: #495057;
+    color: #f8f9fa;
+  }
+
+  .error-display__help {
+    color: #adb5bd;
+  }
+}

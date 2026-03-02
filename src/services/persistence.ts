@@ -3,6 +3,7 @@
  */
 
 import { Book } from '../types/book';
+import { getErrorHandler, ErrorType } from '../utils/errorHandler';
 
 export interface VellumProject {
   version: string;
@@ -55,6 +56,7 @@ export class PersistenceService {
   private saveStatus: SaveStatus = 'idle';
   private lastError: string | undefined = undefined;
   private lastFileModTime: number | null = null;
+  private errorHandler = getErrorHandler();
 
   constructor() {
     this.setupBeforeUnloadHandler();
@@ -183,9 +185,16 @@ export class PersistenceService {
 
       return await this.saveProject(result.filePath);
     } catch (error) {
+      const appError = this.errorHandler.handleError(
+        error,
+        {
+          userAction: 'Opening save dialog',
+        },
+        ErrorType.EXPORT_ERROR
+      );
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: appError.userMessage,
       };
     }
   }
@@ -212,9 +221,16 @@ export class PersistenceService {
 
       return await this.loadProject(result.filePath);
     } catch (error) {
+      const appError = this.errorHandler.handleError(
+        error,
+        {
+          userAction: 'Opening file dialog',
+        },
+        ErrorType.FILE_NOT_FOUND
+      );
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: appError.userMessage,
       };
     }
   }
@@ -247,9 +263,17 @@ export class PersistenceService {
 
       return { success: true, project };
     } catch (error) {
+      const appError = this.errorHandler.handleError(
+        error,
+        {
+          userAction: 'Loading project',
+          filePath,
+        },
+        error instanceof SyntaxError ? ErrorType.PARSE_ERROR : ErrorType.FILE_NOT_FOUND
+      );
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: appError.userMessage,
       };
     }
   }
@@ -421,7 +445,9 @@ export class PersistenceService {
         return false;
       }
     } catch (error) {
-      console.error('Error confirming unsaved changes:', error);
+      this.errorHandler.handleError(error, {
+        userAction: 'Confirming unsaved changes',
+      });
       return false;
     }
   }

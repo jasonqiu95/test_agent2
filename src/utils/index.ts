@@ -5,3 +5,5 @@
  */
 
 export * from './previewRenderer';
+export * from './errorHandler';
+export * from './asyncErrorHandler';

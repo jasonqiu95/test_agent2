@@ -18,6 +18,7 @@ import {
   CompleteMessage,
   ImageData,
   InitializeMessage,
+  CancelledMessage,
 } from './types';
 import { Book } from '../types/book';
 import { Chapter } from '../types/chapter';
@@ -274,6 +275,9 @@ interface WorkerState {
   isCancelled: boolean;
   workerId: string;
   operationTimeoutId?: number;
+  activeResources: Set<string>;
+  partialFiles: string[];
+  currentProgress: number;
 }
 
 // Initialize worker state
@@ -282,6 +286,9 @@ const state: WorkerState = {
   isCancelled: false,
   workerId: crypto.randomUUID(),
   operationTimeoutId: undefined,
+  activeResources: new Set(),
+  partialFiles: [],
+  currentProgress: 0,
 };
 
 /**
@@ -297,6 +304,54 @@ const MAX_BOOK_TITLE_LENGTH = 500;
  */
 function postMessageToMain(message: WorkerToMainMessage): void {
   self.postMessage(message);
+}
+
+/**
+ * Register a resource that needs cleanup
+ */
+function registerResource(resourceId: string): void {
+  state.activeResources.add(resourceId);
+}
+
+/**
+ * Unregister a resource after cleanup
+ */
+function unregisterResource(resourceId: string): void {
+  state.activeResources.delete(resourceId);
+}
+
+/**
+ * Clean up all active resources and partial files
+ */
+async function cleanupResources(): Promise<string[]> {
+  const cleanedResources: string[] = [];
+
+  // Clean up active resources
+  for (const resourceId of state.activeResources) {
+    try {
+      // TODO: Implement actual resource cleanup based on resource type
+      // This could include closing file handles, releasing memory buffers, etc.
+      cleanedResources.push(resourceId);
+    } catch (error) {
+      console.error(`Failed to cleanup resource ${resourceId}:`, error);
+    }
+  }
+
+  // Clean up partial files
+  for (const filePath of state.partialFiles) {
+    try {
+      // TODO: Implement actual file cleanup
+      // In a real implementation, this would delete temporary files
+      cleanedResources.push(filePath);
+    } catch (error) {
+      console.error(`Failed to cleanup partial file ${filePath}:`, error);
+    }
+  }
+
+  state.activeResources.clear();
+  state.partialFiles = [];
+
+  return cleanedResources;
 }
 
 /**
@@ -484,11 +539,12 @@ function clearOperationTimeout(): void {
 }
 
 /**
- * Check if operation was cancelled
+ * Check if cancellation has been requested and throw if so
+ * This should be called periodically during long operations
  */
 function checkCancellation(): void {
   if (state.isCancelled) {
-    throw new Error('Generation cancelled by user');
+    throw new Error('CANCELLATION_REQUESTED');
   }
 }
 
@@ -511,6 +567,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
   state.isProcessing = true;
   state.isCancelled = false;
+  state.currentProgress = 0;
+
+  const startTime = Date.now();
 
   try {
     // Set operation timeout
@@ -523,6 +582,13 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         status: 'Initializing EPUB generation...',
       })
     );
+
+    // Register initial resources
+    registerResource('epub-builder');
+    registerResource('content-processor');
+
+    // Check cancellation before starting
+    checkCancellation();
 
     // Validate message structure
     if (!message.data || typeof message.data !== 'object') {
@@ -714,138 +780,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         })
       );
     }
-=======
-    // Validate message structure
-    if (!message.data || typeof message.data !== 'object') {
-      throw new Error('Invalid initialization data: missing or invalid data object');
-    }
-
-    const { book, styles, images, options } = message.data;
-
-    // Validate book data
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 5,
-        status: 'Validating book data...',
-      })
-    );
-
-    const bookValidation = validateBookData(book);
-    if (!bookValidation.isValid) {
-      throw new Error(`Invalid book data: ${bookValidation.error}`);
-    }
-
-    checkCancellation();
-
-    // Validate images
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 10,
-        status: 'Validating images...',
-      })
-    );
-
-    const imageValidation = validateImageData(images || []);
-    if (!imageValidation.isValid) {
-      const error: any = new Error(`Invalid image data: ${imageValidation.error}`);
-      error.imageId = imageValidation.imageId;
-      throw error;
-    }
-
-    checkCancellation();
-
-    // Validate options
-    const optionsValidation = validateOptions(options);
-    if (!optionsValidation.isValid) {
-      throw new Error(`Invalid options: ${optionsValidation.error}`);
-    }
-
-    checkCancellation();
-
-    // Validate styles
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 15,
-        status: 'Validating styles...',
-      })
-    );
-
-    if (styles && !Array.isArray(styles)) {
-      throw new Error('Invalid styles: must be an array');
-    }
-
-    checkCancellation();
-
-    // Check for missing referenced images
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 20,
-        status: 'Checking image references...',
-      })
-    );
-
-    const imageIds = new Set((images || []).map(img => img.id));
-    const warnings: string[] = [];
-
-    // Check chapters for image references
-    for (const chapter of book.chapters) {
-      if (chapter.content) {
-        const imageReferences = chapter.content.match(/!\[.*?\]\((.*?)\)/g) || [];
-        for (const ref of imageReferences) {
-          const imageId = ref.match(/!\[.*?\]\((.*?)\)/)?.[1];
-          if (imageId && !imageIds.has(imageId)) {
-            warnings.push(`Chapter "${chapter.title}" references missing image: ${imageId}`);
-          }
-        }
-      }
-    }
-
-    checkCancellation();
-
-    // TODO: Implement actual EPUB generation logic
-    // For now, this is a skeleton that demonstrates the message flow
-
-    // Simulate some work with progress updates
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 30,
-        status: 'Generating EPUB structure...',
-      })
-    );
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-    checkCancellation();
-
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 50,
-        status: 'Processing chapters...',
-      })
-    );
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-    checkCancellation();
-
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 70,
-        status: 'Embedding images...',
-      })
-    );
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-    checkCancellation();
-
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 90,
-        status: 'Finalizing EPUB...',
-      })
-    );
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-    checkCancellation();
->>>>>>> agent/implement-worker-error-handling
 
     // Add chapters
     for (let i = 0; i < book.chapters.length; i++) {
@@ -870,6 +804,18 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
           currentChapterTitle: chapter.title,
         })
       );
+
+      // For demonstration: simulate creating temporary files at certain points
+      if (i === 30) {
+        const tempFile = `temp-chapter-${i}.tmp`;
+        state.partialFiles.push(tempFile);
+        registerResource(tempFile);
+      }
+      if (i === 60) {
+        const tempFile = `temp-images-${i}.tmp`;
+        state.partialFiles.push(tempFile);
+        registerResource(tempFile);
+      }
     }
 
     // Add back matter
@@ -942,6 +888,12 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       })
     );
 
+    // Final cancellation check before completing
+    checkCancellation();
+
+    // Clean up resources on successful completion
+    await cleanupResources();
+
     // Send completion message with the generated EPUB buffer
     postMessageToMain(
       createWorkerMessage<CompleteMessage>(WorkerMessageType.COMPLETE, {
@@ -958,6 +910,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       })
     );
   } catch (error) {
+<<<<<<< HEAD
     const serialized = serializeError(error);
     const errorCode = state.isCancelled ? 'GENERATION_CANCELLED' :
                      (error as any).imageId ? 'IMAGE_ERROR' :
@@ -975,10 +928,45 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         elementId: (error as any).imageId,
       })
     );
+=======
+    const err = error as Error;
+
+    // Check if this is a cancellation
+    if (err.message === 'CANCELLATION_REQUESTED') {
+      // Clean up resources
+      const cleanedResources = await cleanupResources();
+
+      postMessageToMain(
+        createWorkerMessage<CancelledMessage>(WorkerMessageType.CANCELLED, {
+          reason: 'Generation cancelled by user',
+          partialProgress: state.currentProgress,
+          cleanedUp: true,
+          resourcesReleased: cleanedResources,
+        })
+      );
+    } else {
+      // This is an actual error, attempt cleanup anyway
+      try {
+        await cleanupResources();
+      } catch (cleanupError) {
+        console.error('Failed to cleanup after error:', cleanupError);
+      }
+
+      postMessageToMain(
+        createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
+          code: 'GENERATION_ERROR',
+          message: err.message || 'Unknown error occurred',
+          details: err.stack,
+          recoverable: false,
+        })
+      );
+    }
+>>>>>>> agent/implement-cancellation-support-in-workers
   } finally {
     clearOperationTimeout();
     state.isProcessing = false;
     state.isCancelled = false;
+    state.currentProgress = 0;
   }
 }
 
@@ -987,16 +975,19 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
  */
 function handleCancel(message: Extract<MainToWorkerMessage, { type: WorkerMessageType.CANCEL }>): void {
   if (!state.isProcessing) {
+    // Not processing, nothing to cancel
     return;
   }
 
+  // Set the cancellation flag
   state.isCancelled = true;
 
+  // Send progress update to inform user that cancellation is in progress
   postMessageToMain(
-    createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
-      code: 'CANCELLED',
-      message: message.data.reason || 'Generation cancelled',
-      recoverable: true,
+    createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
+      percentage: state.currentProgress,
+      status: 'Cancelling generation and cleaning up...',
+      details: message.data.reason,
     })
   );
 }

@@ -13,6 +13,7 @@ import {
   WorkerToMainMessage,
   InitializeMessage,
   CancelMessage,
+  CancelledMessage,
   createWorkerMessage,
   isInitializeMessage,
   isCancelMessage,
@@ -32,7 +33,13 @@ interface WorkerState {
   isProcessing: boolean;
   isCancelled: boolean;
   workerId: string;
+<<<<<<< HEAD
   operationTimeoutId?: number;
+=======
+  activeResources: Set<string>;
+  partialFiles: string[];
+  currentProgress: number;
+>>>>>>> agent/implement-cancellation-support-in-workers
 }
 
 // Initialize worker state
@@ -41,7 +48,13 @@ const state: WorkerState = {
   isProcessing: false,
   isCancelled: false,
   workerId: `pdf-worker-${Date.now()}`,
+<<<<<<< HEAD
   operationTimeoutId: undefined,
+=======
+  activeResources: new Set(),
+  partialFiles: [],
+  currentProgress: 0,
+>>>>>>> agent/implement-cancellation-support-in-workers
 };
 
 /**
@@ -133,6 +146,7 @@ function postMessage(message: WorkerToMainMessage): void {
 }
 
 /**
+<<<<<<< HEAD
  * Render page header
  */
 function renderHeader(
@@ -287,6 +301,63 @@ function renderChapter(
 
   // Render chapter content
   renderTextBlocks(doc, chapter.content, style, contentArea);
+=======
+ * Register a resource that needs cleanup
+ */
+function registerResource(resourceId: string): void {
+  state.activeResources.add(resourceId);
+}
+
+/**
+ * Unregister a resource after cleanup
+ */
+function unregisterResource(resourceId: string): void {
+  state.activeResources.delete(resourceId);
+}
+
+/**
+ * Clean up all active resources and partial files
+ */
+async function cleanupResources(): Promise<string[]> {
+  const cleanedResources: string[] = [];
+
+  // Clean up active resources
+  for (const resourceId of state.activeResources) {
+    try {
+      // TODO: Implement actual resource cleanup based on resource type
+      // This could include releasing PDF document objects, closing streams, etc.
+      cleanedResources.push(resourceId);
+    } catch (error) {
+      console.error(`Failed to cleanup resource ${resourceId}:`, error);
+    }
+  }
+
+  // Clean up partial files
+  for (const filePath of state.partialFiles) {
+    try {
+      // TODO: Implement actual file cleanup
+      // In a real implementation, this would delete temporary PDF fragments
+      cleanedResources.push(filePath);
+    } catch (error) {
+      console.error(`Failed to cleanup partial file ${filePath}:`, error);
+    }
+  }
+
+  state.activeResources.clear();
+  state.partialFiles = [];
+
+  return cleanedResources;
+}
+
+/**
+ * Check if cancellation has been requested and throw if so
+ * This should be called periodically during long operations
+ */
+function checkCancellation(): void {
+  if (state.isCancelled) {
+    throw new Error('CANCELLATION_REQUESTED');
+  }
+>>>>>>> agent/implement-cancellation-support-in-workers
 }
 
 /**
@@ -303,6 +374,7 @@ function sendProgress(
     details?: string;
   }
 ): void {
+  state.currentProgress = percentage;
   postMessage(
     createWorkerMessage(WorkerMessageType.PROGRESS, {
       percentage,
@@ -842,6 +914,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     state.isProcessing = true;
     state.isCancelled = false;
+    state.currentProgress = 0;
 
     // Set operation timeout
     setOperationTimeout();
@@ -855,6 +928,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     const { book, styles, images, options } = message.data;
 
+<<<<<<< HEAD
     // Validate book data
     sendProgress(5, 'Validating book data...');
 
@@ -864,9 +938,35 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       error.chapterNumber = (bookValidation as any).chapterNumber;
       throw error;
     }
+=======
+    // Register initial resources
+    registerResource('pdf-document');
+    registerResource('canvas-renderer');
+
+    // Check cancellation before starting
+    checkCancellation();
+
+    sendProgress(10, 'Parsing book data...');
+
+    // Placeholder: Simulate processing with cancellation checkpoints
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Check for cancellation after async operations
+    checkCancellation();
+
+    // Simulate creating temporary resources
+    const tempImageCache = 'temp-image-cache.tmp';
+    state.partialFiles.push(tempImageCache);
+    registerResource(tempImageCache);
+
+    sendProgress(30, 'Processing chapters...');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    checkCancellation();
+>>>>>>> agent/implement-cancellation-support-in-workers
 
     checkCancellation();
 
+<<<<<<< HEAD
     // Validate styles
     sendProgress(8, 'Validating styles...');
 
@@ -875,6 +975,22 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       throw new Error(`Invalid styles: ${stylesValidation.error}`);
     }
 
+=======
+    // Simulate creating a partial PDF file
+    const partialPdf = 'temp-partial-document.pdf';
+    state.partialFiles.push(partialPdf);
+    registerResource(partialPdf);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    checkCancellation();
+
+    sendProgress(70, 'Rendering pages...');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    checkCancellation();
+
+    sendProgress(90, 'Finalizing PDF...');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+>>>>>>> agent/implement-cancellation-support-in-workers
     checkCancellation();
 
     // Validate images
@@ -931,6 +1047,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     // Generate the PDF
     const buffer = await generatePdf(book, styles || [], options);
 
+    // Clean up resources on successful completion
+    await cleanupResources();
+
     sendProgress(100, 'PDF generation complete');
 
     const processingTime = Date.now() - startTime;
@@ -942,9 +1061,13 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         fileSize: buffer.byteLength,
         mimeType: 'application/pdf',
         metadata: {
+<<<<<<< HEAD
           processingTimeMs: processingTime,
           pageCount: book.pageCount,
           warnings: warnings.length > 0 ? warnings : undefined,
+=======
+          processingTimeMs: Date.now() - startTime,
+>>>>>>> agent/implement-cancellation-support-in-workers
         },
       })
     );
@@ -958,6 +1081,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
                      serialized.name === 'ReferenceError' ? 'LIBRARY_ERROR' :
                      'GENERATION_ERROR';
 
+<<<<<<< HEAD
     sendError(
       errorCode,
       `PDF generation failed: ${serialized.message}`,
@@ -969,9 +1093,40 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         elementId: (error as any).imageId,
       }
     );
+=======
+    // Check if this is a cancellation
+    if (errorMessage === 'CANCELLATION_REQUESTED') {
+      // Clean up resources
+      const cleanedResources = await cleanupResources();
+
+      postMessage(
+        createWorkerMessage(WorkerMessageType.CANCELLED, {
+          reason: 'PDF generation cancelled by user',
+          partialProgress: state.currentProgress,
+          cleanedUp: true,
+          resourcesReleased: cleanedResources,
+        })
+      );
+    } else {
+      // This is an actual error, attempt cleanup anyway
+      try {
+        await cleanupResources();
+      } catch (cleanupError) {
+        console.error('Failed to cleanup after error:', cleanupError);
+      }
+
+      sendError('GENERATION_ERROR', `PDF generation failed: ${errorMessage}`, {
+        details: errorMessage,
+        stack: errorStack,
+        recoverable: false,
+      });
+    }
+>>>>>>> agent/implement-cancellation-support-in-workers
   } finally {
     clearOperationTimeout();
     state.isProcessing = false;
+    state.isCancelled = false;
+    state.currentProgress = 0;
   }
 }
 
@@ -979,8 +1134,16 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
  * Handle cancellation message
  */
 function handleCancel(message: CancelMessage): void {
+  if (!state.isProcessing) {
+    // Not processing, nothing to cancel
+    return;
+  }
+
+  // Set the cancellation flag
   state.isCancelled = true;
-  sendProgress(0, 'Cancelling PDF generation...', {
+
+  // Send progress update to inform user that cancellation is in progress
+  sendProgress(state.currentProgress, 'Cancelling PDF generation and cleaning up...', {
     details: message.data.reason,
   });
 }

@@ -26,6 +26,7 @@ export enum WorkerMessageType {
   ERROR = 'ERROR',
   COMPLETE = 'COMPLETE',
   READY = 'READY',
+  CANCELLED = 'CANCELLED',
 }
 
 /**
@@ -161,6 +162,20 @@ export interface ReadyMessage extends BaseWorkerMessage {
 }
 
 /**
+ * Cancelled message from worker to main thread
+ * Indicates the task was successfully cancelled
+ */
+export interface CancelledMessage extends BaseWorkerMessage {
+  type: WorkerMessageType.CANCELLED;
+  data: {
+    reason?: string;
+    partialProgress?: number;
+    cleanedUp: boolean;
+    resourcesReleased: string[];
+  };
+}
+
+/**
  * Union type of all messages from main thread to worker
  */
 export type MainToWorkerMessage = InitializeMessage | CancelMessage;
@@ -172,7 +187,8 @@ export type WorkerToMainMessage =
   | ReadyMessage
   | ProgressMessage
   | ErrorMessage
-  | CompleteMessage;
+  | CompleteMessage
+  | CancelledMessage;
 
 /**
  * Union type of all worker messages
@@ -212,6 +228,12 @@ export function isCancelMessage(
 
 export function isReadyMessage(message: WorkerMessage): message is ReadyMessage {
   return message.type === WorkerMessageType.READY;
+}
+
+export function isCancelledMessage(
+  message: WorkerMessage
+): message is CancelledMessage {
+  return message.type === WorkerMessageType.CANCELLED;
 }
 
 /**

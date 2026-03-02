@@ -330,10 +330,31 @@
   outline-offset: 2px;
 }
 
+/* Context menu positioning within image node */
+.image-node-wrapper .image-context-menu-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.image-node-wrapper .alt-text-missing-badge,
+.image-node-wrapper .edit-alt-text-button {
+  pointer-events: auto;
+}
+
+.image-node-wrapper .image-context-menu {
+  pointer-events: auto;
+  right: 8px;
+}
+
 /* Print styles */
 @media print {
   .image-node-resize-handles,
-  .image-node-dimensions {
+  .image-node-dimensions,
+  .image-context-menu-container {
     display: none !important;
   }
 

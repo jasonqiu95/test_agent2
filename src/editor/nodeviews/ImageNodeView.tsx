@@ -292,14 +292,13 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
           </div>
         )}
 
-        {selected && menuPosition && !isResizing && (
-          <ImageContextMenu
-            view={view}
-            node={node}
-            getPos={getPos}
-            position={menuPosition}
-          />
-        )}
+        {/* Alt text editor context menu - show always to display accessibility indicator */}
+        <ImageContextMenu
+          node={node}
+          view={view}
+          getPos={getPos}
+          position={selected && menuPosition ? menuPosition : undefined}
+        />
       </div>
     </div>
   );

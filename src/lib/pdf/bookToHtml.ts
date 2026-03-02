@@ -147,32 +147,433 @@ export class HtmlConverter {
    * Main entry point for conversion
    */
   public convert(): string {
-    // TODO: Implement actual conversion logic
-    return '';
+    const fragments: string[] = [];
+
+    // Convert front matter
+    const frontMatterHtml = this.convertFrontMatter();
+    if (frontMatterHtml) {
+      fragments.push(frontMatterHtml);
+    }
+
+    // Convert chapters
+    const chaptersHtml = this.convertChapters();
+    if (chaptersHtml) {
+      fragments.push(chaptersHtml);
+    }
+
+    // Convert back matter
+    const backMatterHtml = this.convertBackMatter();
+    if (backMatterHtml) {
+      fragments.push(backMatterHtml);
+    }
+
+    // Wrap in main container if semantic tags are enabled
+    if (this.options.useSemanticTags) {
+      const prefix = this.options.classPrefix || 'book';
+      const bookClasses = [generateClassName('container', undefined, prefix)];
+      const roleAttr = this.options.includeAria ? ' role="main"' : '';
+      return `<main class="${bookClasses.join(' ')}"${roleAttr}>\n${fragments.join('\n\n')}\n</main>`;
+    }
+
+    return fragments.join('\n\n');
   }
 
   /**
    * Convert front matter to HTML
    */
   private convertFrontMatter(): string {
-    // TODO: Implement front matter conversion
-    return '';
+    if (!this.book.frontMatter || this.book.frontMatter.length === 0) {
+      return '';
+    }
+
+    this.resetContextForSection('front-matter');
+    const elementsHtml = this.book.frontMatter
+      .map((element, index) => {
+        this.updateContext({ currentElement: element, elementIndex: index });
+        return this.convertElement(element);
+      })
+      .join('\n\n');
+
+    return elementsHtml;
   }
 
   /**
    * Convert chapters to HTML
    */
   private convertChapters(): string {
-    // TODO: Implement chapter conversion
-    return '';
+    if (!this.book.chapters || this.book.chapters.length === 0) {
+      return '';
+    }
+
+    this.resetContextForSection('body-chapter');
+    const chaptersHtml = this.book.chapters
+      .map((chapter, index) => {
+        this.updateContext({ currentChapter: chapter, chapterIndex: index });
+        return this.convertSingleChapter(chapter, index);
+      })
+      .join('\n\n');
+
+    return chaptersHtml;
+  }
+
+  /**
+   * Convert a single chapter to HTML
+   */
+  private convertSingleChapter(chapter: Chapter, index: number): string {
+    const fragments: string[] = [];
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const includeAria = this.options.includeAria ?? true;
+    const includeChapterNumbers = this.options.includeChapterNumbers ?? true;
+
+    // Determine chapter matter type (front, body, back) based on metadata or position
+    const matterType = this.determineChapterMatterType(chapter, index);
+    const sectionType = matterTypeToSectionType(matterType);
+
+    // Create semantic tag config for chapter container
+    const tagConfig = this.getChapterTagConfig(
+      chapter,
+      matterType,
+      useSemanticTags,
+      includeAria
+    );
+
+    // Open chapter container
+    fragments.push(
+      `<${tagConfig.tag}${generateAttributes(tagConfig)}>`
+    );
+
+    // Add chapter header (number, title, subtitle)
+    const headerHtml = this.convertChapterHeader(
+      chapter,
+      includeChapterNumbers
+    );
+    if (headerHtml) {
+      fragments.push(headerHtml);
+    }
+
+    // Add epigraph if present
+    if (chapter.epigraph) {
+      fragments.push(this.convertChapterEpigraph(chapter));
+    }
+
+    // Add chapter content
+    const contentHtml = this.convertChapterContent(chapter);
+    if (contentHtml) {
+      fragments.push(contentHtml);
+    }
+
+    // Close chapter container
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Get semantic tag configuration for chapter
+   */
+  private getChapterTagConfig(
+    chapter: Chapter,
+    matterType: MatterType,
+    useSemanticTags: boolean,
+    includeAria: boolean
+  ): SemanticTagConfig {
+    const prefix = this.options.classPrefix || 'book';
+    const classes: string[] = [];
+    const ariaAttributes: Record<string, string> = {};
+    const dataAttributes: Record<string, string> = {};
+
+    // Base chapter class
+    classes.push(generateClassName('chapter', undefined, prefix));
+
+    // Matter type class
+    classes.push(
+      generateClassName('chapter', matterType, prefix)
+    );
+
+    // Part number class if applicable
+    if (chapter.partNumber !== undefined) {
+      classes.push(
+        generateClassName('chapter', `part-${chapter.partNumber}`, prefix)
+      );
+    }
+
+    // ARIA labels
+    if (includeAria) {
+      if (chapter.title) {
+        ariaAttributes['aria-label'] = chapter.title;
+      }
+      if (chapter.number !== undefined) {
+        ariaAttributes['aria-labelledby'] = `chapter-${chapter.number}-heading`;
+      }
+    }
+
+    // Data attributes
+    dataAttributes['chapter-id'] = chapter.id;
+    if (chapter.number !== undefined) {
+      dataAttributes['chapter-number'] = String(chapter.number);
+    }
+
+    return {
+      tag: useSemanticTags ? 'article' : 'div',
+      classes,
+      role: useSemanticTags && includeAria ? 'doc-chapter' : undefined,
+      ariaAttributes: includeAria ? ariaAttributes : undefined,
+      dataAttributes,
+    };
+  }
+
+  /**
+   * Convert chapter header (number, title, subtitle) to HTML
+   */
+  private convertChapterHeader(
+    chapter: Chapter,
+    includeChapterNumbers: boolean
+  ): string {
+    const fragments: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+    const headingLevel = this.context.currentHeadingLevel;
+    const headingTag = this.getHeadingTag(headingLevel);
+
+    // Create header container
+    const headerClasses = [generateClassName('chapter-header', undefined, prefix)];
+    fragments.push(`<header class="${headerClasses.join(' ')}">`);
+
+    // Add part title if present
+    if (chapter.partTitle) {
+      const partTitleClasses = [
+        generateClassName('chapter-part-title', undefined, prefix),
+      ];
+      fragments.push(
+        `<div class="${partTitleClasses.join(' ')}">${escapeHtml(chapter.partTitle)}</div>`
+      );
+    }
+
+    // Build chapter heading
+    const headingFragments: string[] = [];
+    const headingClasses = [generateClassName('chapter-title', undefined, prefix)];
+    const headingId =
+      chapter.number !== undefined
+        ? `chapter-${chapter.number}-heading`
+        : `chapter-${chapter.id}-heading`;
+
+    // Add chapter number if applicable
+    if (includeChapterNumbers && chapter.number !== undefined) {
+      const numberClasses = [
+        generateClassName('chapter-number', undefined, prefix),
+      ];
+      headingFragments.push(
+        `<span class="${numberClasses.join(' ')}">Chapter ${chapter.number}</span>`
+      );
+    }
+
+    // Add chapter title
+    if (chapter.title) {
+      const titleSpanClasses = [
+        generateClassName('chapter-title-text', undefined, prefix),
+      ];
+      headingFragments.push(
+        `<span class="${titleSpanClasses.join(' ')}">${escapeHtml(chapter.title)}</span>`
+      );
+    }
+
+    // Output chapter heading
+    if (headingFragments.length > 0) {
+      fragments.push(
+        `<${headingTag} id="${headingId}" class="${headingClasses.join(' ')}">${headingFragments.join(' ')}</${headingTag}>`
+      );
+    }
+
+    // Add subtitle if present
+    if (chapter.subtitle) {
+      const subtitleClasses = [
+        generateClassName('chapter-subtitle', undefined, prefix),
+      ];
+      const subtitleTag = this.getHeadingTag(headingLevel + 1);
+      fragments.push(
+        `<${subtitleTag} class="${subtitleClasses.join(' ')}">${escapeHtml(chapter.subtitle)}</${subtitleTag}>`
+      );
+    }
+
+    // Close header container
+    fragments.push('</header>');
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert chapter epigraph to HTML
+   */
+  private convertChapterEpigraph(chapter: Chapter): string {
+    if (!chapter.epigraph) {
+      return '';
+    }
+
+    const prefix = this.options.classPrefix || 'book';
+    const fragments: string[] = [];
+    const epigraphClasses = [
+      generateClassName('chapter-epigraph', undefined, prefix),
+    ];
+
+    fragments.push(`<div class="${epigraphClasses.join(' ')}">`);
+    fragments.push(`<blockquote>${escapeHtml(chapter.epigraph)}</blockquote>`);
+
+    if (chapter.epigraphAttribution) {
+      const attributionClasses = [
+        generateClassName('epigraph-attribution', undefined, prefix),
+      ];
+      fragments.push(
+        `<cite class="${attributionClasses.join(' ')}">${escapeHtml(chapter.epigraphAttribution)}</cite>`
+      );
+    }
+
+    fragments.push('</div>');
+
+    return fragments.join('\n');
+  }
+
+  /**
+   * Convert chapter content (text blocks) to HTML
+   */
+  private convertChapterContent(chapter: Chapter): string {
+    if (!chapter.content || chapter.content.length === 0) {
+      return '';
+    }
+
+    const prefix = this.options.classPrefix || 'book';
+    const contentClasses = [
+      generateClassName('chapter-content', undefined, prefix),
+    ];
+
+    const contentHtml = chapter.content
+      .map((block) => this.convertTextBlock(block))
+      .filter((html) => html.length > 0)
+      .join('\n');
+
+    if (!contentHtml) {
+      return '';
+    }
+
+    return `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`;
+  }
+
+  /**
+   * Determine chapter matter type based on metadata or position
+   */
+  private determineChapterMatterType(
+    chapter: Chapter,
+    index: number
+  ): MatterType {
+    // Check if chapter has custom matter type in metadata
+    if (chapter.custom?.matterType) {
+      const matterType = chapter.custom.matterType as string;
+      if (
+        matterType === 'front' ||
+        matterType === 'body' ||
+        matterType === 'back'
+      ) {
+        return matterType as MatterType;
+      }
+    }
+
+    // Default: all chapters are body matter
+    // (front/back matter should typically be handled via Elements)
+    return 'body';
+  }
+
+  /**
+   * Get appropriate heading tag for heading level
+   */
+  private getHeadingTag(level: number): string {
+    const clampedLevel = Math.max(1, Math.min(6, level));
+    return `h${clampedLevel}`;
   }
 
   /**
    * Convert back matter to HTML
    */
   private convertBackMatter(): string {
-    // TODO: Implement back matter conversion
-    return '';
+    if (!this.book.backMatter || this.book.backMatter.length === 0) {
+      return '';
+    }
+
+    this.resetContextForSection('back-matter');
+    const elementsHtml = this.book.backMatter
+      .map((element, index) => {
+        this.updateContext({ currentElement: element, elementIndex: index });
+        return this.convertElement(element);
+      })
+      .join('\n\n');
+
+    return elementsHtml;
+  }
+
+  /**
+   * Convert a single element (front/back matter) to HTML
+   */
+  private convertElement(element: Element): string {
+    const fragments: string[] = [];
+    const useSemanticTags = this.options.useSemanticTags ?? true;
+    const includeAria = this.options.includeAria ?? true;
+
+    // Get semantic tag config for element
+    const tagConfig = selectElementTag(element.type, useSemanticTags);
+
+    // Add matter type class
+    const prefix = this.options.classPrefix || 'book';
+    const matterClass = generateClassName(
+      'element',
+      element.matter,
+      prefix
+    );
+    tagConfig.classes.push(matterClass);
+
+    // Add ARIA attributes
+    if (includeAria && element.title) {
+      tagConfig.ariaAttributes = {
+        ...tagConfig.ariaAttributes,
+        'aria-label': element.title,
+      };
+    }
+
+    // Add data attributes
+    tagConfig.dataAttributes = {
+      ...tagConfig.dataAttributes,
+      'element-id': element.id,
+      'element-type': element.type,
+    };
+
+    // Open element container
+    fragments.push(`<${tagConfig.tag}${generateAttributes(tagConfig)}>`);
+
+    // Add element title
+    if (element.title) {
+      const headingLevel = this.context.currentHeadingLevel;
+      const headingTag = this.getHeadingTag(headingLevel);
+      const titleClasses = [generateClassName('element-title', undefined, prefix)];
+      fragments.push(
+        `<${headingTag} class="${titleClasses.join(' ')}">${escapeHtml(element.title)}</${headingTag}>`
+      );
+    }
+
+    // Add element content
+    if (element.content && element.content.length > 0) {
+      const contentClasses = [generateClassName('element-content', undefined, prefix)];
+      const contentHtml = element.content
+        .map((block) => this.convertTextBlock(block))
+        .filter((html) => html.length > 0)
+        .join('\n');
+
+      if (contentHtml) {
+        fragments.push(
+          `<div class="${contentClasses.join(' ')}">\n${contentHtml}\n</div>`
+        );
+      }
+    }
+
+    // Close element container
+    fragments.push(`</${tagConfig.tag}>`);
+
+    return fragments.join('\n');
   }
 
   /**

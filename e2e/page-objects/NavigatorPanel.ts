@@ -223,4 +223,11 @@ export class NavigatorPanel {
     await this.panel.waitFor({ state: 'visible' });
     await this.chapterList.waitFor({ state: 'visible' });
   }
+
+  /**
+   * Wait for the navigator to be ready (alias for waitForLoad)
+   */
+  async waitForReady(): Promise<void> {
+    await this.waitForLoad();
+  }
 }

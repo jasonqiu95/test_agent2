@@ -12,6 +12,7 @@ import {
   toggleItalic,
   toggleUnderline,
   setHeading,
+  setParagraph,
 } from '../commands';
 
 /**
@@ -22,21 +23,23 @@ import {
  */
 export function createKeymapPlugins(schema: Schema): Plugin[] {
   return [
-    // Formatting keymaps
+    // Text formatting keymaps
     // Note: 'Mod' maps to Cmd on macOS and Ctrl on Windows/Linux
     keymap({
-      // Text formatting
       'Mod-b': toggleBold(schema),
       'Mod-i': toggleItalic(schema),
       'Mod-u': toggleUnderline(schema),
+    }),
 
-      // Heading shortcuts (Ctrl/Cmd + 1-6)
-      'Mod-1': setHeading(schema, 1),
-      'Mod-2': setHeading(schema, 2),
-      'Mod-3': setHeading(schema, 3),
-      'Mod-4': setHeading(schema, 4),
-      'Mod-5': setHeading(schema, 5),
-      'Mod-6': setHeading(schema, 6),
+    // Heading level keymaps
+    keymap({
+      'Ctrl-Alt-1': setHeading(1),
+      'Ctrl-Alt-2': setHeading(2),
+      'Ctrl-Alt-3': setHeading(3),
+      'Ctrl-Alt-4': setHeading(4),
+      'Ctrl-Alt-5': setHeading(5),
+      'Ctrl-Alt-6': setHeading(6),
+      'Ctrl-Alt-0': setParagraph(),
     }),
 
     // History keymaps (undo/redo)

@@ -7,6 +7,7 @@ import { Command } from 'prosemirror-state';
 import { toggleMark, setBlockType, lift } from 'prosemirror-commands';
 import { Schema } from 'prosemirror-model';
 import { MarkType, NodeType } from './types';
+import { EditorState } from 'prosemirror-state';
 
 /**
  * Creates a command to toggle bold formatting
@@ -338,6 +339,52 @@ export function getCurrentHeadingLevel(state: any): number | null {
   }
 
   return null;
+}
+
+/**
+ * Check if a mark is active in the current selection
+ */
+export function isMarkActive(state: EditorState, markType: MarkType): boolean {
+  const type = state.schema.marks[markType];
+  if (!type) return false;
+
+  const { from, $from, to, empty } = state.selection;
+
+  if (empty) {
+    // For empty selection, check stored marks or marks at cursor position
+    return !!type.isInSet(state.storedMarks || $from.marks());
+  }
+
+  // For non-empty selection, check if mark is present throughout the selection
+  return state.doc.rangeHasMark(from, to, type);
+}
+
+/**
+ * Check if bold is active
+ */
+export function isBoldActive(state: EditorState): boolean {
+  return isMarkActive(state, MarkType.BOLD);
+}
+
+/**
+ * Check if italic is active
+ */
+export function isItalicActive(state: EditorState): boolean {
+  return isMarkActive(state, MarkType.ITALIC);
+}
+
+/**
+ * Check if underline is active
+ */
+export function isUnderlineActive(state: EditorState): boolean {
+  return isMarkActive(state, MarkType.UNDERLINE);
+}
+
+/**
+ * Check if the current block is a heading with the specified level
+ */
+export function isHeadingActive(state: EditorState, level: number): boolean {
+  return getCurrentHeadingLevel(state) === level;
 }
 
 /**

@@ -64,4 +64,9 @@ export {
   getCurrentHeadingLevel,
   convertSelectedBlocks,
   createFormattingCommands,
+  isBoldActive,
+  isItalicActive,
+  isUnderlineActive,
+  isHeadingActive,
+  isMarkActive,
 } from './commands';

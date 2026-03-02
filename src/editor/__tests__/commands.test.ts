@@ -1,10 +1,13 @@
 /**
- * Tests for paragraph and heading formatting commands
+ * Tests for editor formatting commands
  */
 
-import { EditorState } from 'prosemirror-state';
+import { EditorState, TextSelection } from 'prosemirror-state';
 import { editorSchema } from '../schema';
 import {
+  toggleBold,
+  toggleItalic,
+  toggleUnderline,
   setParagraph,
   setHeading,
   toggleParagraph,
@@ -14,6 +17,10 @@ import {
   isParagraph,
   isHeading,
   getCurrentHeadingLevel,
+  isBoldActive,
+  isItalicActive,
+  isUnderlineActive,
+  isHeadingActive,
 } from '../commands';
 import { NodeType } from '../types';
 
@@ -32,244 +39,420 @@ function createTestState(blockType: string, attrs?: any, content = 'test') {
   });
 }
 
-describe('Paragraph and Heading Commands', () => {
-  describe('setParagraph', () => {
-    it('should convert heading to paragraph', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      const command = setParagraph();
+describe('Formatting Commands', () => {
+  describe('toggleBold', () => {
+    it('should toggle bold mark on text', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Hello world' }],
+          },
+        ],
+      });
 
-      let newState: EditorState | null = null;
-      const result = command(state, (tr) => {
-        newState = state.apply(tr);
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+
+      // Select "Hello" (positions 1-6)
+      const selection = TextSelection.create(state.doc, 1, 6);
+      state = state.apply(state.tr.setSelection(selection));
+
+      // Apply bold
+      const result = toggleBold(editorSchema)(state, (tr) => {
+        state = state.apply(tr);
       });
 
       expect(result).toBe(true);
-      expect(newState).not.toBeNull();
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
-    });
-
-    it('should handle empty blocks', () => {
-      const state = createTestState(NodeType.HEADING, { level: 2 }, '');
-      const command = setParagraph();
-
-      let newState: EditorState | null = null;
-      const result = command(state, (tr) => {
-        newState = state.apply(tr);
-      });
-
-      expect(result).toBe(true);
-      expect(newState).not.toBeNull();
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
-    });
-
-    it('should preserve text content when converting', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 }, 'Hello World');
-      const command = setParagraph();
-
-      let newState: EditorState | null = null;
-      command(state, (tr) => {
-        newState = state.apply(tr);
-      });
-
-      expect(newState!.doc.textContent).toBe('Hello World');
+      expect(isBoldActive(state)).toBe(true);
     });
   });
 
-  describe('setHeading', () => {
-    it('should convert paragraph to heading', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      const command = setHeading(1);
+  describe('toggleItalic', () => {
+    it('should toggle italic mark on text', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Hello world' }],
+          },
+        ],
+      });
 
-      let newState: EditorState | null = null;
-      const result = command(state, (tr) => {
-        newState = state.apply(tr);
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+
+      const selection = TextSelection.create(state.doc, 1, 6);
+      state = state.apply(state.tr.setSelection(selection));
+
+      const result = toggleItalic(editorSchema)(state, (tr) => {
+        state = state.apply(tr);
       });
 
       expect(result).toBe(true);
-      expect(newState).not.toBeNull();
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
-      expect(newState!.doc.firstChild!.attrs.level).toBe(1);
+      expect(isItalicActive(state)).toBe(true);
     });
+  });
 
-    it('should convert between heading levels', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      const command = setHeading(3);
-
-      let newState: EditorState | null = null;
-      command(state, (tr) => {
-        newState = state.apply(tr);
+  describe('toggleUnderline', () => {
+    it('should toggle underline mark on text', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Hello world' }],
+          },
+        ],
       });
 
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
-      expect(newState!.doc.firstChild!.attrs.level).toBe(3);
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+
+      const selection = TextSelection.create(state.doc, 1, 6);
+      state = state.apply(state.tr.setSelection(selection));
+
+      const result = toggleUnderline(editorSchema)(state, (tr) => {
+        state = state.apply(tr);
+      });
+
+      expect(result).toBe(true);
+      expect(isUnderlineActive(state)).toBe(true);
+    });
+  });
+
+  describe('Mark detection', () => {
+    it('should detect bold marks correctly', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Hello ', marks: [{ type: 'bold' }] },
+              { type: 'text', text: 'world' },
+            ],
+          },
+        ],
+      });
+
+      // Selection within bold text
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+      let selection = TextSelection.create(state.doc, 1, 4);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isBoldActive(state)).toBe(true);
+
+      // Selection in non-bold text
+      selection = TextSelection.create(state.doc, 7, 10);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isBoldActive(state)).toBe(false);
     });
 
-    it('should work with all heading levels (1-6)', () => {
-      for (let level = 1; level <= 6; level++) {
-        const state = createTestState(NodeType.PARAGRAPH);
-        const command = setHeading(level as 1 | 2 | 3 | 4 | 5 | 6);
+    it('should detect italic marks correctly', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Hello ', marks: [{ type: 'italic' }] },
+              { type: 'text', text: 'world' },
+            ],
+          },
+        ],
+      });
+
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+      let selection = TextSelection.create(state.doc, 1, 4);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isItalicActive(state)).toBe(true);
+
+      selection = TextSelection.create(state.doc, 7, 10);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isItalicActive(state)).toBe(false);
+    });
+
+    it('should detect underline marks correctly', () => {
+      const doc = editorSchema.nodeFromJSON({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Hello ', marks: [{ type: 'underline' }] },
+              { type: 'text', text: 'world' },
+            ],
+          },
+        ],
+      });
+
+      let state = EditorState.create({
+        doc,
+        schema: editorSchema,
+      });
+      let selection = TextSelection.create(state.doc, 1, 4);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isUnderlineActive(state)).toBe(true);
+
+      selection = TextSelection.create(state.doc, 7, 10);
+      state = state.apply(state.tr.setSelection(selection));
+      expect(isUnderlineActive(state)).toBe(false);
+    });
+  });
+
+  describe('Paragraph and Heading Commands', () => {
+    describe('setParagraph', () => {
+      it('should convert heading to paragraph', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        const command = setParagraph();
+
+        let newState: EditorState | null = null;
+        const result = command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(result).toBe(true);
+        expect(newState).not.toBeNull();
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
+      });
+
+      it('should handle empty blocks', () => {
+        const state = createTestState(NodeType.HEADING, { level: 2 }, '');
+        const command = setParagraph();
+
+        let newState: EditorState | null = null;
+        const result = command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(result).toBe(true);
+        expect(newState).not.toBeNull();
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
+      });
+
+      it('should preserve text content when converting', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 }, 'Hello World');
+        const command = setParagraph();
 
         let newState: EditorState | null = null;
         command(state, (tr) => {
           newState = state.apply(tr);
         });
 
-        expect(newState!.doc.firstChild!.attrs.level).toBe(level);
-      }
+        expect(newState!.doc.textContent).toBe('Hello World');
+      });
     });
 
-    it('should preserve text content when converting', () => {
-      const state = createTestState(NodeType.PARAGRAPH, {}, 'Heading Text');
-      const command = setHeading(2);
+    describe('setHeading', () => {
+      it('should convert paragraph to heading', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        const command = setHeading(1);
 
-      let newState: EditorState | null = null;
-      command(state, (tr) => {
-        newState = state.apply(tr);
+        let newState: EditorState | null = null;
+        const result = command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(result).toBe(true);
+        expect(newState).not.toBeNull();
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
+        expect(newState!.doc.firstChild!.attrs.level).toBe(1);
       });
 
-      expect(newState!.doc.textContent).toBe('Heading Text');
-    });
-  });
+      it('should convert between heading levels', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        const command = setHeading(3);
 
-  describe('toggleParagraph', () => {
-    it('should convert heading to paragraph', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      const command = toggleParagraph();
+        let newState: EditorState | null = null;
+        command(state, (tr) => {
+          newState = state.apply(tr);
+        });
 
-      let newState: EditorState | null = null;
-      const result = command(state, (tr) => {
-        newState = state.apply(tr);
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
+        expect(newState!.doc.firstChild!.attrs.level).toBe(3);
       });
 
-      expect(result).toBe(true);
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
-    });
+      it('should work with all heading levels (1-6)', () => {
+        for (let level = 1; level <= 6; level++) {
+          const state = createTestState(NodeType.PARAGRAPH);
+          const command = setHeading(level as 1 | 2 | 3 | 4 | 5 | 6);
 
-    it('should do nothing if already a paragraph', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      const command = toggleParagraph();
+          let newState: EditorState | null = null;
+          command(state, (tr) => {
+            newState = state.apply(tr);
+          });
 
-      const result = command(state, () => {});
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('toggleHeading', () => {
-    it('should convert paragraph to heading', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      const command = toggleHeading(1);
-
-      let newState: EditorState | null = null;
-      const result = command(state, (tr) => {
-        newState = state.apply(tr);
+          expect(newState!.doc.firstChild!.attrs.level).toBe(level);
+        }
       });
 
-      expect(result).toBe(true);
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
-      expect(newState!.doc.firstChild!.attrs.level).toBe(1);
+      it('should preserve text content when converting', () => {
+        const state = createTestState(NodeType.PARAGRAPH, {}, 'Heading Text');
+        const command = setHeading(2);
+
+        let newState: EditorState | null = null;
+        command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(newState!.doc.textContent).toBe('Heading Text');
+      });
     });
 
-    it('should convert heading to paragraph if same level', () => {
-      const state = createTestState(NodeType.HEADING, { level: 2 });
-      const command = toggleHeading(2);
+    describe('toggleParagraph', () => {
+      it('should convert heading to paragraph', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        const command = toggleParagraph();
 
-      let newState: EditorState | null = null;
-      command(state, (tr) => {
-        newState = state.apply(tr);
+        let newState: EditorState | null = null;
+        const result = command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(result).toBe(true);
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
       });
 
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
+      it('should do nothing if already a paragraph', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        const command = toggleParagraph();
+
+        const result = command(state, () => {});
+
+        expect(result).toBe(false);
+      });
     });
 
-    it('should change to different heading level if different', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      const command = toggleHeading(3);
+    describe('toggleHeading', () => {
+      it('should convert paragraph to heading', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        const command = toggleHeading(1);
 
-      let newState: EditorState | null = null;
-      command(state, (tr) => {
-        newState = state.apply(tr);
+        let newState: EditorState | null = null;
+        const result = command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(result).toBe(true);
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
+        expect(newState!.doc.firstChild!.attrs.level).toBe(1);
       });
 
-      expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
-      expect(newState!.doc.firstChild!.attrs.level).toBe(3);
-    });
-  });
+      it('should convert heading to paragraph if same level', () => {
+        const state = createTestState(NodeType.HEADING, { level: 2 });
+        const command = toggleHeading(2);
 
-  describe('canSetParagraph', () => {
-    it('should return true for heading blocks', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      expect(canSetParagraph(state)).toBe(true);
-    });
+        let newState: EditorState | null = null;
+        command(state, (tr) => {
+          newState = state.apply(tr);
+        });
 
-    it('should return true for blockquote blocks', () => {
-      const blockquoteNode = editorSchema.nodes[NodeType.BLOCKQUOTE].create(
-        null,
-        editorSchema.nodes[NodeType.PARAGRAPH].create(null, editorSchema.text('test'))
-      );
-      const doc = editorSchema.node('doc', null, [blockquoteNode]);
-      const state = EditorState.create({ doc, schema: editorSchema });
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.PARAGRAPH);
+      });
 
-      // canSetParagraph checks if we can convert the current block
-      // For blockquotes, we'd need to be inside the paragraph
-      expect(typeof canSetParagraph(state)).toBe('boolean');
-    });
-  });
+      it('should change to different heading level if different', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        const command = toggleHeading(3);
 
-  describe('canSetHeading', () => {
-    it('should return true for paragraph blocks', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      expect(canSetHeading(state, 1)).toBe(true);
+        let newState: EditorState | null = null;
+        command(state, (tr) => {
+          newState = state.apply(tr);
+        });
+
+        expect(newState!.doc.firstChild!.type.name).toBe(NodeType.HEADING);
+        expect(newState!.doc.firstChild!.attrs.level).toBe(3);
+      });
     });
 
-    it('should return true for all valid heading levels', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      for (let level = 1; level <= 6; level++) {
-        expect(canSetHeading(state, level as 1 | 2 | 3 | 4 | 5 | 6)).toBe(true);
-      }
-    });
-  });
+    describe('canSetParagraph', () => {
+      it('should return true for heading blocks', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        expect(canSetParagraph(state)).toBe(true);
+      });
 
-  describe('isParagraph', () => {
-    it('should return true for paragraph blocks', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      expect(isParagraph(state)).toBe(true);
-    });
+      it('should return true for blockquote blocks', () => {
+        const blockquoteNode = editorSchema.nodes[NodeType.BLOCKQUOTE].create(
+          null,
+          editorSchema.nodes[NodeType.PARAGRAPH].create(null, editorSchema.text('test'))
+        );
+        const doc = editorSchema.node('doc', null, [blockquoteNode]);
+        const state = EditorState.create({ doc, schema: editorSchema });
 
-    it('should return false for heading blocks', () => {
-      const state = createTestState(NodeType.HEADING, { level: 1 });
-      expect(isParagraph(state)).toBe(false);
-    });
-  });
-
-  describe('isHeading', () => {
-    it('should return true for matching heading level', () => {
-      const state = createTestState(NodeType.HEADING, { level: 2 });
-      expect(isHeading(state, 2)).toBe(true);
+        // canSetParagraph checks if we can convert the current block
+        // For blockquotes, we'd need to be inside the paragraph
+        expect(typeof canSetParagraph(state)).toBe('boolean');
+      });
     });
 
-    it('should return false for different heading level', () => {
-      const state = createTestState(NodeType.HEADING, { level: 2 });
-      expect(isHeading(state, 1)).toBe(false);
+    describe('canSetHeading', () => {
+      it('should return true for paragraph blocks', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        expect(canSetHeading(state, 1)).toBe(true);
+      });
+
+      it('should return true for all valid heading levels', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        for (let level = 1; level <= 6; level++) {
+          expect(canSetHeading(state, level as 1 | 2 | 3 | 4 | 5 | 6)).toBe(true);
+        }
+      });
     });
 
-    it('should return false for paragraph blocks', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      expect(isHeading(state, 1)).toBe(false);
-    });
-  });
+    describe('isParagraph', () => {
+      it('should return true for paragraph blocks', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        expect(isParagraph(state)).toBe(true);
+      });
 
-  describe('getCurrentHeadingLevel', () => {
-    it('should return the heading level for heading blocks', () => {
-      for (let level = 1; level <= 6; level++) {
-        const state = createTestState(NodeType.HEADING, { level });
-        expect(getCurrentHeadingLevel(state)).toBe(level);
-      }
+      it('should return false for heading blocks', () => {
+        const state = createTestState(NodeType.HEADING, { level: 1 });
+        expect(isParagraph(state)).toBe(false);
+      });
     });
 
-    it('should return null for paragraph blocks', () => {
-      const state = createTestState(NodeType.PARAGRAPH);
-      expect(getCurrentHeadingLevel(state)).toBeNull();
+    describe('isHeading', () => {
+      it('should return true for matching heading level', () => {
+        const state = createTestState(NodeType.HEADING, { level: 2 });
+        expect(isHeading(state, 2)).toBe(true);
+      });
+
+      it('should return false for different heading level', () => {
+        const state = createTestState(NodeType.HEADING, { level: 2 });
+        expect(isHeading(state, 1)).toBe(false);
+      });
+
+      it('should return false for paragraph blocks', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        expect(isHeading(state, 1)).toBe(false);
+      });
+    });
+
+    describe('getCurrentHeadingLevel', () => {
+      it('should return the heading level for heading blocks', () => {
+        for (let level = 1; level <= 6; level++) {
+          const state = createTestState(NodeType.HEADING, { level });
+          expect(getCurrentHeadingLevel(state)).toBe(level);
+        }
+      });
+
+      it('should return null for paragraph blocks', () => {
+        const state = createTestState(NodeType.PARAGRAPH);
+        expect(getCurrentHeadingLevel(state)).toBeNull();
+      });
     });
   });
 });

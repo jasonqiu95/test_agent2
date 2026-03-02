@@ -13,6 +13,9 @@ export * from './asyncErrorHandler';
 export * from './fontLoader';
 export * from './paginationEngine';
 
+// Progress emitter
+export { ProgressEmitter } from './progressEmitter';
+
 // Cache utilities
 export {
   WeakCache,

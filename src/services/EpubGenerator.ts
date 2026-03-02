@@ -76,29 +76,187 @@ export class EpubGenerator {
       ...options,
     };
 
+    const warnings: string[] = [];
+
     try {
-      // TODO: Implement EPUB generation logic
       // 1. Validate book content
-      // 2. Apply style to book elements
-      // 3. Generate EPUB structure (mimetype, container.xml, content.opf, toc.ncx)
-      // 4. Package chapters and content
-      // 5. Add metadata and cover
-      // 6. Compress and output EPUB file
+      if (!this.validateBook(book)) {
+        return {
+          success: false,
+          error: 'Book validation failed: Book must have at least one chapter',
+        };
+      }
 
-      console.log('Generating EPUB with options:', mergedOptions);
-      console.log('Book title:', book.title);
-      console.log('Style:', style.name);
+      // 2. Build the EPUB structure with directory folders and base files
+      const zip = this.buildEpubStructure();
 
-      // Placeholder implementation
+      // 3. Generate and add CSS styles based on BookStyle
+      const cssContent = this.generateCss(style, mergedOptions.customCss);
+      zip.file('OEBPS/styles.css', cssContent);
+
+      // 4. Prepare manifest and spine items for package.opf
+      const manifestItems: Array<{
+        id: string;
+        href: string;
+        mediaType: string;
+        properties?: string;
+      }> = [];
+
+      const spineItems: Array<{ idref: string; linear?: boolean }> = [];
+
+      // Add CSS to manifest
+      manifestItems.push({
+        id: 'stylesheet',
+        href: 'styles.css',
+        mediaType: 'text/css',
+      });
+
+      // 5. Generate and add chapter content files
+      const tocChapters = book.chapters.filter(chapter => chapter.includeInToc !== false);
+
+      for (let i = 0; i < book.chapters.length; i++) {
+        const chapter = book.chapters[i];
+        const chapterId = chapter.id || `chapter-${i + 1}`;
+        const chapterFileName = `${chapterId}.xhtml`;
+
+        // Generate XHTML content for the chapter
+        const chapterXhtml = this.generateChapterXhtml(chapter, style);
+        zip.file(`OEBPS/${chapterFileName}`, chapterXhtml);
+
+        // Add to manifest
+        manifestItems.push({
+          id: chapterId,
+          href: chapterFileName,
+          mediaType: 'application/xhtml+xml',
+        });
+
+        // Add to spine
+        spineItems.push({
+          idref: chapterId,
+          linear: chapter.includeInToc !== false,
+        });
+      }
+
+      // 6. Generate and add navigation files
+      if (mergedOptions.includeToc !== false) {
+        // Generate nav.xhtml (EPUB 3)
+        const navXhtml = this.generateNavXhtml(tocChapters);
+        zip.file('OEBPS/nav.xhtml', navXhtml);
+
+        // Generate toc.ncx (EPUB 2 compatibility)
+        const tocNcx = this.generateTocNcx(tocChapters);
+        zip.file('OEBPS/toc.ncx', tocNcx);
+
+        // Add toc.ncx to manifest
+        manifestItems.push({
+          id: 'ncx',
+          href: 'toc.ncx',
+          mediaType: 'application/x-dtbncx+xml',
+        });
+
+        // Add nav.xhtml to manifest (with nav property)
+        manifestItems.push({
+          id: 'nav',
+          href: 'nav.xhtml',
+          mediaType: 'application/xhtml+xml',
+          properties: 'nav',
+        });
+      } else {
+        warnings.push('Table of contents generation was disabled');
+      }
+
+      // 7. Handle cover image if provided
+      if (mergedOptions.includeCover !== false && book.coverImage) {
+        try {
+          // Determine cover image format from path/data
+          const coverImageData = book.coverImage;
+          const coverMediaType = this.getCoverImageMediaType(coverImageData);
+          const coverExt = this.getCoverImageExtension(coverMediaType);
+
+          zip.file(`OEBPS/cover.${coverExt}`, coverImageData);
+
+          // Add cover image to manifest
+          manifestItems.push({
+            id: 'cover-image',
+            href: `cover.${coverExt}`,
+            mediaType: coverMediaType,
+            properties: 'cover-image',
+          });
+
+          // Create cover page XHTML
+          const coverXhtml = this.generateCoverXhtml(coverExt);
+          zip.file('OEBPS/cover.xhtml', coverXhtml);
+
+          manifestItems.push({
+            id: 'cover',
+            href: 'cover.xhtml',
+            mediaType: 'application/xhtml+xml',
+          });
+
+          // Add cover to the beginning of spine
+          spineItems.unshift({
+            idref: 'cover',
+            linear: false,
+          });
+        } catch (error) {
+          warnings.push(`Failed to add cover image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // 8. Generate package.opf with metadata, manifest, and spine
+      const packageOpf = this.generatePackageOpf(
+        {
+          title: book.title,
+          subtitle: book.subtitle,
+          authors: book.authors.map(author => ({
+            name: author.name,
+            role: author.role,
+          })),
+          isbn: book.metadata.isbn,
+          isbn13: book.metadata.isbn13,
+          language: book.metadata.language || 'en',
+          publisher: book.metadata.publisher,
+          publicationDate: book.metadata.publicationDate,
+          description: book.metadata.description,
+          rights: book.metadata.rights,
+        },
+        manifestItems,
+        spineItems
+      );
+      zip.file('OEBPS/package.opf', packageOpf);
+
+      // 9. Generate the final EPUB file
+      const compressionLevel = mergedOptions.compressionLevel || 6;
+      const epubBuffer = await zip.generateAsync({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: compressionLevel,
+        },
+        mimeType: 'application/epub+zip',
+      });
+
+      // 10. Save to file if outputPath is specified, otherwise return buffer
+      let filePath: string | undefined;
+      let fileSize = epubBuffer.length;
+
+      if (mergedOptions.outputPath) {
+        const fs = await import('fs/promises');
+        await fs.writeFile(mergedOptions.outputPath, epubBuffer);
+        filePath = mergedOptions.outputPath;
+      }
+
       return {
-        success: false,
-        error: 'EPUB generation not yet implemented',
-        warnings: ['This is a placeholder implementation'],
+        success: true,
+        filePath,
+        fileSize,
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     }
   }
@@ -617,6 +775,301 @@ ${navListHtml}    </ol>
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Generates CSS content from BookStyle
+   * @param style - The BookStyle configuration
+   * @param customCss - Optional custom CSS to append
+   * @returns CSS content as a string
+   */
+  private generateCss(style: BookStyle, customCss?: string): string {
+    let css = `/* Generated EPUB Styles */\n\n`;
+
+    // Body styles
+    css += `body {\n`;
+    css += `  font-family: ${style.fonts.body}, ${style.fonts.fallback};\n`;
+    css += `  font-size: ${style.body.fontSize};\n`;
+    css += `  line-height: ${style.body.lineHeight};\n`;
+    css += `  color: ${style.colors.text};\n`;
+    if (style.body.fontWeight) {
+      css += `  font-weight: ${style.body.fontWeight};\n`;
+    }
+    if (style.body.textAlign) {
+      css += `  text-align: ${style.body.textAlign};\n`;
+    }
+    if (style.colors.background) {
+      css += `  background-color: ${style.colors.background};\n`;
+    }
+    css += `}\n\n`;
+
+    // Paragraph styles
+    css += `p {\n`;
+    css += `  margin: ${style.spacing.paragraphSpacing} 0;\n`;
+    css += `}\n\n`;
+
+    // Heading styles
+    const headings = [
+      { tag: 'h1', style: style.headings.h1 },
+      { tag: 'h2', style: style.headings.h2 },
+      { tag: 'h3', style: style.headings.h3 },
+    ];
+
+    if (style.headings.h4) {
+      headings.push({ tag: 'h4', style: style.headings.h4 });
+    }
+
+    headings.forEach(({ tag, style: hStyle }) => {
+      css += `${tag} {\n`;
+      css += `  font-family: ${style.fonts.heading}, ${style.fonts.fallback};\n`;
+      css += `  font-size: ${hStyle.fontSize};\n`;
+      css += `  color: ${hStyle.color || style.colors.heading};\n`;
+      if (hStyle.fontWeight) {
+        css += `  font-weight: ${hStyle.fontWeight};\n`;
+      }
+      if (hStyle.lineHeight) {
+        css += `  line-height: ${hStyle.lineHeight};\n`;
+      }
+      if (hStyle.marginTop) {
+        css += `  margin-top: ${hStyle.marginTop};\n`;
+      }
+      if (hStyle.marginBottom) {
+        css += `  margin-bottom: ${hStyle.marginBottom};\n`;
+      }
+      if (hStyle.textTransform) {
+        css += `  text-transform: ${hStyle.textTransform};\n`;
+      }
+      if (hStyle.letterSpacing) {
+        css += `  letter-spacing: ${hStyle.letterSpacing};\n`;
+      }
+      css += `}\n\n`;
+    });
+
+    // Drop cap styles
+    if (style.dropCap.enabled) {
+      css += `p.first-paragraph::first-letter {\n`;
+      css += `  float: left;\n`;
+      css += `  font-size: ${style.dropCap.fontSize || '3em'};\n`;
+      css += `  line-height: ${style.dropCap.lines || 3};\n`;
+      if (style.dropCap.fontFamily) {
+        css += `  font-family: ${style.dropCap.fontFamily};\n`;
+      }
+      if (style.dropCap.fontWeight) {
+        css += `  font-weight: ${style.dropCap.fontWeight};\n`;
+      }
+      if (style.dropCap.color) {
+        css += `  color: ${style.dropCap.color};\n`;
+      }
+      css += `  margin-right: ${style.dropCap.marginRight || '0.1em'};\n`;
+      css += `}\n\n`;
+    }
+
+    // First paragraph styles
+    if (style.firstParagraph.enabled) {
+      css += `p.first-paragraph {\n`;
+      if (style.firstParagraph.textTransform) {
+        css += `  text-transform: ${style.firstParagraph.textTransform};\n`;
+      }
+      if (style.firstParagraph.fontVariant) {
+        css += `  font-variant: ${style.firstParagraph.fontVariant};\n`;
+      }
+      if (style.firstParagraph.letterSpacing) {
+        css += `  letter-spacing: ${style.firstParagraph.letterSpacing};\n`;
+      }
+      if (style.firstParagraph.fontSize) {
+        css += `  font-size: ${style.firstParagraph.fontSize};\n`;
+      }
+      css += `}\n\n`;
+    }
+
+    // Ornamental break styles
+    if (style.ornamentalBreak.enabled) {
+      css += `.ornamental-break {\n`;
+      css += `  text-align: ${style.ornamentalBreak.textAlign || 'center'};\n`;
+      css += `  margin-top: ${style.ornamentalBreak.marginTop || '2em'};\n`;
+      css += `  margin-bottom: ${style.ornamentalBreak.marginBottom || '2em'};\n`;
+      if (style.ornamentalBreak.fontSize) {
+        css += `  font-size: ${style.ornamentalBreak.fontSize};\n`;
+      }
+      css += `}\n\n`;
+    }
+
+    // Add custom CSS if provided
+    if (customCss) {
+      css += `\n/* Custom CSS */\n`;
+      css += customCss;
+      css += `\n`;
+    }
+
+    return css;
+  }
+
+  /**
+   * Generates XHTML content for a chapter
+   * @param chapter - The chapter to convert
+   * @param style - The BookStyle to apply
+   * @returns XHTML content as a string
+   */
+  private generateChapterXhtml(chapter: Book['chapters'][0], style: BookStyle): string {
+    let contentHtml = '';
+
+    // Add chapter title
+    if (chapter.title) {
+      const chapterLabel = chapter.number ? `Chapter ${chapter.number}` : '';
+      if (chapterLabel) {
+        contentHtml += `  <h2 class="chapter-number">${this.escapeXml(chapterLabel)}</h2>\n`;
+      }
+      contentHtml += `  <h1 class="chapter-title">${this.escapeXml(chapter.title)}</h1>\n`;
+    }
+
+    // Add subtitle if present
+    if (chapter.subtitle) {
+      contentHtml += `  <h2 class="chapter-subtitle">${this.escapeXml(chapter.subtitle)}</h2>\n`;
+    }
+
+    // Add epigraph if present
+    if (chapter.epigraph) {
+      contentHtml += `  <div class="epigraph">\n`;
+      contentHtml += `    <p>${this.escapeXml(chapter.epigraph)}</p>\n`;
+      if (chapter.epigraphAttribution) {
+        contentHtml += `    <p class="attribution">${this.escapeXml(chapter.epigraphAttribution)}</p>\n`;
+      }
+      contentHtml += `  </div>\n`;
+    }
+
+    // Add chapter content
+    chapter.content.forEach((block, index) => {
+      const isFirstParagraph = index === 0 && block.blockType === 'paragraph';
+      contentHtml += this.generateTextBlockHtml(block, isFirstParagraph);
+    });
+
+    // Build complete XHTML document
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${this.escapeXml(chapter.title)}</title>
+  <link rel="stylesheet" type="text/css" href="styles.css"/>
+</head>
+<body>
+${contentHtml}
+</body>
+</html>
+`;
+  }
+
+  /**
+   * Generates HTML for a text block
+   * @param block - The text block to convert
+   * @param isFirstParagraph - Whether this is the first paragraph of the chapter
+   * @returns HTML content as a string
+   */
+  private generateTextBlockHtml(block: Book['chapters'][0]['content'][0], isFirstParagraph: boolean): string {
+    const content = this.escapeXml(block.content);
+
+    switch (block.blockType) {
+      case 'paragraph':
+        const className = isFirstParagraph ? ' class="first-paragraph"' : '';
+        return `  <p${className}>${content}</p>\n`;
+
+      case 'heading':
+        const level = block.level || 2;
+        return `  <h${level}>${content}</h${level}>\n`;
+
+      case 'preformatted':
+        return `  <pre>${content}</pre>\n`;
+
+      case 'code':
+        return `  <pre><code>${content}</code></pre>\n`;
+
+      case 'list':
+        const listTag = block.listType === 'ordered' ? 'ol' : 'ul';
+        return `  <${listTag}>\n    <li>${content}</li>\n  </${listTag}>\n`;
+
+      default:
+        return `  <p>${content}</p>\n`;
+    }
+  }
+
+  /**
+   * Generates XHTML content for the cover page
+   * @param coverImageExt - The file extension of the cover image
+   * @returns XHTML content as a string
+   */
+  private generateCoverXhtml(coverImageExt: string): string {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Cover</title>
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <img src="cover.${coverImageExt}" alt="Cover Image"/>
+</body>
+</html>
+`;
+  }
+
+  /**
+   * Determines the media type of a cover image
+   * @param imageData - The image data (path or base64 string)
+   * @returns The MIME type of the image
+   */
+  private getCoverImageMediaType(imageData: string): string {
+    if (imageData.startsWith('data:')) {
+      // Extract MIME type from data URI
+      const match = imageData.match(/^data:([^;]+);/);
+      return match ? match[1] : 'image/jpeg';
+    }
+
+    // Determine from file extension
+    const ext = imageData.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'gif':
+        return 'image/gif';
+      case 'svg':
+        return 'image/svg+xml';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  /**
+   * Gets the file extension for a cover image media type
+   * @param mediaType - The MIME type of the image
+   * @returns The file extension
+   */
+  private getCoverImageExtension(mediaType: string): string {
+    switch (mediaType) {
+      case 'image/png':
+        return 'png';
+      case 'image/jpeg':
+        return 'jpg';
+      case 'image/gif':
+        return 'gif';
+      case 'image/svg+xml':
+        return 'svg';
+      default:
+        return 'jpg';
+    }
   }
 }
 

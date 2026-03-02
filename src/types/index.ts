@@ -11,3 +11,5 @@ export * from './chapter';
 export * from './book';
 export * from './inlineText';
 export * from './pdf';
+export * from './preferences';
+export * from './shortcuts';

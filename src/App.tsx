@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ImportPreviewDialog } from './components/ImportPreviewDialog'
+import { PreferencesDialog } from './components/PreferencesDialog'
 import { getPersistenceService } from './services/persistence'
 import { getRecentProjectsService } from './services/recentProjects'
 import type { Book } from './types/book'
@@ -13,6 +14,7 @@ function App() {
   const [currentBook, setCurrentBook] = useState<Book | null>(null)
   const [currentFilePath, setCurrentFilePath] = useState<string>('')
   const [showImportDialog, setShowImportDialog] = useState(false)
+  const [showPreferences, setShowPreferences] = useState(false)
 
   const handleProjectOpen = (book: Book, filePath: string) => {
     setCurrentBook(book)
@@ -117,6 +119,11 @@ function App() {
           </div>
         </div>
       )}
+
+      <PreferencesDialog
+        isOpen={showPreferences}
+        onClose={() => setShowPreferences(false)}
+      />
     </div>
   )
 }

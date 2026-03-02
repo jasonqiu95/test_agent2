@@ -1,4 +1,4 @@
-export { PersistenceService, getPersistenceService } from './persistence'
+export { PersistenceService, getPersistenceService } from './persistence';
 export type {
   VellumProject,
   SaveResult,
@@ -32,3 +32,5 @@ export type {
   ValidationOptions,
   ValidationSeverity,
 } from './validator'
+
+export { ConfigService, getConfigService } from './config'

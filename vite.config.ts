@@ -45,5 +45,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true
+  },
+  worker: {
+    format: 'es',
+    plugins: () => [],
+    rollupOptions: {
+      output: {
+        entryFileNames: 'workers/[name].js'
+      }
+    }
   }
 })

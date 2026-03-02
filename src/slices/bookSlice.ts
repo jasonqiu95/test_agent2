@@ -5,7 +5,7 @@
  * All actions here are tracked by the undo middleware.
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
 import { Book, Author } from '../types/book';
 import { Chapter } from '../types/chapter';
@@ -295,10 +295,41 @@ export const {
   setError,
 } = bookSlice.actions;
 
-// Selectors
+// Basic Selectors
 export const selectCurrentBook = (state: RootState) => state.book.currentBook;
 export const selectBooks = (state: RootState) => state.book.books;
 export const selectLoading = (state: RootState) => state.book.loading;
 export const selectError = (state: RootState) => state.book.error;
+
+// Derived selectors for book content
+export const selectBookChapters = (state: RootState) => state.book.currentBook?.chapters || [];
+export const selectBookStyles = (state: RootState) => state.book.currentBook?.styles || [];
+export const selectBookFrontMatter = (state: RootState) => state.book.currentBook?.frontMatter || [];
+export const selectBookBackMatter = (state: RootState) => state.book.currentBook?.backMatter || [];
+
+// Memoized selector to get current active chapter based on editor's active chapter ID
+export const selectActiveChapter = createSelector(
+  [selectBookChapters, (state: RootState) => state.editor.activeChapterId],
+  (chapters, activeChapterId) => {
+    if (!activeChapterId) return null;
+    return chapters.find(chapter => chapter.id === activeChapterId) || null;
+  }
+);
+
+// Memoized selector to get current selected element based on selection state
+export const selectSelectedElement = createSelector(
+  [selectBookFrontMatter, selectBookBackMatter, (state: RootState) => state.selection.selectedElementId],
+  (frontMatter, backMatter, selectedElementId) => {
+    if (!selectedElementId) return null;
+    const allElements = [...frontMatter, ...backMatter];
+    return allElements.find(element => element.id === selectedElementId) || null;
+  }
+);
+
+// Memoized selector to get the first book style (default/current style)
+export const selectCurrentBookStyle = createSelector(
+  [selectBookStyles],
+  (styles) => styles[0] || null
+);
 
 export default bookSlice.reducer;

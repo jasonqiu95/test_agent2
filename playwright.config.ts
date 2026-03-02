@@ -31,11 +31,20 @@ export default defineConfig({
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
 
-    // Screenshot on failure
-    screenshot: 'only-on-failure',
+    // Screenshot settings - capture on failure and include in reports
+    screenshot: {
+      mode: 'only-on-failure',
+      fullPage: true,
+    },
 
-    // Video on failure
-    video: 'retain-on-failure',
+    // Video settings - retain videos for all tests to aid in debugging
+    video: {
+      mode: 'retain-on-failure',
+      size: { width: 1280, height: 720 },
+    },
+
+    // Viewport size for consistent screenshots
+    viewport: { width: 1280, height: 720 },
   },
 
   // Configure projects for different Electron scenarios

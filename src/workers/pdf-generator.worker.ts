@@ -24,6 +24,7 @@ import { BookStyle } from '../types/style';
 import { Chapter } from '../types/chapter';
 import { Element } from '../types/element';
 import { TextBlock } from '../types/textBlock';
+import { prepareForTransfer } from './transferable-utils';
 
 /**
  * Worker state
@@ -133,10 +134,22 @@ function calculateContentArea(
 }
 
 /**
- * Post message to main thread with type safety
+ * Post message to main thread with type safety and transferable optimization
  */
 function postMessage(message: WorkerToMainMessage): void {
-  self.postMessage(message);
+  // Use transferable objects for efficient data transfer
+  const result = prepareForTransfer(message);
+
+  // Log performance metrics for monitoring
+  if (result.metrics.transferableCount > 0) {
+    console.debug('[PDF Worker] Transfer optimization:', {
+      transferables: result.metrics.transferableCount,
+      bytes: result.metrics.transferableBytes,
+      prepareTime: result.metrics.prepareTimeMs.toFixed(2) + 'ms',
+    });
+  }
+
+  self.postMessage(result.data, result.transferables);
 }
 
 /**

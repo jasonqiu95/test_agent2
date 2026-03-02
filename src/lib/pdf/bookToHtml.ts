@@ -1014,6 +1014,12 @@ export class HtmlConverter {
   public convert(): string {
     const fragments: string[] = [];
 
+    // Generate cover page (if cover image exists)
+    const coverPageHtml = this.generateCoverPage();
+    if (coverPageHtml) {
+      fragments.push(coverPageHtml);
+    }
+
     // Convert front matter
     const frontMatterHtml = this.convertFrontMatter();
     if (frontMatterHtml) {
@@ -1163,6 +1169,68 @@ ${bodyContent}
     }
 
     return fragments.join('\n');
+  }
+
+  /**
+   * Generate cover page HTML
+   * Returns HTML for the cover page if coverImage exists, or title page if coverImage is missing
+   */
+  private generateCoverPage(): string {
+    const prefix = this.options.classPrefix || 'book';
+    const useSemanticTags = this.options.useSemanticTags !== false;
+    const includeAria = this.options.includeAria !== false;
+
+    // If no cover image, check if we should show title page as fallback
+    if (!this.book.coverImage) {
+      // Only show title fallback if book has a title
+      if (!this.book.title) {
+        return '';
+      }
+
+      // Generate title-only cover page
+      const sectionTag = useSemanticTags ? 'section' : 'div';
+      const sectionClasses = [
+        generateClassName('cover-page', undefined, prefix),
+        generateClassName('cover-page', 'title-only', prefix),
+      ];
+      const roleAttr = includeAria ? ' role="banner"' : '';
+      const ariaLabel = includeAria
+        ? ` aria-label="Book cover: ${escapeHtml(this.book.title)}"`
+        : '';
+
+      const titleHtml = `<h1 class="${generateClassName('cover-title', undefined, prefix)}">${escapeHtml(this.book.title)}</h1>`;
+      const subtitleHtml = this.book.subtitle
+        ? `\n    <p class="${generateClassName('cover-subtitle', undefined, prefix)}">${escapeHtml(this.book.subtitle)}</p>`
+        : '';
+      const authorsHtml =
+        this.book.authors && this.book.authors.length > 0
+          ? `\n    <p class="${generateClassName('cover-authors', undefined, prefix)}">${this.book.authors
+              .map((author) => escapeHtml(author.name))
+              .join(', ')}</p>`
+          : '';
+
+      return `<${sectionTag} class="${sectionClasses.join(' ')}"${roleAttr}${ariaLabel}>
+  <div class="${generateClassName('cover-content', undefined, prefix)}">
+    ${titleHtml}${subtitleHtml}${authorsHtml}
+  </div>
+</${sectionTag}>`;
+    }
+
+    // Generate cover page with image
+    const sectionTag = useSemanticTags ? 'section' : 'div';
+    const sectionClasses = [generateClassName('cover-page', undefined, prefix)];
+    const roleAttr = includeAria ? ' role="banner"' : '';
+    const ariaLabel = includeAria
+      ? ` aria-label="Book cover: ${escapeHtml(this.book.title)}"`
+      : '';
+
+    const imgClasses = [generateClassName('cover-image', undefined, prefix)];
+    const imgAlt = `Cover of ${escapeHtml(this.book.title)}`;
+    const imgAriaAttr = includeAria ? ` aria-label="${imgAlt}"` : '';
+
+    return `<${sectionTag} class="${sectionClasses.join(' ')}"${roleAttr}${ariaLabel}>
+  <img src="${escapeHtml(this.book.coverImage)}" alt="${imgAlt}" class="${imgClasses.join(' ')}"${imgAriaAttr} />
+</${sectionTag}>`;
   }
 
   /**
@@ -4807,9 +4875,14 @@ export function generateTocHtml(
   ];
 
   // Build ARIA attributes
+<<<<<<< HEAD
   const includeAria = options.includeAria ?? true;
   const ariaLabel = includeAria ? ' aria-label="Table of Contents"' : '';
   const roleAttr = includeAria ? ' role="doc-toc"' : '';
+=======
+  const ariaLabel = options.includeAria ? ' aria-label="Table of Contents"' : '';
+  const roleAttr = options.includeAria ? ' role="doc-toc"' : '';
+>>>>>>> agent/fix-cover-page-html-generation
 
   // Generate TOC entries HTML
   const entriesHtml = entries.map(entry =>
@@ -5246,6 +5319,97 @@ export function generateImageStyles(classPrefix: string = 'book'): string {
   .${classPrefix}-element-caption {
     page-break-before: avoid;
     color: #000;
+  }
+}
+`.trim();
+}
+
+/**
+ * Generate CSS for cover page
+ * Returns CSS rules for cover page layout and styling
+ */
+export function generateCoverPageStyles(classPrefix: string = 'book'): string {
+  return `
+/* Cover Page Styles */
+.${classPrefix}-cover-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  page-break-after: always;
+  text-align: center;
+  padding: 2em;
+  break-after: page;
+}
+
+.${classPrefix}-cover-image {
+  max-width: 100%;
+  max-height: 100vh;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+/* Title-only cover page */
+.${classPrefix}-cover-page-title-only {
+  flex-direction: column;
+}
+
+.${classPrefix}-cover-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.${classPrefix}-cover-title {
+  font-size: 3em;
+  font-weight: bold;
+  margin: 0 0 0.5em 0;
+  line-height: 1.2;
+  color: #000;
+}
+
+.${classPrefix}-cover-subtitle {
+  font-size: 1.5em;
+  font-weight: normal;
+  margin: 0 0 1em 0;
+  line-height: 1.4;
+  color: #333;
+}
+
+.${classPrefix}-cover-authors {
+  font-size: 1.2em;
+  font-weight: normal;
+  margin: 2em 0 0 0;
+  color: #555;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  .${classPrefix}-cover-page {
+    min-height: auto;
+    padding: 1em;
+  }
+
+  .${classPrefix}-cover-title {
+    font-size: 2em;
+  }
+
+  .${classPrefix}-cover-subtitle {
+    font-size: 1.2em;
+  }
+
+  .${classPrefix}-cover-authors {
+    font-size: 1em;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .${classPrefix}-cover-page {
+    page-break-after: always;
+    break-after: page;
   }
 }
 `.trim();

@@ -102,8 +102,11 @@ export interface BookStyle {
   ornamentalBreak: {
     enabled: boolean;
     symbol: string;
-    spacing?: string;
+    customSymbol?: string;
     fontSize?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    marginTop?: string;
+    marginBottom?: string;
   };
   firstParagraph: FirstParagraphStyle;
   spacing: SpacingConfig;

@@ -5,6 +5,7 @@
  */
 
 export * from './previewRenderer';
+export * from './styleGenerator';
 export * from './errorHandler';
 export * from './asyncErrorHandler';
 

@@ -458,12 +458,8 @@ export async function applyStyleToBook(
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
-=======
- * Service for managing custom book styles
- * Uses Electron IPC if available, falls back to localStorage
- */
-
-import { BookStyle } from '../types/style';
+  }
+}
 
 const LOCALSTORAGE_KEY = 'vellum-custom-styles';
 
@@ -487,7 +483,6 @@ function loadFromLocalStorage(): BookStyle[] {
   } catch (error) {
     console.error('Failed to load custom styles from localStorage:', error);
     return [];
->>>>>>> agent/implement-custom-style-save-load-service
   }
 }
 

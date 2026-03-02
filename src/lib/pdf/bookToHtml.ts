@@ -1090,14 +1090,22 @@ export class HtmlConverter {
     }
 
     this.resetContextForSection('body-chapter');
-    const chaptersHtml = this.book.chapters
-      .map((chapter, index) => {
-        this.updateContext({ currentChapter: chapter, chapterIndex: index });
-        return this.convertSingleChapter(chapter, index);
-      })
-      .join('\n\n');
+    const chapterFragments: string[] = [];
 
-    return chaptersHtml;
+    this.book.chapters.forEach((chapter, index) => {
+      this.updateContext({ currentChapter: chapter, chapterIndex: index });
+
+      // Add page break before chapter (except for the first chapter)
+      if (index > 0 && this.options.enablePageBreaks) {
+        const classPrefix = this.options.classPrefix || 'book';
+        chapterFragments.push(generatePageBreak(classPrefix));
+      }
+
+      // Add the chapter content
+      chapterFragments.push(this.convertSingleChapter(chapter, index));
+    });
+
+    return chapterFragments.join('\n\n');
   }
 
   /**
@@ -3288,7 +3296,6 @@ export function generateListClasses(
 }
 
 /**
-<<<<<<< HEAD
  * Generate classes for blockquote
  *
  * @param quoteType Type of quote (block, inline, epigraph)
@@ -3305,7 +3312,12 @@ export function generateBlockquoteClasses(
 
   if (quoteType) {
     builder.modifier('quote', quoteType);
-=======
+  }
+
+  return builder.build();
+}
+
+/**
  * Generate classes for heading elements
  *
  * @param level Heading level (1-6, where 2-6 are subheads within chapters)
@@ -3355,14 +3367,12 @@ export function generateHeadingClasses(
 
   if (config?.smallCaps) {
     builder.add(CssClassNames.TYPOGRAPHY.SMALL_CAPS);
->>>>>>> agent/implement-subheads-and-section-headings
   }
 
   return builder.build();
 }
 
 /**
-<<<<<<< HEAD
  * Generate classes for verse/poetry
  *
  * @param stanza Optional stanza number
@@ -3403,7 +3413,9 @@ export function generateVerseLineClasses(
   }
 
   return builder.build();
-=======
+}
+
+/**
  * Format heading number based on numbering style
  *
  * @param number The heading number
@@ -3498,7 +3510,6 @@ export function updateHeadingHierarchy(
 
   // Update parent level
   hierarchy.parentLevel = level;
->>>>>>> agent/implement-subheads-and-section-headings
 }
 
 /**

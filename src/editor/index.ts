@@ -44,3 +44,16 @@ export {
   createEmptyDocument,
   isDocumentEmpty,
 } from './serialization';
+
+// Command exports
+export {
+  toggleBold,
+  toggleItalic,
+  toggleUnderline,
+  toggleStrikethrough,
+  toggleCode,
+  setHeading,
+  setParagraph,
+  toggleBlockquote,
+  createFormattingCommands,
+} from './commands';

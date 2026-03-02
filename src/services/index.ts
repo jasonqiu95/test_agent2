@@ -21,3 +21,14 @@ export type {
   StyleApplicationResult,
   StylePreview,
 } from './styleService'
+
+export {
+  validateBook,
+  getValidationSummary,
+} from './validator'
+export type {
+  ValidationIssue,
+  ValidationResult,
+  ValidationOptions,
+  ValidationSeverity,
+} from './validator'

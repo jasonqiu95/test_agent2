@@ -1,0 +1,476 @@
+.validation-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.validation-dialog {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  max-width: 800px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-in-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.validation-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.validation-dialog-title-section h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.validation-dialog-summary {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #6b7280;
+}
+
+.validation-dialog-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.validation-dialog-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.validation-dialog-toolbar {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.validation-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.validation-filter-btn {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validation-filter-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.validation-filter-btn.active {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.validation-filter-btn.error.active {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.validation-filter-btn.warning.active {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.validation-filter-btn.info.active {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+}
+
+.validation-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  min-height: 200px;
+}
+
+.validation-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #6b7280;
+}
+
+.validation-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  color: #10b981;
+}
+
+.validation-empty-message {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.validation-issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validation-issue-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: white;
+  transition: all 0.2s;
+  border-left-width: 4px;
+}
+
+.validation-issue-card.expandable {
+  cursor: pointer;
+}
+
+.validation-issue-card.expandable:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.validation-issue-card.error {
+  border-left-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.validation-issue-card.warning {
+  border-left-color: #f59e0b;
+  background-color: #fffbeb;
+}
+
+.validation-issue-card.info {
+  border-left-color: #0ea5e9;
+  background-color: #f0f9ff;
+}
+
+.validation-issue-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.validation-issue-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.validation-issue-card.error .validation-issue-icon {
+  color: #dc2626;
+}
+
+.validation-issue-card.warning .validation-issue-icon {
+  color: #f59e0b;
+}
+
+.validation-issue-card.info .validation-issue-icon {
+  color: #0ea5e9;
+}
+
+.validation-issue-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.validation-issue-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.validation-issue-category {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.validation-issue-location {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.validation-issue-message {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #111827;
+  font-weight: 500;
+}
+
+.validation-issue-expand-icon {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.validation-issue-card.expanded .validation-issue-expand-icon {
+  transform: rotate(0deg);
+}
+
+.validation-issue-details {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  animation: expandDetails 0.2s ease-in-out;
+}
+
+@keyframes expandDetails {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.validation-issue-details-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.validation-dialog-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.validation-footer-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.validation-footer-error {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.validation-footer-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.validation-btn-secondary {
+  padding: 10px 20px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validation-btn-secondary:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.validation-btn-primary {
+  padding: 10px 24px;
+  border: none;
+  background-color: #3b82f6;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validation-btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.validation-btn-primary:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .validation-dialog {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+
+  .validation-dialog-header {
+    border-bottom-color: #374151;
+  }
+
+  .validation-dialog-title-section h2 {
+    color: #f9fafb;
+  }
+
+  .validation-dialog-summary {
+    color: #9ca3af;
+  }
+
+  .validation-dialog-close {
+    color: #9ca3af;
+  }
+
+  .validation-dialog-close:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .validation-dialog-toolbar {
+    border-bottom-color: #374151;
+    background-color: #111827;
+  }
+
+  .validation-filter-btn {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .validation-filter-btn:hover {
+    background-color: #4b5563;
+    border-color: #6b7280;
+  }
+
+  .validation-dialog-content {
+    background-color: #1f2937;
+  }
+
+  .validation-empty {
+    color: #9ca3af;
+  }
+
+  .validation-issue-card {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+
+  .validation-issue-card.error {
+    background-color: #3f1f1f;
+  }
+
+  .validation-issue-card.warning {
+    background-color: #3f331f;
+  }
+
+  .validation-issue-card.info {
+    background-color: #1f2f3f;
+  }
+
+  .validation-issue-category {
+    color: #9ca3af;
+  }
+
+  .validation-issue-location {
+    color: #6b7280;
+  }
+
+  .validation-issue-message {
+    color: #f9fafb;
+  }
+
+  .validation-issue-details {
+    border-top-color: #4b5563;
+  }
+
+  .validation-issue-details-text {
+    color: #d1d5db;
+  }
+
+  .validation-dialog-footer {
+    border-top-color: #374151;
+    background-color: #111827;
+  }
+
+  .validation-btn-secondary {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .validation-btn-secondary:hover {
+    background-color: #4b5563;
+    border-color: #6b7280;
+  }
+}

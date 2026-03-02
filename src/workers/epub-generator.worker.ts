@@ -307,6 +307,20 @@ function postMessageToMain(message: WorkerToMainMessage): void {
 }
 
 /**
+ * Update progress and send progress message to main thread
+ */
+function updateProgress(percentage: number, status: string, extraData?: Partial<ProgressMessage['data']>): void {
+  state.currentProgress = percentage;
+  postMessageToMain(
+    createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
+      percentage,
+      status,
+      ...extraData,
+    })
+  );
+}
+
+/**
  * Register a resource that needs cleanup
  */
 function registerResource(resourceId: string): void {
@@ -552,8 +566,6 @@ function checkCancellation(): void {
  * Handle initialization message
  */
 async function handleInitialize(message: InitializeMessage): Promise<void> {
-  const startTime = Date.now();
-
   if (state.isProcessing) {
     postMessageToMain(
       createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
@@ -576,12 +588,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     setOperationTimeout();
 
     // Send initial progress
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 0,
-        status: 'Initializing EPUB generation...',
-      })
-    );
+    updateProgress(0, 'Initializing EPUB generation...');
 
     // Register initial resources
     registerResource('epub-builder');
@@ -598,12 +605,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     const { book, styles, images, options } = message.data;
 
     // Validate book data
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 5,
-        status: 'Validating book data...',
-      })
-    );
+    updateProgress(5, 'Validating book data...');
 
     const bookValidation = validateBookData(book);
     if (!bookValidation.isValid) {
@@ -613,12 +615,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     checkCancellation();
 
     // Validate images
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 8,
-        status: 'Validating images...',
-      })
-    );
+    updateProgress(8, 'Validating images...');
 
     const imageValidation = validateImageData(images || []);
     if (!imageValidation.isValid) {
@@ -664,12 +661,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     checkCancellation();
 
     // Progress: 10% - Prepare metadata
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 10,
-        status: 'Preparing metadata...',
-      })
-    );
+    updateProgress(10, 'Preparing metadata...');
 
     // Prepare EPUB metadata
     const author = book.authors.length > 0
@@ -707,12 +699,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     }
 
     // Progress: 20% - Generate CSS
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 20,
-        status: 'Generating CSS styles...',
-      })
-    );
+    updateProgress(20, 'Generating CSS styles...');
 
     // Generate CSS from BookStyles
     let cssContent = '';
@@ -747,23 +734,20 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     }
 
     // Progress: 30% - Prepare content
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 30,
-        status: 'Preparing content...',
-      })
-    );
+    updateProgress(30, 'Preparing content...');
 
     // Build content array for epub-gen
     const content: any[] = [];
-    let totalItems = book.frontMatter.length + book.chapters.length + book.backMatter.length;
+    const totalItems = book.frontMatter.length + book.chapters.length + book.backMatter.length;
     let processedItems = 0;
+
+    // Calculate progress range for content processing (30% to 70%)
+    const CONTENT_PROGRESS_START = 30;
+    const CONTENT_PROGRESS_RANGE = 40;
 
     // Add front matter
     for (const element of book.frontMatter) {
-      if (state.isCancelled) {
-        throw new Error('Generation cancelled by user');
-      }
+      checkCancellation();
 
       content.push({
         title: element.title,
@@ -772,20 +756,17 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = 30 + Math.floor((processedItems / totalItems) * 40);
-      postMessageToMain(
-        createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-          percentage: progress,
-          status: `Processing front matter: ${element.title}...`,
-        })
+      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
+      updateProgress(
+        progress,
+        `Processing front matter: ${element.title}`,
+        { currentItem: element.title, totalItems, processedItems }
       );
     }
 
     // Add chapters
     for (let i = 0; i < book.chapters.length; i++) {
-      if (state.isCancelled) {
-        throw new Error('Generation cancelled by user');
-      }
+      checkCancellation();
 
       const chapter = book.chapters[i];
       content.push({
@@ -795,14 +776,17 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = 30 + Math.floor((processedItems / totalItems) * 40);
-      postMessageToMain(
-        createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-          percentage: progress,
-          status: `Processing chapter ${i + 1}/${book.chapters.length}: ${chapter.title}...`,
+      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
+      updateProgress(
+        progress,
+        `Processing chapter ${i + 1}/${book.chapters.length}: ${chapter.title}`,
+        {
           currentChapter: i + 1,
           currentChapterTitle: chapter.title,
-        })
+          currentItem: chapter.title,
+          totalItems,
+          processedItems,
+        }
       );
 
       // For demonstration: simulate creating temporary files at certain points
@@ -820,9 +804,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     // Add back matter
     for (const element of book.backMatter) {
-      if (state.isCancelled) {
-        throw new Error('Generation cancelled by user');
-      }
+      checkCancellation();
 
       content.push({
         title: element.title,
@@ -831,44 +813,29 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       });
 
       processedItems++;
-      const progress = 30 + Math.floor((processedItems / totalItems) * 40);
-      postMessageToMain(
-        createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-          percentage: progress,
-          status: `Processing back matter: ${element.title}...`,
-        })
+      const progress = CONTENT_PROGRESS_START + Math.floor((processedItems / totalItems) * CONTENT_PROGRESS_RANGE);
+      updateProgress(
+        progress,
+        `Processing back matter: ${element.title}`,
+        { currentItem: element.title, totalItems, processedItems }
       );
     }
 
     epubOptions.content = content;
 
-    if (state.isCancelled) {
-      throw new Error('Generation cancelled by user');
-    }
+    checkCancellation();
 
     // Progress: 70% - Generate EPUB
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 70,
-        status: 'Generating EPUB file...',
-      })
-    );
+    updateProgress(70, 'Generating EPUB file...');
 
     // Generate EPUB using epub-gen-memory
     // This library returns a Buffer which we need to convert to ArrayBuffer
     const epubBuffer = await new Epub(epubOptions).generate();
 
-    if (state.isCancelled) {
-      throw new Error('Generation cancelled by user');
-    }
+    checkCancellation();
 
     // Progress: 90% - Finalizing
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 90,
-        status: 'Finalizing...',
-      })
-    );
+    updateProgress(90, 'Finalizing...');
 
     // Convert Node.js Buffer to ArrayBuffer for structured cloning
     const arrayBuffer = epubBuffer.buffer.slice(
@@ -881,12 +848,7 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     const fileName = `${book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.epub`;
 
     // Progress: 100% - Complete
-    postMessageToMain(
-      createWorkerMessage<ProgressMessage>(WorkerMessageType.PROGRESS, {
-        percentage: 100,
-        status: 'Complete!',
-      })
-    );
+    updateProgress(100, 'Complete!');
 
     // Final cancellation check before completing
     checkCancellation();
@@ -910,29 +872,11 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       })
     );
   } catch (error) {
-<<<<<<< HEAD
-    const serialized = serializeError(error);
-    const errorCode = state.isCancelled ? 'GENERATION_CANCELLED' :
-                     (error as any).imageId ? 'IMAGE_ERROR' :
-                     serialized.name === 'TypeError' ? 'INVALID_DATA' :
-                     serialized.name === 'RangeError' ? 'RESOURCE_LIMIT' :
-                     'GENERATION_ERROR';
-
-    postMessageToMain(
-      createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
-        code: errorCode,
-        message: serialized.message,
-        details: serialized.stack,
-        stack: serialized.stack,
-        recoverable: state.isCancelled,
-        elementId: (error as any).imageId,
-      })
-    );
-=======
     const err = error as Error;
+    const serialized = serializeError(error);
 
     // Check if this is a cancellation
-    if (err.message === 'CANCELLATION_REQUESTED') {
+    if (err.message === 'CANCELLATION_REQUESTED' || state.isCancelled) {
       // Clean up resources
       const cleanedResources = await cleanupResources();
 
@@ -952,16 +896,22 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         console.error('Failed to cleanup after error:', cleanupError);
       }
 
+      const errorCode = (error as any).imageId ? 'IMAGE_ERROR' :
+                       serialized.name === 'TypeError' ? 'INVALID_DATA' :
+                       serialized.name === 'RangeError' ? 'RESOURCE_LIMIT' :
+                       'GENERATION_ERROR';
+
       postMessageToMain(
         createWorkerMessage<ErrorMessage>(WorkerMessageType.ERROR, {
-          code: 'GENERATION_ERROR',
-          message: err.message || 'Unknown error occurred',
-          details: err.stack,
+          code: errorCode,
+          message: serialized.message || 'Unknown error occurred',
+          details: serialized.stack,
+          stack: serialized.stack,
           recoverable: false,
+          elementId: (error as any).imageId,
         })
       );
     }
->>>>>>> agent/implement-cancellation-support-in-workers
   } finally {
     clearOperationTimeout();
     state.isProcessing = false;

@@ -98,6 +98,9 @@ export interface ProgressMessage extends BaseWorkerMessage {
     currentChapterTitle?: string;
     currentPage?: number;
     totalPages?: number;
+    currentItem?: string; // Current item being processed (chapter/front matter/back matter title)
+    processedItems?: number; // Number of items processed so far
+    totalItems?: number; // Total number of items to process
     status: string;
     details?: string;
   };

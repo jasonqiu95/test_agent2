@@ -161,3 +161,130 @@
 .editor-panel-close:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ProseMirror Editor Styles */
+.editor-panel-prosemirror {
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.editor-panel-prosemirror .ProseMirror {
+  outline: none;
+  min-height: 100%;
+  padding: 0;
+}
+
+.editor-panel-prosemirror .ProseMirror p {
+  margin: 0 0 1em 0;
+}
+
+.editor-panel-prosemirror .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.editor-panel-prosemirror .ProseMirror h1,
+.editor-panel-prosemirror .ProseMirror h2,
+.editor-panel-prosemirror .ProseMirror h3,
+.editor-panel-prosemirror .ProseMirror h4,
+.editor-panel-prosemirror .ProseMirror h5,
+.editor-panel-prosemirror .ProseMirror h6 {
+  margin: 1.5em 0 0.5em 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.editor-panel-prosemirror .ProseMirror h1 { font-size: 2em; }
+.editor-panel-prosemirror .ProseMirror h2 { font-size: 1.5em; }
+.editor-panel-prosemirror .ProseMirror h3 { font-size: 1.25em; }
+.editor-panel-prosemirror .ProseMirror h4 { font-size: 1.1em; }
+.editor-panel-prosemirror .ProseMirror h5 { font-size: 1em; }
+.editor-panel-prosemirror .ProseMirror h6 { font-size: 0.9em; }
+
+.editor-panel-prosemirror .ProseMirror blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.editor-panel-prosemirror .ProseMirror ul,
+.editor-panel-prosemirror .ProseMirror ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.editor-panel-prosemirror .ProseMirror li {
+  margin: 0.5em 0;
+}
+
+.editor-panel-prosemirror .ProseMirror code {
+  font-family: 'Monaco', 'Courier New', monospace;
+  background-color: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.editor-panel-prosemirror .ProseMirror .scene-break {
+  text-align: center;
+  margin: 2em 0;
+  color: #9ca3af;
+  font-size: 1.2em;
+  letter-spacing: 0.5em;
+}
+
+.editor-panel-prosemirror .ProseMirror .ornamental-break {
+  text-align: center;
+  margin: 2em 0;
+  color: #9ca3af;
+  font-size: 1.5em;
+}
+
+/* Gap cursor styling */
+.editor-panel-prosemirror .ProseMirror-gapcursor {
+  display: block;
+  position: relative;
+}
+
+.editor-panel-prosemirror .ProseMirror-gapcursor:after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  height: 20px;
+  border-left: 2px solid #3b82f6;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Selection styling */
+.editor-panel-prosemirror .ProseMirror ::selection {
+  background: #b3d4fc;
+}
+
+/* Dark mode for ProseMirror editor */
+@media (prefers-color-scheme: dark) {
+  .editor-panel-prosemirror .ProseMirror {
+    color: #f9fafb;
+  }
+
+  .editor-panel-prosemirror .ProseMirror blockquote {
+    border-left-color: #4b5563;
+    color: #9ca3af;
+  }
+
+  .editor-panel-prosemirror .ProseMirror code {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .editor-panel-prosemirror .ProseMirror ::selection {
+    background: #1e40af;
+  }
+}

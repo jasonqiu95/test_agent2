@@ -33,13 +33,10 @@ interface WorkerState {
   isProcessing: boolean;
   isCancelled: boolean;
   workerId: string;
-<<<<<<< HEAD
   operationTimeoutId?: number;
-=======
   activeResources: Set<string>;
   partialFiles: string[];
   currentProgress: number;
->>>>>>> agent/implement-cancellation-support-in-workers
 }
 
 // Initialize worker state
@@ -48,13 +45,10 @@ const state: WorkerState = {
   isProcessing: false,
   isCancelled: false,
   workerId: `pdf-worker-${Date.now()}`,
-<<<<<<< HEAD
   operationTimeoutId: undefined,
-=======
   activeResources: new Set(),
   partialFiles: [],
   currentProgress: 0,
->>>>>>> agent/implement-cancellation-support-in-workers
 };
 
 /**
@@ -146,7 +140,64 @@ function postMessage(message: WorkerToMainMessage): void {
 }
 
 /**
-<<<<<<< HEAD
+ * Register a resource that needs cleanup
+ */
+function registerResource(resourceId: string): void {
+  state.activeResources.add(resourceId);
+}
+
+/**
+ * Unregister a resource after cleanup
+ */
+function unregisterResource(resourceId: string): void {
+  state.activeResources.delete(resourceId);
+}
+
+/**
+ * Clean up all active resources and partial files
+ */
+async function cleanupResources(): Promise<string[]> {
+  const cleanedResources: string[] = [];
+
+  // Clean up active resources
+  for (const resourceId of state.activeResources) {
+    try {
+      // TODO: Implement actual resource cleanup based on resource type
+      // This could include releasing PDF document objects, closing streams, etc.
+      cleanedResources.push(resourceId);
+    } catch (error) {
+      console.error(`Failed to cleanup resource ${resourceId}:`, error);
+    }
+  }
+
+  // Clean up partial files
+  for (const filePath of state.partialFiles) {
+    try {
+      // TODO: Implement actual file cleanup
+      // In a real implementation, this would delete temporary PDF fragments
+      cleanedResources.push(filePath);
+    } catch (error) {
+      console.error(`Failed to cleanup partial file ${filePath}:`, error);
+    }
+  }
+
+  state.activeResources.clear();
+  state.partialFiles = [];
+
+  return cleanedResources;
+}
+
+/**
+ * Check if cancellation has been requested and throw if so
+ * This should be called periodically during long operations
+ */
+function checkCancellation(): void {
+  if (state.isCancelled) {
+    throw new Error('CANCELLATION_REQUESTED');
+  }
+}
+
+/**
  * Render page header
  */
 function renderHeader(
@@ -301,63 +352,6 @@ function renderChapter(
 
   // Render chapter content
   renderTextBlocks(doc, chapter.content, style, contentArea);
-=======
- * Register a resource that needs cleanup
- */
-function registerResource(resourceId: string): void {
-  state.activeResources.add(resourceId);
-}
-
-/**
- * Unregister a resource after cleanup
- */
-function unregisterResource(resourceId: string): void {
-  state.activeResources.delete(resourceId);
-}
-
-/**
- * Clean up all active resources and partial files
- */
-async function cleanupResources(): Promise<string[]> {
-  const cleanedResources: string[] = [];
-
-  // Clean up active resources
-  for (const resourceId of state.activeResources) {
-    try {
-      // TODO: Implement actual resource cleanup based on resource type
-      // This could include releasing PDF document objects, closing streams, etc.
-      cleanedResources.push(resourceId);
-    } catch (error) {
-      console.error(`Failed to cleanup resource ${resourceId}:`, error);
-    }
-  }
-
-  // Clean up partial files
-  for (const filePath of state.partialFiles) {
-    try {
-      // TODO: Implement actual file cleanup
-      // In a real implementation, this would delete temporary PDF fragments
-      cleanedResources.push(filePath);
-    } catch (error) {
-      console.error(`Failed to cleanup partial file ${filePath}:`, error);
-    }
-  }
-
-  state.activeResources.clear();
-  state.partialFiles = [];
-
-  return cleanedResources;
-}
-
-/**
- * Check if cancellation has been requested and throw if so
- * This should be called periodically during long operations
- */
-function checkCancellation(): void {
-  if (state.isCancelled) {
-    throw new Error('CANCELLATION_REQUESTED');
-  }
->>>>>>> agent/implement-cancellation-support-in-workers
 }
 
 /**
@@ -666,12 +660,24 @@ function clearOperationTimeout(): void {
 }
 
 /**
- * Check if operation was cancelled
+ * Calculate total sections to process (for progress tracking)
  */
-function checkCancellation(): void {
-  if (state.isCancelled) {
-    throw new Error('PDF generation was cancelled');
-  }
+function calculateTotalSections(book: Book): {
+  totalSections: number;
+  frontMatterCount: number;
+  chaptersCount: number;
+  backMatterCount: number;
+} {
+  const frontMatterCount = book.frontMatter?.length || 0;
+  const chaptersCount = book.chapters?.length || 0;
+  const backMatterCount = book.backMatter?.length || 0;
+
+  return {
+    totalSections: frontMatterCount + chaptersCount + backMatterCount,
+    frontMatterCount,
+    chaptersCount,
+    backMatterCount,
+  };
 }
 
 /**
@@ -686,6 +692,12 @@ async function generatePdf(
     try {
       const pdfOptions = options?.pdf || {};
       const style = styles[0]; // Use first style or default
+
+      // Calculate total sections for progress tracking
+      const { totalSections, frontMatterCount, chaptersCount, backMatterCount } =
+        calculateTotalSections(book);
+
+      let sectionsProcessed = 0;
 
       // Get page dimensions
       const pageDimensions = getPageDimensions(
@@ -715,6 +727,9 @@ async function generatePdf(
         compress: pdfOptions.compress !== false,
       });
 
+      // Register PDF document as a resource
+      registerResource('pdf-document');
+
       // Collect chunks for buffer
       const chunks: Uint8Array[] = [];
       doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
@@ -727,6 +742,7 @@ async function generatePdf(
           pdfBuffer.set(chunk, offset);
           offset += chunk.length;
         }
+        unregisterResource('pdf-document');
         resolve(pdfBuffer.buffer);
       });
       doc.on('error', reject);
@@ -745,11 +761,15 @@ async function generatePdf(
 
       let totalPages = 0;
 
-      // Render front matter
+      // Render front matter (15% of progress: 15-30%)
       if (book.frontMatter && book.frontMatter.length > 0) {
-        sendProgress(20, 'Rendering front matter...');
+        sendProgress(15, 'Rendering front matter...', {
+          totalPages: 0,
+          details: `Processing ${frontMatterCount} front matter sections`,
+        });
+
         book.frontMatter.forEach((element, index) => {
-          if (state.isCancelled) return;
+          checkCancellation();
 
           doc.addPage();
           totalPages++;
@@ -775,22 +795,29 @@ async function generatePdf(
 
           // Render element content
           renderTextBlocks(doc, element.content, style, contentArea);
+
+          sectionsProcessed++;
+          const progressPercentage = 15 + (sectionsProcessed / totalSections) * 15;
+          sendProgress(
+            Math.round(progressPercentage),
+            `Rendering front matter: ${element.title}`,
+            {
+              currentPage: totalPages,
+              totalPages: 0, // We don't know total pages yet
+              details: `Section ${index + 1} of ${frontMatterCount}`,
+            }
+          );
         });
       }
 
-      // Render chapters
-      sendProgress(40, 'Rendering chapters...');
-      book.chapters.forEach((chapter, index) => {
-        if (state.isCancelled) return;
+      // Render chapters (30% of progress: 30-70%)
+      sendProgress(30, 'Starting chapter rendering...', {
+        totalPages: totalPages,
+        details: `Processing ${chaptersCount} chapters`,
+      });
 
-        sendProgress(
-          40 + ((index / book.chapters.length) * 40),
-          `Rendering chapter ${index + 1} of ${book.chapters.length}...`,
-          {
-            currentChapter: index + 1,
-            currentChapterTitle: chapter.title,
-          }
-        );
+      book.chapters.forEach((chapter, index) => {
+        checkCancellation();
 
         doc.addPage();
         totalPages++;
@@ -828,13 +855,32 @@ async function generatePdf(
 
         // Render chapter
         renderChapter(doc, chapter, index, style, contentArea, options);
+
+        sectionsProcessed++;
+        const progressPercentage = 30 + (sectionsProcessed / totalSections) * 40;
+        sendProgress(
+          Math.round(progressPercentage),
+          `Rendering chapter: ${chapter.title}`,
+          {
+            currentChapter: index + 1,
+            currentChapterTitle: chapter.title,
+            currentPage: totalPages,
+            totalPages: 0, // We still don't know the final page count
+            details: `Chapter ${index + 1} of ${chaptersCount}`,
+          }
+        );
       });
 
-      // Render back matter
+      // Render back matter (15% of progress: 70-85%)
       if (book.backMatter && book.backMatter.length > 0) {
-        sendProgress(85, 'Rendering back matter...');
-        book.backMatter.forEach((element) => {
-          if (state.isCancelled) return;
+        sendProgress(70, 'Rendering back matter...', {
+          currentPage: totalPages,
+          totalPages: 0,
+          details: `Processing ${backMatterCount} back matter sections`,
+        });
+
+        book.backMatter.forEach((element, index) => {
+          checkCancellation();
 
           doc.addPage();
           totalPages++;
@@ -860,13 +906,33 @@ async function generatePdf(
 
           // Render element content
           renderTextBlocks(doc, element.content, style, contentArea);
+
+          sectionsProcessed++;
+          const progressPercentage = 70 + (sectionsProcessed / totalSections) * 15;
+          sendProgress(
+            Math.round(progressPercentage),
+            `Rendering back matter: ${element.title}`,
+            {
+              currentPage: totalPages,
+              totalPages: totalPages,
+              details: `Section ${index + 1} of ${backMatterCount}`,
+            }
+          );
         });
       }
 
-      // Add page numbers to all pages if enabled
+      // Add page numbers to all pages if enabled (10% of progress: 85-95%)
       if (pdfOptions.includePageNumbers) {
+        sendProgress(85, 'Adding page numbers...', {
+          currentPage: 0,
+          totalPages: totalPages,
+          details: 'Processing all pages',
+        });
+
         const range = doc.bufferedPageRange();
         for (let i = 0; i < range.count; i++) {
+          checkCancellation();
+
           doc.switchToPage(i);
           const pageNum = i + 1;
           const isLeftPage = pageNum % 2 === 0;
@@ -883,14 +949,33 @@ async function generatePdf(
             contentArea,
             pageDimensions.height
           );
+
+          // Report progress every 10 pages to avoid excessive updates
+          if (i % 10 === 0 || i === range.count - 1) {
+            const progressPercentage = 85 + ((i + 1) / range.count) * 10;
+            sendProgress(
+              Math.round(progressPercentage),
+              'Adding page numbers...',
+              {
+                currentPage: i + 1,
+                totalPages: range.count,
+                details: `Page ${i + 1} of ${range.count}`,
+              }
+            );
+          }
         }
       }
 
-      sendProgress(95, 'Finalizing PDF...');
+      sendProgress(95, 'Finalizing PDF...', {
+        currentPage: totalPages,
+        totalPages: totalPages,
+        details: 'Compressing and finalizing document',
+      });
 
       // Finalize the PDF
       doc.end();
     } catch (error) {
+      unregisterResource('pdf-document');
       reject(error);
     }
   });
@@ -928,7 +1013,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     const { book, styles, images, options } = message.data;
 
-<<<<<<< HEAD
     // Validate book data
     sendProgress(5, 'Validating book data...');
 
@@ -938,35 +1022,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       error.chapterNumber = (bookValidation as any).chapterNumber;
       throw error;
     }
-=======
-    // Register initial resources
-    registerResource('pdf-document');
-    registerResource('canvas-renderer');
-
-    // Check cancellation before starting
-    checkCancellation();
-
-    sendProgress(10, 'Parsing book data...');
-
-    // Placeholder: Simulate processing with cancellation checkpoints
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Check for cancellation after async operations
-    checkCancellation();
-
-    // Simulate creating temporary resources
-    const tempImageCache = 'temp-image-cache.tmp';
-    state.partialFiles.push(tempImageCache);
-    registerResource(tempImageCache);
-
-    sendProgress(30, 'Processing chapters...');
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    checkCancellation();
->>>>>>> agent/implement-cancellation-support-in-workers
 
     checkCancellation();
 
-<<<<<<< HEAD
     // Validate styles
     sendProgress(8, 'Validating styles...');
 
@@ -975,22 +1033,6 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
       throw new Error(`Invalid styles: ${stylesValidation.error}`);
     }
 
-=======
-    // Simulate creating a partial PDF file
-    const partialPdf = 'temp-partial-document.pdf';
-    state.partialFiles.push(partialPdf);
-    registerResource(partialPdf);
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    checkCancellation();
-
-    sendProgress(70, 'Rendering pages...');
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    checkCancellation();
-
-    sendProgress(90, 'Finalizing PDF...');
-    await new Promise((resolve) => setTimeout(resolve, 100));
->>>>>>> agent/implement-cancellation-support-in-workers
     checkCancellation();
 
     // Validate images
@@ -1042,7 +1084,9 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
 
     checkCancellation();
 
-    sendProgress(15, 'Generating PDF document...');
+    sendProgress(15, 'Generating PDF document...', {
+      details: `Processing ${book.chapters.length} chapters`,
+    });
 
     // Generate the PDF
     const buffer = await generatePdf(book, styles || [], options);
@@ -1050,9 +1094,13 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
     // Clean up resources on successful completion
     await cleanupResources();
 
-    sendProgress(100, 'PDF generation complete');
+    sendProgress(100, 'PDF generation complete', {
+      totalPages: book.chapters.length, // This will be updated with actual page count
+      details: 'Document ready',
+    });
 
     const processingTime = Date.now() - startTime;
+    const pageCount = (doc as any)?.bufferedPageRange?.()?.count || book.chapters.length;
 
     postMessage(
       createWorkerMessage(WorkerMessageType.COMPLETE, {
@@ -1061,39 +1109,16 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         fileSize: buffer.byteLength,
         mimeType: 'application/pdf',
         metadata: {
-<<<<<<< HEAD
           processingTimeMs: processingTime,
-          pageCount: book.pageCount,
+          pageCount: pageCount,
           warnings: warnings.length > 0 ? warnings : undefined,
-=======
-          processingTimeMs: Date.now() - startTime,
->>>>>>> agent/implement-cancellation-support-in-workers
         },
       })
     );
   } catch (error) {
     const serialized = serializeError(error);
-    const errorCode = state.isCancelled ? 'GENERATION_CANCELLED' :
-                     (error as any).chapterNumber !== undefined ? 'CHAPTER_ERROR' :
-                     (error as any).imageId ? 'IMAGE_ERROR' :
-                     serialized.name === 'TypeError' ? 'INVALID_DATA' :
-                     serialized.name === 'RangeError' ? 'RESOURCE_LIMIT' :
-                     serialized.name === 'ReferenceError' ? 'LIBRARY_ERROR' :
-                     'GENERATION_ERROR';
+    const errorMessage = serialized.message;
 
-<<<<<<< HEAD
-    sendError(
-      errorCode,
-      `PDF generation failed: ${serialized.message}`,
-      {
-        details: serialized.stack,
-        stack: serialized.stack,
-        recoverable: state.isCancelled,
-        chapterNumber: (error as any).chapterNumber,
-        elementId: (error as any).imageId,
-      }
-    );
-=======
     // Check if this is a cancellation
     if (errorMessage === 'CANCELLATION_REQUESTED') {
       // Clean up resources
@@ -1115,13 +1140,26 @@ async function handleInitialize(message: InitializeMessage): Promise<void> {
         console.error('Failed to cleanup after error:', cleanupError);
       }
 
-      sendError('GENERATION_ERROR', `PDF generation failed: ${errorMessage}`, {
-        details: errorMessage,
-        stack: errorStack,
-        recoverable: false,
-      });
+      const errorCode = state.isCancelled ? 'GENERATION_CANCELLED' :
+                       (error as any).chapterNumber !== undefined ? 'CHAPTER_ERROR' :
+                       (error as any).imageId ? 'IMAGE_ERROR' :
+                       serialized.name === 'TypeError' ? 'INVALID_DATA' :
+                       serialized.name === 'RangeError' ? 'RESOURCE_LIMIT' :
+                       serialized.name === 'ReferenceError' ? 'LIBRARY_ERROR' :
+                       'GENERATION_ERROR';
+
+      sendError(
+        errorCode,
+        `PDF generation failed: ${serialized.message}`,
+        {
+          details: serialized.stack,
+          stack: serialized.stack,
+          recoverable: state.isCancelled,
+          chapterNumber: (error as any).chapterNumber,
+          elementId: (error as any).imageId,
+        }
+      );
     }
->>>>>>> agent/implement-cancellation-support-in-workers
   } finally {
     clearOperationTimeout();
     state.isProcessing = false;

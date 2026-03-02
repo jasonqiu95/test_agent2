@@ -15,6 +15,7 @@ import {
   LinkAttrs,
   OrderedListAttrs,
 } from './types';
+import { imageNodeSpec } from './nodes';
 
 /**
  * Node specifications for the editor schema
@@ -226,45 +227,8 @@ const nodes: Record<string, NodeSpec> = {
     },
   },
 
-  // Image node (placeholder for future implementation)
-  [NodeType.IMAGE]: {
-    attrs: {
-      src: { default: '' },
-      alt: { default: null },
-      title: { default: null },
-      width: { default: null },
-      height: { default: null },
-    } as Record<keyof ImageAttrs, { default: string | number | null }>,
-    group: 'block',
-    atom: true,
-    draggable: true,
-    parseDOM: [
-      {
-        tag: 'img',
-        getAttrs(dom) {
-          const element = dom as HTMLImageElement;
-          return {
-            src: element.getAttribute('src') || '',
-            alt: element.getAttribute('alt'),
-            title: element.getAttribute('title'),
-            width: element.width || null,
-            height: element.height || null,
-          };
-        },
-      },
-    ],
-    toDOM(node) {
-      const attrs = node.attrs as ImageAttrs;
-      const domAttrs: Record<string, string | number> = { src: attrs.src };
-
-      if (attrs.alt) domAttrs.alt = attrs.alt;
-      if (attrs.title) domAttrs.title = attrs.title;
-      if (attrs.width) domAttrs.width = attrs.width;
-      if (attrs.height) domAttrs.height = attrs.height;
-
-      return ['img', domAttrs];
-    },
-  },
+  // Image node - supports inline and block images with alignment options
+  [NodeType.IMAGE]: imageNodeSpec,
 
   // Hard break node - line break within a paragraph
   [NodeType.HARD_BREAK]: {

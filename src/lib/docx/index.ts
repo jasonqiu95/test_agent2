@@ -33,3 +33,15 @@ export type {
   DetectedChapter,
   ChapterDetectionOptions
 } from './chapterDetection';
+export {
+  processChunked,
+  processChunkedComplete,
+  processChunkedCallback,
+  createCancellationToken
+} from './chunkProcessor';
+export type {
+  CancellationToken,
+  ProcessingProgress,
+  ChunkProcessorOptions,
+  ChunkProcessorResult
+} from './chunkProcessor';

@@ -205,3 +205,9 @@ export function createPDFWorker(handlers?: WorkerEventHandlers): PDFWorkerManage
   manager.initialize(handlers);
   return manager;
 }
+
+// Export transferable utilities
+export * from './transferable-utils';
+
+// Export types
+export * from './types';

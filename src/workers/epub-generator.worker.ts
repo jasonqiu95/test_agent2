@@ -26,6 +26,7 @@ import { Element } from '../types/element';
 import { TextBlock } from '../types/textBlock';
 import { BookStyle, Style } from '../types/style';
 import { ProgressReporter, ProgressStep, ProgressEvent, formatETA } from '../utils/ProgressReporter';
+import { prepareForTransfer } from './transferable-utils';
 // @ts-ignore - epub-gen-memory types may not be perfect
 import Epub from 'epub-gen-memory';
 
@@ -301,10 +302,22 @@ const MIN_BOOK_TITLE_LENGTH = 1;
 const MAX_BOOK_TITLE_LENGTH = 500;
 
 /**
- * Post a message to the main thread
+ * Post a message to the main thread with transferable optimization
  */
 function postMessageToMain(message: WorkerToMainMessage): void {
-  self.postMessage(message);
+  // Use transferable objects for efficient data transfer
+  const result = prepareForTransfer(message);
+
+  // Log performance metrics for monitoring
+  if (result.metrics.transferableCount > 0) {
+    console.debug('[EPUB Worker] Transfer optimization:', {
+      transferables: result.metrics.transferableCount,
+      bytes: result.metrics.transferableBytes,
+      prepareTime: result.metrics.prepareTimeMs.toFixed(2) + 'ms',
+    });
+  }
+
+  self.postMessage(result.data, result.transferables);
 }
 
 /**

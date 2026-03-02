@@ -141,6 +141,101 @@
   gap: 16px;
 }
 
+.import-progress-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 48px 24px;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.import-progress-header {
+  text-align: center;
+  width: 100%;
+}
+
+.import-progress-title {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.import-progress-count {
+  font-size: 1rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.import-progress-bar-container {
+  width: 100%;
+  max-width: 600px;
+  height: 32px;
+  background-color: #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.import-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 16px;
+  transition: width 0.3s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.import-progress-bar-fill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.import-progress-percentage {
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.import-progress-status {
+  text-align: center;
+  font-size: 0.9375rem;
+  color: #374151;
+  font-weight: 500;
+  min-height: 24px;
+  animation: fadeIn 0.3s ease-in;
+}
+
 .chapter-preview-card {
   border: 2px solid #e5e7eb;
   border-radius: 8px;
@@ -469,5 +564,21 @@
 
   .import-preview-btn-secondary:hover {
     background-color: #4b5563;
+  }
+
+  .import-progress-title {
+    color: #f9fafb;
+  }
+
+  .import-progress-count {
+    color: #9ca3af;
+  }
+
+  .import-progress-bar-container {
+    background-color: #374151;
+  }
+
+  .import-progress-status {
+    color: #d1d5db;
   }
 }

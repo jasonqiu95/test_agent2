@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { TextBlock } from '../../types/textBlock';
+import { WordCount } from './WordCount';
 
 export interface EditorContentProps {
   chapterId: string;
@@ -104,13 +105,14 @@ export const EditorContent: React.FC<EditorContentProps> = ({
 
       <div className="editor-stats">
         <span>Blocks: {content.length}</span>
-        <span>
-          Words:{' '}
-          {content.reduce(
-            (sum, block) => sum + block.content.split(/\s+/).filter(Boolean).length,
-            0
-          )}
-        </span>
+        <WordCount
+          content={content}
+          debounceMs={300}
+          showPageCount={true}
+          showReadingTime={true}
+          label="Chapter:"
+          className="editor-word-count"
+        />
       </div>
     </div>
   );

@@ -491,6 +491,137 @@ Third paragraph here.`;
     });
   });
 
+  describe('Page count estimate (250 words/page)', () => {
+    it('should display page count estimate by default', () => {
+      const words = Array.from({ length: 300 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      // 300 words = 2 pages (at 250 words/page)
+      expect(screen.getByTestId('word-count-pages')).toHaveTextContent('2 pages');
+    });
+
+    it('should calculate 1 page for 250 words', () => {
+      const words = Array.from({ length: 250 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-pages')).toHaveTextContent('1 page');
+    });
+
+    it('should calculate 2 pages for 251 words', () => {
+      const words = Array.from({ length: 251 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-pages')).toHaveTextContent('2 pages');
+    });
+
+    it('should calculate 4 pages for 1000 words', () => {
+      const words = Array.from({ length: 1000 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-pages')).toHaveTextContent('4 pages');
+    });
+
+    it('should not display page count when showPageCount is false', () => {
+      const words = Array.from({ length: 300 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} showPageCount={false} />);
+
+      expect(screen.queryByTestId('word-count-pages')).not.toBeInTheDocument();
+    });
+
+    it('should not display page count for empty content', () => {
+      render(<WordCount content={[]} />);
+      expect(screen.queryByTestId('word-count-pages')).not.toBeInTheDocument();
+    });
+
+    it('should use singular form for 1 page', () => {
+      const words = Array.from({ length: 100 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-pages')).toHaveTextContent('1 page');
+    });
+  });
+
+  describe('Reading time estimate (200 WPM)', () => {
+    it('should display reading time estimate by default', () => {
+      const words = Array.from({ length: 300 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      // 300 words = 2 min (at 200 WPM)
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('2 min read');
+    });
+
+    it('should calculate 1 min for 200 words', () => {
+      const words = Array.from({ length: 200 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('1 min read');
+    });
+
+    it('should calculate 2 min for 201 words', () => {
+      const words = Array.from({ length: 201 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('2 min read');
+    });
+
+    it('should calculate 5 min for 1000 words', () => {
+      const words = Array.from({ length: 1000 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('5 min read');
+    });
+
+    it('should format hours when reading time is 60+ minutes', () => {
+      const words = Array.from({ length: 12000 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      // 12000 words = 60 min = 1h
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('1h read');
+    });
+
+    it('should format hours and minutes when reading time has remainder', () => {
+      const words = Array.from({ length: 13000 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} />);
+
+      // 13000 words = 65 min = 1h 5m
+      expect(screen.getByTestId('word-count-reading-time')).toHaveTextContent('1h 5m read');
+    });
+
+    it('should not display reading time when showReadingTime is false', () => {
+      const words = Array.from({ length: 300 }, (_, i) => `word${i}`).join(' ');
+      render(<WordCount content={[createTextBlock(words)]} showReadingTime={false} />);
+
+      expect(screen.queryByTestId('word-count-reading-time')).not.toBeInTheDocument();
+    });
+
+    it('should not display reading time for empty content', () => {
+      render(<WordCount content={[]} />);
+      expect(screen.queryByTestId('word-count-reading-time')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Label support for different contexts', () => {
+    it('should display label when provided', () => {
+      render(<WordCount content={[createTextBlock('test')]} label="Chapter:" />);
+      expect(screen.getByTestId('word-count-label')).toHaveTextContent('Chapter:');
+    });
+
+    it('should support "Selection:" label', () => {
+      render(<WordCount content={[createTextBlock('test')]} label="Selection:" />);
+      expect(screen.getByTestId('word-count-label')).toHaveTextContent('Selection:');
+    });
+
+    it('should support "Book:" label', () => {
+      render(<WordCount content={[createTextBlock('test')]} label="Book:" />);
+      expect(screen.getByTestId('word-count-label')).toHaveTextContent('Book:');
+    });
+
+    it('should not display label when not provided', () => {
+      render(<WordCount content={[createTextBlock('test')]} />);
+      expect(screen.queryByTestId('word-count-label')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Edge cases and integration', () => {
     it('should handle very long text efficiently', () => {
       const veryLongText = Array.from({ length: 10000 }, (_, i) => `word${i}`).join(' ');
@@ -534,6 +665,27 @@ Third paragraph here.`;
       );
       // Total: 2 + 0 + 0 + 2 + 3 = 7 words
       expect(screen.getByTestId('word-count-words')).toHaveTextContent('7 words');
+    });
+
+    it('should display all stats together', () => {
+      const words = Array.from({ length: 500 }, (_, i) => `word${i}`).join(' ');
+      render(
+        <WordCount
+          content={[createTextBlock(words)]}
+          showCharactersWithSpaces={true}
+          showCharactersWithoutSpaces={true}
+          showPageCount={true}
+          showReadingTime={true}
+          label="Chapter:"
+        />
+      );
+
+      expect(screen.getByTestId('word-count-label')).toBeInTheDocument();
+      expect(screen.getByTestId('word-count-words')).toBeInTheDocument();
+      expect(screen.getByTestId('word-count-chars-with-spaces')).toBeInTheDocument();
+      expect(screen.getByTestId('word-count-chars-without-spaces')).toBeInTheDocument();
+      expect(screen.getByTestId('word-count-pages')).toBeInTheDocument();
+      expect(screen.getByTestId('word-count-reading-time')).toBeInTheDocument();
     });
   });
 });

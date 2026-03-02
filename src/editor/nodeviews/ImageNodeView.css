@@ -1,0 +1,340 @@
+/**
+ * ImageNodeView Styles
+ * Styling for custom image node view with loading, error states, alignment, and resize handles
+ */
+
+/* Base container styles */
+.prosemirror-image-node {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.image-node-container {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Alignment modes */
+.image-node-inline {
+  display: inline-block;
+  vertical-align: baseline;
+  margin: 0 4px;
+}
+
+.image-node-block {
+  display: block;
+  margin: 16px auto;
+  text-align: center;
+}
+
+.image-node-left {
+  display: block;
+  float: left;
+  margin: 8px 16px 8px 0;
+  clear: left;
+}
+
+.image-node-right {
+  display: block;
+  float: right;
+  margin: 8px 0 8px 16px;
+  clear: right;
+}
+
+/* Image wrapper */
+.image-node-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Image element */
+.image-node-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  transition: opacity 0.2s ease;
+}
+
+/* Selection state */
+.image-node-selected .image-node-wrapper {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.ProseMirror-selectednode .image-node-wrapper {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Loading state */
+.image-node-loading .image-node-img {
+  opacity: 0;
+}
+
+.image-node-loading-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  border-radius: 4px;
+  min-height: 100px;
+  min-width: 200px;
+  color: #718096;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4299e1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.image-node-error-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff5f5;
+  border: 2px dashed #fc8181;
+  border-radius: 4px;
+  padding: 24px;
+  min-height: 120px;
+  min-width: 250px;
+  color: #c53030;
+}
+
+.error-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  color: #e53e3e;
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.error-message strong {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.error-src {
+  font-size: 12px;
+  color: #742a2a;
+  word-break: break-all;
+  max-width: 300px;
+  margin-top: 4px;
+  font-family: monospace;
+}
+
+/* Resize handles */
+.image-node-resize-handles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #4299e1;
+  border: 2px solid white;
+  border-radius: 50%;
+  pointer-events: all;
+  cursor: nwse-resize;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.resize-handle-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.resize-handle-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-handle-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.resize-handle-se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+.resize-handle:hover {
+  background: #3182ce;
+  transform: scale(1.2);
+  transition: all 0.2s ease;
+}
+
+/* Resizing state */
+.image-node-resizing {
+  cursor: nwse-resize;
+}
+
+.image-node-resizing .image-node-img {
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Dimensions display */
+.image-node-dimensions {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .image-node-loading-indicator {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #cbd5e0;
+  }
+
+  .loading-spinner {
+    border-color: #4a5568;
+    border-top-color: #63b3ed;
+  }
+
+  .image-node-error-display {
+    background: #742a2a;
+    border-color: #fc8181;
+    color: #feb2b2;
+  }
+
+  .error-src {
+    color: #fbd38d;
+  }
+
+  .image-node-selected .image-node-wrapper,
+  .ProseMirror-selectednode .image-node-wrapper {
+    outline-color: #63b3ed;
+  }
+
+  .resize-handle {
+    background: #63b3ed;
+    border-color: #2d3748;
+  }
+
+  .resize-handle:hover {
+    background: #4299e1;
+  }
+}
+
+/* Accessibility */
+.image-node-container:focus-within .image-node-wrapper {
+  outline: 2px solid #4299e1;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .image-node-resize-handles,
+  .image-node-dimensions {
+    display: none !important;
+  }
+
+  .image-node-selected .image-node-wrapper,
+  .ProseMirror-selectednode .image-node-wrapper {
+    outline: none;
+  }
+
+  .image-node-loading-indicator {
+    display: none;
+  }
+
+  .image-node-error-display {
+    border: 1px solid #e2e8f0;
+    background: #f7fafc;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .image-node-left,
+  .image-node-right {
+    float: none;
+    display: block;
+    margin: 16px auto;
+  }
+
+  .resize-handle {
+    width: 16px;
+    height: 16px;
+  }
+
+  .resize-handle-nw {
+    top: -8px;
+    left: -8px;
+  }
+
+  .resize-handle-ne {
+    top: -8px;
+    right: -8px;
+  }
+
+  .resize-handle-sw {
+    bottom: -8px;
+    left: -8px;
+  }
+
+  .resize-handle-se {
+    bottom: -8px;
+    right: -8px;
+  }
+}

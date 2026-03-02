@@ -247,6 +247,164 @@ ${navPoints}
       ...options,
     };
   }
+
+  /**
+   * Generates the EPUB 3 navigation document (nav.xhtml)
+   * This creates the primary navigation structure with a nested list of book elements
+   * @param chapters - Array of chapters to include in the navigation
+   * @returns The nav.xhtml content as a string
+   */
+  generateNavXhtml(chapters: Book['chapters']): string {
+    // Group chapters by parts if they have partNumber/partTitle
+    const partGroups = new Map<number, { title: string; chapters: Book['chapters'] }>();
+    const standaloneChapters: Book['chapters'] = [];
+
+    chapters.forEach((chapter) => {
+      // Only include chapters that should be in TOC
+      if (chapter.includeInToc === false) {
+        return;
+      }
+
+      if (chapter.partNumber !== undefined && chapter.partTitle) {
+        if (!partGroups.has(chapter.partNumber)) {
+          partGroups.set(chapter.partNumber, {
+            title: chapter.partTitle,
+            chapters: [],
+          });
+        }
+        partGroups.get(chapter.partNumber)!.chapters.push(chapter);
+      } else {
+        standaloneChapters.push(chapter);
+      }
+    });
+
+    // Build the navigation list HTML
+    let navListHtml = '';
+
+    // Add parts and their chapters
+    const sortedParts = Array.from(partGroups.entries()).sort(([a], [b]) => a - b);
+    sortedParts.forEach(([partNumber, partData]) => {
+      navListHtml += `      <li>\n`;
+      navListHtml += `        <span class="part-title">${this.escapeXml(partData.title)}</span>\n`;
+      navListHtml += `        <ol>\n`;
+
+      partData.chapters.forEach((chapter) => {
+        const chapterTitle = this.getChapterTitle(chapter);
+        const chapterHref = this.getChapterHref(chapter);
+        navListHtml += `          <li>\n`;
+        navListHtml += `            <a href="${chapterHref}">${this.escapeXml(chapterTitle)}</a>\n`;
+        navListHtml += `          </li>\n`;
+      });
+
+      navListHtml += `        </ol>\n`;
+      navListHtml += `      </li>\n`;
+    });
+
+    // Add standalone chapters
+    standaloneChapters.forEach((chapter) => {
+      const chapterTitle = this.getChapterTitle(chapter);
+      const chapterHref = this.getChapterHref(chapter);
+      navListHtml += `      <li>\n`;
+      navListHtml += `        <a href="${chapterHref}">${this.escapeXml(chapterTitle)}</a>\n`;
+      navListHtml += `      </li>\n`;
+    });
+
+    // Build the complete XHTML document
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Table of Contents</title>
+  <style type="text/css">
+    nav {
+      font-family: sans-serif;
+      line-height: 1.6;
+    }
+    nav > h1 {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-bottom: 1em;
+      text-align: center;
+    }
+    nav ol {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    nav > ol {
+      padding-left: 0;
+    }
+    nav ol ol {
+      padding-left: 1.5em;
+      margin-top: 0.5em;
+      margin-bottom: 0.5em;
+    }
+    nav li {
+      margin: 0.5em 0;
+    }
+    nav a {
+      text-decoration: none;
+      color: #0066cc;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    nav .part-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      display: block;
+      margin-bottom: 0.5em;
+    }
+  </style>
+</head>
+<body>
+  <nav epub:type="toc" id="toc">
+    <h1>Table of Contents</h1>
+    <ol>
+${navListHtml}    </ol>
+  </nav>
+</body>
+</html>
+`;
+  }
+
+  /**
+   * Gets the display title for a chapter
+   * @param chapter - The chapter to get the title for
+   * @returns The formatted chapter title
+   */
+  private getChapterTitle(chapter: Book['chapters'][0]): string {
+    if (chapter.number !== undefined) {
+      return `Chapter ${chapter.number}: ${chapter.title}`;
+    }
+    return chapter.title;
+  }
+
+  /**
+   * Gets the href for a chapter in the EPUB structure
+   * @param chapter - The chapter to get the href for
+   * @returns The relative href to the chapter file
+   */
+  private getChapterHref(chapter: Book['chapters'][0]): string {
+    // Generate a safe filename from the chapter ID
+    const filename = `chapter-${chapter.id}.xhtml`;
+    return filename;
+  }
+
+  /**
+   * Escapes XML special characters
+   * @param text - The text to escape
+   * @returns The escaped text
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
 }
 
 // Export singleton instance

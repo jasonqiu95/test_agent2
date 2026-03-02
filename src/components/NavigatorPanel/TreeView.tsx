@@ -7,6 +7,7 @@ import { setSelectedElement } from '../../store/selectionSlice';
 import { deleteFrontMatter, deleteChapter, deleteBackMatter } from '../../store/bookSlice';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { useTreeFilter, UseTreeFilterOptions } from '../../hooks/useTreeFilter';
+import { useTreeItemHeights } from './useTreeItemHeights';
 import './TreeView.css';
 
 export interface TreeViewProps {
@@ -52,6 +53,17 @@ export const TreeView: React.FC<TreeViewProps> = ({
   const activeSelectedId = selectedElementId || selectedId;
 
   const { filteredSections, hasActiveFilter } = useTreeFilter(book, filterOptions);
+
+  // Calculate heights for tree items (used for virtualization)
+  // This hook provides the flattened list of items and height calculation function
+  // that can be passed to VirtualizedList for efficient rendering of large trees
+  const {
+    flatItems,
+    getItemHeight,
+    getTotalHeight,
+    getItemIndex,
+    getSectionIndex,
+  } = useTreeItemHeights(filteredSections, expandedSections);
 
   // Auto-expand sections when filtering
   useEffect(() => {

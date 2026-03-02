@@ -1,0 +1,131 @@
+/**
+ * ImageAltTextEditor Styles
+ */
+
+.image-alt-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.image-alt-text-editor.focused {
+  border-color: #4a90e2;
+  box-shadow: 0 2px 12px rgba(74, 144, 226, 0.2);
+}
+
+.alt-text-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.alt-text-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.character-count {
+  font-size: 11px;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.character-count-over {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.alt-text-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: #333;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.alt-text-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.alt-text-input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.alt-text-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.alt-text-hint {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+}
+
+.keyboard-hint {
+  font-size: 10px;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .image-alt-text-editor {
+    background: #2c2c2c;
+    border-color: #444;
+  }
+
+  .image-alt-text-editor.focused {
+    border-color: #5a9fd4;
+  }
+
+  .alt-text-label {
+    color: #e0e0e0;
+  }
+
+  .character-count {
+    color: #aaa;
+  }
+
+  .alt-text-input {
+    background: #1e1e1e;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .alt-text-input:focus {
+    border-color: #5a9fd4;
+    box-shadow: 0 0 0 3px rgba(90, 159, 212, 0.2);
+  }
+
+  .alt-text-input::placeholder {
+    color: #777;
+  }
+
+  .alt-text-hint,
+  .keyboard-hint {
+    color: #999;
+  }
+}

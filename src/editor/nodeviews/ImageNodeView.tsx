@@ -15,6 +15,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Node as PMNode } from 'prosemirror-model';
 import { EditorView, NodeView, Decoration } from 'prosemirror-view';
 import { ImageAttrs } from '../types';
+import { ImageContextMenu } from '../components/ImageContextMenu';
 import './ImageNodeView.css';
 
 interface ImageNodeViewProps {
@@ -219,6 +220,13 @@ const ImageNodeComponent: React.FC<ImageNodeViewProps> = ({
             {dimensions.width} × {dimensions.height}
           </div>
         )}
+
+        {/* Alt text editor context menu - show always to display accessibility indicator */}
+        <ImageContextMenu
+          node={node}
+          view={view}
+          getPos={getPos}
+        />
       </div>
     </div>
   );

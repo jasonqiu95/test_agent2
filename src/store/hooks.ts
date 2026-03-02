@@ -1,7 +1,6 @@
 /**
- * Typed Redux Hooks
- *
- * Pre-typed versions of useDispatch and useSelector for use throughout the app.
+ * Typed Redux hooks for use throughout the application
+ * These hooks should be used instead of the plain `useDispatch` and `useSelector`
  */
 
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';

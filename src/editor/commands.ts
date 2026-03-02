@@ -4,8 +4,8 @@
  */
 
 import { Command } from 'prosemirror-state';
-import { toggleMark, setBlockType, lift } from 'prosemirror-commands';
-import { Schema } from 'prosemirror-model';
+import { toggleMark, setBlockType, lift, wrapIn } from 'prosemirror-commands';
+import { Schema, NodeType as PMNodeType } from 'prosemirror-model';
 import { MarkType, NodeType } from './types';
 import { EditorState } from 'prosemirror-state';
 
@@ -65,14 +65,151 @@ export function toggleCode(schema: Schema): Command {
 }
 
 /**
+ * Check if the current selection is inside a specific node type
+ */
+function isInsideNodeType(state: EditorState, nodeType: PMNodeType): boolean {
+  const { $from } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    if ($from.node(d).type === nodeType) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Creates a command to toggle blockquote
+ * Wraps selection in blockquote if not in one, lifts if already in one
  */
 export function toggleBlockquote(schema: Schema): Command {
   const nodeType = schema.nodes[NodeType.BLOCKQUOTE];
   if (!nodeType) {
     return () => false;
   }
-  return setBlockType(nodeType);
+
+  return (state, dispatch) => {
+    // Check if we're inside a blockquote
+    if (isInsideNodeType(state, nodeType)) {
+      // Try to lift out of the blockquote
+      return lift(state, dispatch);
+    } else {
+      // Try to wrap in blockquote
+      return wrapIn(nodeType)(state, dispatch);
+    }
+  };
+}
+
+/**
+ * Inserts a blockquote at the current position
+ */
+export function insertBlockquote(schema: Schema): Command {
+  const nodeType = schema.nodes[NodeType.BLOCKQUOTE];
+  const paragraphType = schema.nodes[NodeType.PARAGRAPH];
+
+  if (!nodeType || !paragraphType) {
+    return () => false;
+  }
+
+  return (state, dispatch) => {
+    const { $from } = state.selection;
+    const blockquote = nodeType.create(null, paragraphType.create());
+
+    if (dispatch) {
+      const tr = state.tr.replaceSelectionWith(blockquote);
+      dispatch(tr);
+    }
+    return true;
+  };
+}
+
+/**
+ * Check if blockquote is active in the current selection
+ */
+export function isBlockquoteActive(state: EditorState): boolean {
+  const nodeType = state.schema.nodes[NodeType.BLOCKQUOTE];
+  if (!nodeType) return false;
+  return isInsideNodeType(state, nodeType);
+}
+
+/**
+ * Creates a command to toggle verse
+ * Wraps selection in verse if not in one, lifts if already in one
+ */
+export function toggleVerse(schema: Schema): Command {
+  const verseType = schema.nodes[NodeType.VERSE];
+  const verseLineType = schema.nodes[NodeType.VERSE_LINE];
+
+  if (!verseType || !verseLineType) {
+    return () => false;
+  }
+
+  return (state, dispatch) => {
+    // Check if we're inside a verse
+    if (isInsideNodeType(state, verseType)) {
+      // Try to lift out of the verse
+      return lift(state, dispatch);
+    } else {
+      // Get selected content and convert to verse lines
+      const { $from, $to } = state.selection;
+      const range = $from.blockRange($to);
+
+      if (!range) return false;
+
+      if (dispatch) {
+        const tr = state.tr;
+        const verseLines: any[] = [];
+
+        // Convert selected blocks to verse lines
+        state.doc.nodesBetween(range.start, range.end, (node, pos) => {
+          if (node.isBlock && node.type.name === NodeType.PARAGRAPH) {
+            verseLines.push(verseLineType.create(null, node.content));
+          }
+        });
+
+        // If no verse lines, create one empty verse line
+        if (verseLines.length === 0) {
+          verseLines.push(verseLineType.create());
+        }
+
+        const verse = verseType.create(null, verseLines);
+        tr.replaceRangeWith(range.start, range.end, verse);
+        dispatch(tr);
+      }
+      return true;
+    }
+  };
+}
+
+/**
+ * Inserts a verse block at the current position
+ */
+export function insertVerse(schema: Schema): Command {
+  const verseType = schema.nodes[NodeType.VERSE];
+  const verseLineType = schema.nodes[NodeType.VERSE_LINE];
+
+  if (!verseType || !verseLineType) {
+    return () => false;
+  }
+
+  return (state, dispatch) => {
+    const verseLine = verseLineType.create();
+    const verse = verseType.create(null, [verseLine]);
+
+    if (dispatch) {
+      const tr = state.tr.replaceSelectionWith(verse);
+      dispatch(tr);
+    }
+    return true;
+  };
+}
+
+/**
+ * Check if verse is active in the current selection
+ */
+export function isVerseActive(state: EditorState): boolean {
+  const nodeType = state.schema.nodes[NodeType.VERSE];
+  if (!nodeType) return false;
+  return isInsideNodeType(state, nodeType);
 }
 
 /**
@@ -458,5 +595,8 @@ export function createFormattingCommands(schema: Schema) {
     setHeading6: setHeading(6),
     setParagraph: setParagraph(),
     toggleBlockquote: toggleBlockquote(schema),
+    insertBlockquote: insertBlockquote(schema),
+    toggleVerse: toggleVerse(schema),
+    insertVerse: insertVerse(schema),
   };
 }

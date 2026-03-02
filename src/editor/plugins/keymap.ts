@@ -13,6 +13,8 @@ import {
   toggleUnderline,
   setHeading,
   setParagraph,
+  toggleBlockquote,
+  toggleVerse,
 } from '../commands';
 
 /**
@@ -29,6 +31,14 @@ export function createKeymapPlugins(schema: Schema): Plugin[] {
       'Mod-b': toggleBold(schema),
       'Mod-i': toggleItalic(schema),
       'Mod-u': toggleUnderline(schema),
+    }),
+
+    // Block formatting keymaps
+    keymap({
+      'Ctrl-Shift-9': toggleBlockquote(schema),  // Ctrl+Shift+9 for blockquote (like Notion)
+      'Mod-Shift-9': toggleBlockquote(schema),   // Cmd/Ctrl+Shift+9 alternative
+      'Ctrl-Shift-v': toggleVerse(schema),       // Ctrl+Shift+V for verse
+      'Mod-Shift-v': toggleVerse(schema),        // Cmd/Ctrl+Shift+V alternative
     }),
 
     // Heading level keymaps

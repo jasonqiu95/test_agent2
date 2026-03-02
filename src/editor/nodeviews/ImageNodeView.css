@@ -46,6 +46,14 @@
   clear: right;
 }
 
+/* Clear floats after floated images */
+.image-node-left::after,
+.image-node-right::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
 /* Image wrapper */
 .image-node-wrapper {
   position: relative;

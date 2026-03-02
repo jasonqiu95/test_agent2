@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { Provider } from 'react-redux'
+import { store } from './store'
+import { useUndoRedo } from './hooks/useUndoRedo'
+import UndoRedoStatus from './components/UndoRedoStatus'
 import './App.css'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { ImportPreviewDialog } from './components/ImportPreviewDialog'
@@ -9,12 +13,15 @@ import type { Book } from './types/book'
 
 type AppView = 'welcome' | 'editor'
 
-function App() {
+function AppContent() {
   const [currentView, setCurrentView] = useState<AppView>('welcome')
   const [currentBook, setCurrentBook] = useState<Book | null>(null)
   const [currentFilePath, setCurrentFilePath] = useState<string>('')
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showPreferences, setShowPreferences] = useState(false)
+
+  // Enable undo/redo keyboard shortcuts
+  useUndoRedo()
 
   const handleProjectOpen = (book: Book, filePath: string) => {
     setCurrentBook(book)
@@ -88,6 +95,7 @@ function App() {
             <h1 className="editor-title">
               {currentBook?.title || 'Untitled'}
             </h1>
+            <UndoRedoStatus />
             <div className="editor-info">
               {currentFilePath && (
                 <span className="file-path">{currentFilePath}</span>
@@ -125,6 +133,14 @@ function App() {
         onClose={() => setShowPreferences(false)}
       />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Provider store={store}>
+      <AppContent />
+    </Provider>
   )
 }
 

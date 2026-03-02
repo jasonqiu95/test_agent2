@@ -1,20 +1,34 @@
+/**
+ * Redux Store Configuration
+ *
+ * Configures the Redux store with all slices and middleware,
+ * including the undo/redo middleware for tracking actions.
+ */
+
 import { configureStore } from '@reduxjs/toolkit';
-import bookReducer from './bookSlice';
+import bookReducer from '../slices/bookSlice';
 import selectionReducer from './selectionSlice';
+import undoReducer from '../slices/undoSlice';
+import undoMiddleware from './middleware/undoMiddleware';
 
 export const store = configureStore({
   reducer: {
     book: bookReducer,
     selection: selectionReducer,
+    undo: undoReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['book/setBook', 'book/addChapter', 'book/addFrontMatter', 'book/addBackMatter'],
-        ignoredPaths: ['book.book.createdAt', 'book.book.updatedAt', 'book.book.metadata.publicationDate'],
+        // Ignore these action types for serialization checks
+        ignoredActions: ['book/setBook', 'book/addChapter', 'book/addFrontMatter', 'book/addBackMatter', 'undo/addToHistory'],
+        // Ignore these paths in the state
+        ignoredActionPaths: ['payload.stateBefore', 'payload.stateAfter', 'payload.action'],
+        ignoredPaths: ['book.book.createdAt', 'book.book.updatedAt', 'book.book.metadata.publicationDate', 'undo.past', 'undo.future'],
       },
-    }),
+    }).concat(undoMiddleware),
 });
 
+// Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

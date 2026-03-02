@@ -1,0 +1,104 @@
+.undo-redo-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.undo-redo-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.undo-button,
+.redo-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.undo-button:hover:not(:disabled),
+.redo-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.undo-button:active:not(:disabled),
+.redo-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.undo-button:disabled,
+.redo-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.button-text {
+  font-weight: 500;
+}
+
+.action-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.keyboard-hint {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: monospace;
+}
+
+.hint-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .button-text {
+    display: none;
+  }
+
+  .undo-button,
+  .redo-button {
+    padding: 0.5rem;
+  }
+
+  .keyboard-hint {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  .hint-separator {
+    display: none;
+  }
+}

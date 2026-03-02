@@ -90,6 +90,9 @@ export function convertStyleToCss(
     cssRules.push(options.customCSS);
   }
 
+  // Add print optimizations
+  cssRules.push(generatePrintOptimizations());
+
   return cssRules.filter(Boolean).join('\n\n');
 }
 
@@ -355,6 +358,56 @@ function generateOrnamentalBreakStyles(breaks: BookStyle['ornamentalBreaks']): s
     rules.push(`  content: '${breaks.character}';`);
     rules.push('}');
   }
+
+  return rules.join('\n');
+}
+
+/**
+ * Generates print-specific CSS optimizations
+ * Wraps all print-specific rules in @media print query
+ */
+function generatePrintOptimizations(): string {
+  const rules: string[] = ['/* Print optimizations */'];
+
+  rules.push('@media print {');
+  rules.push('  /* Hide screen-only elements */');
+  rules.push('  .no-print,');
+  rules.push('  .screen-only {');
+  rules.push('    display: none !important;');
+  rules.push('  }');
+  rules.push('');
+  rules.push('  /* Preserve colors for print */');
+  rules.push('  * {');
+  rules.push('    color-adjust: exact;');
+  rules.push('    -webkit-print-color-adjust: exact;');
+  rules.push('    print-color-adjust: exact;');
+  rules.push('  }');
+  rules.push('');
+  rules.push('  /* Optimize text rendering for print */');
+  rules.push('  body {');
+  rules.push('    text-rendering: optimizeLegibility;');
+  rules.push('    -webkit-font-smoothing: antialiased;');
+  rules.push('    -moz-osx-font-smoothing: grayscale;');
+  rules.push('  }');
+  rules.push('');
+  rules.push('  /* Prevent page breaks inside elements */');
+  rules.push('  h1, h2, h3, h4, h5, h6 {');
+  rules.push('    page-break-after: avoid;');
+  rules.push('    break-after: avoid;');
+  rules.push('  }');
+  rules.push('');
+  rules.push('  p, blockquote {');
+  rules.push('    page-break-inside: avoid;');
+  rules.push('    break-inside: avoid;');
+  rules.push('  }');
+  rules.push('');
+  rules.push('  /* Ensure images fit on page */');
+  rules.push('  img {');
+  rules.push('    max-width: 100%;');
+  rules.push('    page-break-inside: avoid;');
+  rules.push('    break-inside: avoid;');
+  rules.push('  }');
+  rules.push('}');
 
   return rules.join('\n');
 }

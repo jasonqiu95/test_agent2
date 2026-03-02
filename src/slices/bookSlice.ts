@@ -10,6 +10,7 @@ import type { RootState } from '../store';
 import { Book, Author } from '../types/book';
 import { Chapter } from '../types/chapter';
 import { Element } from '../types/element';
+import { Style } from '../types/style';
 
 export interface BookState {
   currentBook: Book | null;
@@ -198,6 +199,63 @@ export const bookSlice = createSlice({
     },
 
     /**
+     * Add a new style
+     */
+    addStyle: (state, action: PayloadAction<Style>) => {
+      if (state.currentBook) {
+        state.currentBook.styles.push(action.payload);
+      }
+    },
+
+    /**
+     * Delete a style by ID
+     */
+    deleteStyle: (state, action: PayloadAction<string>) => {
+      if (state.currentBook) {
+        state.currentBook.styles = state.currentBook.styles.filter(
+          (style) => style.id !== action.payload
+        );
+      }
+    },
+
+    /**
+     * Update a style
+     */
+    updateStyle: (state, action: PayloadAction<{ id: string; updates: Partial<Style> }>) => {
+      if (state.currentBook) {
+        const index = state.currentBook.styles.findIndex(
+          (style) => style.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.currentBook.styles[index] = {
+            ...state.currentBook.styles[index],
+            ...action.payload.updates,
+          };
+        }
+      }
+    },
+
+    /**
+     * Set the book styles array
+     */
+    setBookStyle: (state, action: PayloadAction<Style[]>) => {
+      if (state.currentBook) {
+        state.currentBook.styles = action.payload;
+      }
+    },
+
+    /**
+     * Reorder styles
+     */
+    reorderStyles: (state, action: PayloadAction<{ fromIndex: number; toIndex: number }>) => {
+      if (state.currentBook) {
+        const { fromIndex, toIndex } = action.payload;
+        const [removed] = state.currentBook.styles.splice(fromIndex, 1);
+        state.currentBook.styles.splice(toIndex, 0, removed);
+      }
+    },
+
+    /**
      * Set loading state
      */
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -228,6 +286,11 @@ export const {
   addAuthor,
   deleteAuthor,
   updateAuthor,
+  addStyle,
+  deleteStyle,
+  updateStyle,
+  setBookStyle,
+  reorderStyles,
   setLoading,
   setError,
 } = bookSlice.actions;

@@ -158,6 +158,78 @@ export class EpubGenerator {
   }
 
   /**
+   * Generates the toc.ncx file for EPUB 2 compatibility
+   * @param chapters - Array of chapters to include in the navigation
+   * @returns XML string for the toc.ncx file
+   */
+  generateTocNcx(chapters: Book['chapters']): string {
+    // Filter chapters that should be included in TOC
+    const tocChapters = chapters.filter(chapter => chapter.includeInToc !== false);
+
+    // Generate navPoint elements for each chapter
+    const navPoints = tocChapters.map((chapter, index) => {
+      const playOrder = index + 1;
+      const chapterId = chapter.id || `chapter-${playOrder}`;
+      const chapterTitle = chapter.title || `Chapter ${chapter.number || playOrder}`;
+      const chapterFile = `${chapterId}.xhtml`;
+
+      return `    <navPoint id="navpoint-${playOrder}" playOrder="${playOrder}">
+      <navLabel>
+        <text>${this.escapeXml(chapterTitle)}</text>
+      </navLabel>
+      <content src="${chapterFile}"/>
+    </navPoint>`;
+    }).join('\n');
+
+    // Build the complete NCX file
+    const ncxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN"
+  "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="urn:uuid:${this.generateUuid()}"/>
+    <meta name="dtb:depth" content="1"/>
+    <meta name="dtb:totalPageCount" content="0"/>
+    <meta name="dtb:maxPageNumber" content="0"/>
+  </head>
+  <docTitle>
+    <text>Table of Contents</text>
+  </docTitle>
+  <navMap>
+${navPoints}
+  </navMap>
+</ncx>`;
+
+    return ncxContent;
+  }
+
+  /**
+   * Escapes XML special characters
+   * @param text - Text to escape
+   * @returns Escaped text safe for XML
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Generates a UUID for the EPUB
+   * @returns A UUID string
+   */
+  private generateUuid(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  /**
    * Gets the default options for EPUB generation
    * @returns The default options
    */

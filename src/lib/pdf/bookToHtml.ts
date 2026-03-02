@@ -32,7 +32,7 @@ import { Chapter } from '../../types/chapter';
 import { Element, ElementType, MatterType } from '../../types/element';
 import { TextBlock } from '../../types/textBlock';
 import { BookStyle, Style } from '../../types/style';
-import { Break, TextFeature } from '../../types/textFeature';
+import { Break, TextFeature, Quote, Verse, List as ListFeature, ListItem } from '../../types/textFeature';
 
 /**
  * Ornamental break style options
@@ -97,8 +97,15 @@ export const CssClassNames = {
     DEDICATION: 'dedication',
     EPIGRAPH: 'epigraph',
     QUOTE: 'quote',
+    BLOCKQUOTE: 'blockquote',
+    QUOTE_ATTRIBUTION: 'quote-attribution',
     LIST: 'list',
     LIST_ITEM: 'list-item',
+    VERSE: 'verse',
+    VERSE_LINE: 'verse-line',
+    POETRY: 'poetry',
+    PREFORMATTED: 'preformatted',
+    CODE: 'code',
     IMAGE: 'image',
     FIGURE: 'figure',
     CAPTION: 'caption',
@@ -1837,12 +1844,20 @@ export class HtmlConverter {
    * Convert a single text block to HTML
    */
   private convertTextBlock(block: TextBlock): string {
-    // Only handle paragraph blocks in this implementation
-    if (block.blockType !== 'paragraph') {
-      return '';
+    switch (block.blockType) {
+      case 'paragraph':
+        return this.convertParagraph(block);
+      case 'list':
+        return this.convertList(block);
+      case 'preformatted':
+        return this.convertPreformatted(block);
+      case 'heading':
+        return this.convertHeading(block);
+      case 'code':
+        return this.convertCode(block);
+      default:
+        return '';
     }
-
-    return this.convertParagraph(block);
   }
 
   /**
@@ -1970,6 +1985,257 @@ export class HtmlConverter {
       this.context.isFirstParagraph &&
       this.context.sectionType === 'body-chapter'
     );
+  }
+
+  /**
+   * Convert a list block to HTML
+   * Handles ordered and unordered lists with proper nesting
+   */
+  private convertList(block: TextBlock): string {
+    const prefix = this.options.classPrefix || 'book';
+    const listType = block.listType || 'unordered';
+    const indentLevel = block.indentLevel || 0;
+
+    // Generate CSS classes for the list
+    const classes = generateListClasses(listType === 'ordered', indentLevel, prefix);
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    // Determine the list tag
+    const listTag = listType === 'ordered' ? 'ol' : 'ul';
+
+    // Escape content and wrap in list item
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = escapeFn(block.content || '');
+    const itemClasses = [generateClassName('list-item', undefined, prefix)];
+    if (indentLevel > 0) {
+      itemClasses.push(generateClassName('list-item', `level-${indentLevel}`, prefix));
+    }
+    const itemClassAttr = ` class="${itemClasses.join(' ')}"`;
+
+    return `<${listTag}${classAttr}><li${itemClassAttr}>${escapedContent}</li></${listTag}>`;
+  }
+
+  /**
+   * Convert a preformatted block to HTML
+   * Used for verse/poetry with preserved line breaks
+   */
+  private convertPreformatted(block: TextBlock): string {
+    const classes: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Add base preformatted/verse class
+    classes.push(generateClassName('verse', undefined, prefix));
+    classes.push(generateClassName('preformatted', undefined, prefix));
+
+    // Handle alignment
+    const alignment = this.getTextAlignment(block);
+    if (alignment) {
+      classes.push(generateClassName('text', alignment, prefix));
+    }
+
+    // Escape content and preserve line breaks
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const content = block.content || '';
+    const lines = content.split('\n');
+    const escapedLines = lines.map((line) => escapeFn(line));
+    const formattedContent = escapedLines.join('<br />');
+
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    return `<pre${classAttr}>${formattedContent}</pre>`;
+  }
+
+  /**
+   * Convert a heading block to HTML
+   * Handles heading levels 1-6
+   */
+  private convertHeading(block: TextBlock): string {
+    const level = Math.min(Math.max(block.level || 1, 1), 6);
+    const prefix = this.options.classPrefix || 'book';
+
+    // Generate heading classes
+    const classes: string[] = [];
+    classes.push(generateClassName('heading', `h${level}`, prefix));
+
+    // Handle alignment
+    const alignment = this.getTextAlignment(block);
+    if (alignment) {
+      classes.push(generateClassName('text', alignment, prefix));
+    }
+
+    // Escape content
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = escapeFn(block.content || '');
+
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    return `<h${level}${classAttr}>${escapedContent}</h${level}>`;
+  }
+
+  /**
+   * Convert a code block to HTML
+   * Handles syntax highlighting metadata
+   */
+  private convertCode(block: TextBlock): string {
+    const classes: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Add base code class
+    classes.push(generateClassName('code', undefined, prefix));
+
+    // Add language class if specified
+    if (block.language) {
+      classes.push(generateClassName('code', `language-${block.language}`, prefix));
+    }
+
+    // Escape content
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = escapeFn(block.content || '');
+
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    return `<pre${classAttr}><code>${escapedContent}</code></pre>`;
+  }
+
+  /**
+   * Convert a Quote TextFeature to HTML blockquote
+   * Handles block quotes with attribution and source
+   */
+  private convertQuote(quote: Quote): string {
+    const classes: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Add base quote/blockquote class
+    classes.push(generateClassName('quote', undefined, prefix));
+    classes.push(generateClassName('blockquote', undefined, prefix));
+
+    // Add quote type modifier
+    if (quote.quoteType) {
+      classes.push(generateClassName('quote', quote.quoteType, prefix));
+    }
+
+    // Escape content
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = escapeFn(quote.content || '');
+
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    // Build blockquote HTML
+    let html = `<blockquote${classAttr}>${escapedContent}`;
+
+    // Add attribution if present
+    if (quote.attribution || quote.source) {
+      const attrClasses = [generateClassName('quote-attribution', undefined, prefix)];
+      const attrClassAttr = ` class="${attrClasses.join(' ')}"`;
+      const attribution = quote.attribution ? escapeFn(quote.attribution) : '';
+      const source = quote.source ? escapeFn(quote.source) : '';
+
+      if (attribution && source) {
+        html += `<cite${attrClassAttr}>${attribution}, <em>${source}</em></cite>`;
+      } else if (attribution) {
+        html += `<cite${attrClassAttr}>${attribution}</cite>`;
+      } else if (source) {
+        html += `<cite${attrClassAttr}><em>${source}</em></cite>`;
+      }
+    }
+
+    html += '</blockquote>';
+    return html;
+  }
+
+  /**
+   * Convert a Verse TextFeature to HTML
+   * Handles poetry with line breaks and indentation
+   */
+  private convertVerse(verse: Verse): string {
+    const classes: string[] = [];
+    const prefix = this.options.classPrefix || 'book';
+
+    // Add base verse class
+    classes.push(generateClassName('verse', undefined, prefix));
+    classes.push(generateClassName('poetry', undefined, prefix));
+
+    // Add stanza class if specified
+    if (verse.stanza !== undefined) {
+      classes.push(generateClassName('verse', `stanza-${verse.stanza}`, prefix));
+    }
+
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    // Escape and format lines
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const lines = verse.lines.map((line, index) => {
+      const escapedLine = escapeFn(line);
+      const lineClasses = [generateClassName('verse-line', undefined, prefix)];
+
+      // Add indentation class if specified
+      const indentation = verse.indentation?.[index];
+      if (indentation !== undefined && indentation > 0) {
+        lineClasses.push(generateClassName('verse-line', `indent-${indentation}`, prefix));
+      }
+
+      const lineClassAttr = ` class="${lineClasses.join(' ')}"`;
+      return `<span${lineClassAttr}>${escapedLine}</span>`;
+    });
+
+    const formattedContent = lines.join('<br />');
+
+    return `<div${classAttr}>${formattedContent}</div>`;
+  }
+
+  /**
+   * Convert a List TextFeature to HTML list
+   * Handles ordered and unordered lists with recursive nesting
+   */
+  private convertListFeature(list: ListFeature): string {
+    const prefix = this.options.classPrefix || 'book';
+    const listTag = list.listType === 'ordered' ? 'ol' : 'ul';
+
+    // Generate CSS classes for the list
+    const classes = generateListClasses(list.listType === 'ordered', 0, prefix);
+    const classAttr = classes.length > 0 ? ` class="${classes.join(' ')}"` : '';
+
+    // Add start attribute for ordered lists with custom start number
+    const startAttr = list.startNumber && list.listType === 'ordered' ? ` start="${list.startNumber}"` : '';
+
+    // Convert list items recursively
+    const items = list.items.map((item) => this.convertListItem(item, 0, prefix));
+
+    return `<${listTag}${classAttr}${startAttr}>${items.join('')}</${listTag}>`;
+  }
+
+  /**
+   * Convert a ListItem to HTML list item
+   * Handles nested list items recursively
+   */
+  private convertListItem(item: ListItem, level: number, prefix: string): string {
+    const escapeFn = this.options.escapeHtml || escapeHtml;
+    const escapedContent = escapeFn(item.content || '');
+
+    // Generate list item classes
+    const itemClasses = [generateClassName('list-item', undefined, prefix)];
+    if (level > 0) {
+      itemClasses.push(generateClassName('list-item', `level-${level}`, prefix));
+    }
+    if (item.marker) {
+      itemClasses.push(generateClassName('list-item', 'custom-marker', prefix));
+    }
+
+    const itemClassAttr = ` class="${itemClasses.join(' ')}"`;
+
+    // Build list item HTML
+    let html = `<li${itemClassAttr}>${escapedContent}`;
+
+    // Handle nested list items
+    if (item.children && item.children.length > 0) {
+      const nestedListClasses = generateListClasses(false, level + 1, prefix);
+      const nestedListClassAttr = nestedListClasses.length > 0 ? ` class="${nestedListClasses.join(' ')}"` : '';
+      const nestedItems = item.children.map((child) => this.convertListItem(child, level + 1, prefix));
+      html += `<ul${nestedListClassAttr}>${nestedItems.join('')}</ul>`;
+    }
+
+    html += '</li>';
+    return html;
   }
 
   /**
@@ -2234,6 +2500,71 @@ export function generateListClasses(
 
   if (level > 0) {
     builder.modifier('list', `level-${level}`);
+  }
+
+  return builder.build();
+}
+
+/**
+ * Generate classes for blockquote
+ *
+ * @param quoteType Type of quote (block, inline, epigraph)
+ * @param prefix Class prefix
+ * @returns Array of CSS class names
+ */
+export function generateBlockquoteClasses(
+  quoteType?: 'block' | 'inline' | 'epigraph',
+  prefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix });
+  builder.add(CssClassNames.ELEMENT.BLOCKQUOTE);
+  builder.add(CssClassNames.ELEMENT.QUOTE);
+
+  if (quoteType) {
+    builder.modifier('quote', quoteType);
+  }
+
+  return builder.build();
+}
+
+/**
+ * Generate classes for verse/poetry
+ *
+ * @param stanza Optional stanza number
+ * @param prefix Class prefix
+ * @returns Array of CSS class names
+ */
+export function generateVerseClasses(
+  stanza?: number,
+  prefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix });
+  builder.add(CssClassNames.ELEMENT.VERSE);
+  builder.add(CssClassNames.ELEMENT.POETRY);
+
+  if (stanza !== undefined) {
+    builder.modifier('verse', `stanza-${stanza}`);
+  }
+
+  return builder.build();
+}
+
+/**
+ * Generate classes for verse line
+ *
+ * @param indentation Optional indentation level
+ * @param prefix Class prefix
+ * @returns Array of CSS class names
+ */
+export function generateVerseLineClasses(
+  indentation?: number,
+  prefix: string = 'book'
+): string[] {
+  const builder = new ClassBuilder({ prefix });
+  builder.add(CssClassNames.ELEMENT.VERSE_LINE);
+
+  if (indentation !== undefined && indentation > 0) {
+    builder.modifier('verse-line', `indent-${indentation}`);
   }
 
   return builder.build();

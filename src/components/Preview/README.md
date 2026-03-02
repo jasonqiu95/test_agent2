@@ -186,3 +186,183 @@ Override styles by targeting these classes:
 - `.preview-panel__header` - Header section
 - `.preview-panel__spinner` - Loading spinner
 - `.preview-panel__content` - Content area
+
+## PreviewContent Component
+
+The `PreviewContent` component provides isolated content rendering using iframe for style isolation. This ensures that the preview content doesn't interfere with the parent application's styles.
+
+### Features
+
+- **Style Isolation**: Uses iframe for complete style isolation
+- **Device Mode Support**: Responsive dimensions for desktop, tablet, and mobile views
+- **Message Passing API**: Bidirectional communication between parent and iframe
+- **Dynamic Content Updates**: Updates content without full page reload
+- **Overflow Handling**: Automatically adjusts height based on content
+- **Loading States**: Visual feedback during content loading
+- **Empty State**: User-friendly placeholder when no content is available
+
+### Basic Usage
+
+```jsx
+import { PreviewContent } from './components/Preview';
+
+function App() {
+  const [content, setContent] = useState('<h1>Hello World</h1>');
+  const [styles, setStyles] = useState('body { font-family: Arial; }');
+
+  return (
+    <PreviewContent
+      content={content}
+      styles={styles}
+      deviceMode="desktop"
+    />
+  );
+}
+```
+
+### With Device Modes
+
+```jsx
+import { PreviewContent } from './components/Preview';
+
+function App() {
+  const [deviceMode, setDeviceMode] = useState('desktop');
+
+  return (
+    <>
+      <button onClick={() => setDeviceMode('desktop')}>Desktop</button>
+      <button onClick={() => setDeviceMode('tablet')}>Tablet</button>
+      <button onClick={() => setDeviceMode('mobile')}>Mobile</button>
+
+      <PreviewContent
+        content={content}
+        styles={styles}
+        deviceMode={deviceMode}
+      />
+    </>
+  );
+}
+```
+
+### With Content Update Callback
+
+```jsx
+import { PreviewContent } from './components/Preview';
+
+function App() {
+  const handleContentUpdate = (message) => {
+    if (message.type === 'contentHeightChanged') {
+      console.log('Content height changed:', message.height);
+    }
+  };
+
+  return (
+    <PreviewContent
+      content={content}
+      styles={styles}
+      deviceMode="desktop"
+      onContentUpdate={handleContentUpdate}
+    />
+  );
+}
+```
+
+### Using the Message Passing API
+
+The component exposes methods for updating content via message passing:
+
+```jsx
+import { useRef } from 'react';
+import { PreviewContent } from './components/Preview';
+
+function App() {
+  const previewRef = useRef(null);
+
+  const updateContent = () => {
+    if (previewRef.current) {
+      previewRef.current.updateContent('<h2>New Content</h2>');
+    }
+  };
+
+  const updateStyles = () => {
+    if (previewRef.current) {
+      previewRef.current.updateStyles('body { background: #f0f0f0; }');
+    }
+  };
+
+  return (
+    <>
+      <button onClick={updateContent}>Update Content</button>
+      <button onClick={updateStyles}>Update Styles</button>
+      <div ref={previewRef}>
+        <PreviewContent content={content} styles={styles} />
+      </div>
+    </>
+  );
+}
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `content` | `string` | `''` | HTML content to render |
+| `styles` | `string` | `''` | CSS styles to apply |
+| `deviceMode` | `'desktop' \| 'tablet' \| 'mobile'` | `'desktop'` | Device mode for responsive dimensions |
+| `onContentUpdate` | `function` | `null` | Callback for content update messages |
+| `className` | `string` | `''` | Additional CSS class |
+
+### Device Dimensions
+
+| Mode | Width | Max Width | Min Height |
+|------|-------|-----------|------------|
+| Desktop | 100% | 1200px | 800px |
+| Tablet | 768px | 768px | 1024px |
+| Mobile | 375px | 375px | 667px |
+
+### Message API
+
+The iframe communicates with the parent via `postMessage`:
+
+#### From Parent to Iframe
+
+```javascript
+// Update content
+iframe.contentWindow.postMessage({
+  type: 'updateContent',
+  content: '<h1>New Content</h1>'
+}, '*');
+
+// Update styles
+iframe.contentWindow.postMessage({
+  type: 'updateStyles',
+  styles: 'body { color: red; }'
+}, '*');
+```
+
+#### From Iframe to Parent
+
+```javascript
+// Content height changed
+{
+  type: 'contentHeightChanged',
+  height: 1200
+}
+```
+
+### Styling
+
+Override default styles by targeting:
+- `.preview-content` - Main wrapper
+- `.preview-content-container` - Content container
+- `.preview-content-iframe` - Iframe element
+- `.preview-content-empty` - Empty state
+- `.preview-content-loading` - Loading state
+
+### Security Considerations
+
+The iframe uses the `sandbox` attribute with:
+- `allow-same-origin` - Allows content to access its own origin
+- `allow-scripts` - Allows JavaScript execution for message passing
+
+This provides a secure isolated environment for rendering user content.

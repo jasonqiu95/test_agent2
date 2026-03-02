@@ -23,6 +23,11 @@ const UNDOABLE_ACTION_PREFIXES = [
   'book/addAuthor',
   'book/deleteAuthor',
   'book/updateAuthor',
+  'book/addStyle',
+  'book/deleteStyle',
+  'book/updateStyle',
+  'book/setBookStyle',
+  'book/reorderStyles',
 ];
 
 // Actions that should not be tracked

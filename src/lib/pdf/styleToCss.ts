@@ -107,20 +107,101 @@ function generateResetStyles(): string {
 
 /**
  * Generates @page rules for print media
+ * Supports both simple margins and spread margins with mirrored pages
  */
 function generatePageStyles(options: StyleToCssOptions): string {
   const pageDimensions = calculatePageDimensions(options.trimSize);
-  const margins = options.margins as Margins;
   const unit = options.unit || 'pt';
+  const bleed = options.bleed || 0;
 
-  return `/* Page configuration for print */
-@page {
-  size: ${pageDimensions.width}pt ${pageDimensions.height}pt;
-  margin-top: ${formatUnit(margins.top, 'in', unit)};
-  margin-bottom: ${formatUnit(margins.bottom, 'in', unit)};
-  margin-left: ${formatUnit(margins.left, 'in', unit)};
-  margin-right: ${formatUnit(margins.right, 'in', unit)};
-}`;
+  // Check if margins are SpreadMargins (have inside/outside instead of left/right)
+  const isSpreadMargins = 'inside' in options.margins && 'outside' in options.margins;
+
+  if (isSpreadMargins) {
+    return generateSpreadPageStyles(pageDimensions, options.margins, unit, bleed);
+  } else {
+    return generateSimplePageStyles(pageDimensions, options.margins as Margins, unit, bleed);
+  }
+}
+
+/**
+ * Generates simple @page rule for uniform margins
+ */
+function generateSimplePageStyles(
+  pageDimensions: { width: number; height: number },
+  margins: Margins,
+  unit: string,
+  bleed: number
+): string {
+  const rules: string[] = ['/* Page configuration for print */'];
+
+  // Calculate page size including bleed if specified
+  const pageWidth = pageDimensions.width + (bleed * 2);
+  const pageHeight = pageDimensions.height + (bleed * 2);
+
+  rules.push('@page {');
+  rules.push(`  size: ${pageWidth}pt ${pageHeight}pt;`);
+  rules.push(`  margin-top: ${formatUnit(margins.top, 'in', unit)};`);
+  rules.push(`  margin-bottom: ${formatUnit(margins.bottom, 'in', unit)};`);
+  rules.push(`  margin-left: ${formatUnit(margins.left, 'in', unit)};`);
+  rules.push(`  margin-right: ${formatUnit(margins.right, 'in', unit)};`);
+
+  // Add bleed marks if bleed is specified
+  if (bleed > 0) {
+    rules.push(`  bleed: ${formatUnit(bleed, 'in', unit)};`);
+    rules.push('  marks: crop cross;');
+  }
+
+  rules.push('}');
+
+  return rules.join('\n');
+}
+
+/**
+ * Generates @page rules with :left and :right for mirrored book spreads
+ */
+function generateSpreadPageStyles(
+  pageDimensions: { width: number; height: number },
+  spreadMargins: { top: number; bottom: number; inside: number; outside: number },
+  unit: string,
+  bleed: number
+): string {
+  const rules: string[] = ['/* Page configuration for print spreads */'];
+
+  // Calculate page size including bleed if specified
+  const pageWidth = pageDimensions.width + (bleed * 2);
+  const pageHeight = pageDimensions.height + (bleed * 2);
+
+  // Base @page rule with common properties
+  rules.push('@page {');
+  rules.push(`  size: ${pageWidth}pt ${pageHeight}pt;`);
+  rules.push(`  margin-top: ${formatUnit(spreadMargins.top, 'in', unit)};`);
+  rules.push(`  margin-bottom: ${formatUnit(spreadMargins.bottom, 'in', unit)};`);
+
+  if (bleed > 0) {
+    rules.push(`  bleed: ${formatUnit(bleed, 'in', unit)};`);
+    rules.push('  marks: crop cross;');
+  }
+
+  rules.push('}');
+  rules.push('');
+
+  // Left pages (even page numbers) - inside margin on the right
+  rules.push('/* Left pages (verso) - inside margin on right */');
+  rules.push('@page :left {');
+  rules.push(`  margin-left: ${formatUnit(spreadMargins.outside, 'in', unit)};`);
+  rules.push(`  margin-right: ${formatUnit(spreadMargins.inside, 'in', unit)};`);
+  rules.push('}');
+  rules.push('');
+
+  // Right pages (odd page numbers) - inside margin on the left
+  rules.push('/* Right pages (recto) - inside margin on left */');
+  rules.push('@page :right {');
+  rules.push(`  margin-left: ${formatUnit(spreadMargins.inside, 'in', unit)};`);
+  rules.push(`  margin-right: ${formatUnit(spreadMargins.outside, 'in', unit)};`);
+  rules.push('}');
+
+  return rules.join('\n');
 }
 
 /**

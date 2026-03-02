@@ -162,7 +162,10 @@ describe('HtmlConverter - Chapter Conversion', () => {
     it('should not include ARIA attributes when disabled', () => {
       const chapter = createTestChapter({ number: 1, title: 'Test' });
       const book = createTestBook({ chapters: [chapter] });
-      const converter = new HtmlConverter(book, { includeAria: false });
+      const converter = new HtmlConverter(book, {
+        includeAria: false,
+        includeToc: false // Disable TOC to avoid interference
+      });
       const html = converter.convert();
 
       expect(html).not.toContain('role=');
@@ -279,6 +282,93 @@ describe('HtmlConverter - Chapter Conversion', () => {
       expect(html).toContain('<h1');
       expect(html).toContain('<h2');
       expect(html.indexOf('<h1')).toBeLessThan(html.indexOf('<h2'));
+    });
+
+    it('should insert page breaks between chapters when enabled', () => {
+      const chapters = [
+        createTestChapter({ number: 1, title: 'Chapter One' }),
+        createTestChapter({ number: 2, title: 'Chapter Two' }),
+        createTestChapter({ number: 3, title: 'Chapter Three' }),
+      ];
+      const book = createTestBook({ chapters });
+      const converter = new HtmlConverter(book, {
+        enablePageBreaks: true,
+        includeToc: false // Disable TOC to avoid interference
+      });
+      const html = converter.convert();
+
+      // Should contain page break divs
+      expect(html).toContain('book-page-break');
+      // Count page breaks - should be 2 (between chapters, not before first or after last)
+      const pageBreaks = (html.match(/book-page-break/g) || []).length;
+      expect(pageBreaks).toBe(2);
+
+      // Verify page breaks are positioned correctly (between chapters)
+      // Find the closing tags to ensure we're checking positions correctly
+      const chapter1End = html.indexOf('</article>', html.indexOf('Chapter One'));
+      const chapter2Start = html.indexOf('<article', html.indexOf('Chapter Two') - 100);
+      const chapter2End = html.indexOf('</article>', html.indexOf('Chapter Two'));
+      const chapter3Start = html.indexOf('<article', html.indexOf('Chapter Three') - 100);
+
+      const firstPageBreakIndex = html.indexOf('book-page-break');
+      const lastPageBreakIndex = html.lastIndexOf('book-page-break');
+
+      // First page break should be after chapter 1 ends but before chapter 2 starts
+      expect(firstPageBreakIndex).toBeGreaterThan(chapter1End);
+      expect(firstPageBreakIndex).toBeLessThan(chapter2Start);
+
+      // Last page break should be after chapter 2 ends but before chapter 3 starts
+      expect(lastPageBreakIndex).toBeGreaterThan(chapter2End);
+      expect(lastPageBreakIndex).toBeLessThan(chapter3Start);
+    });
+
+    it('should not insert page breaks when disabled', () => {
+      const chapters = [
+        createTestChapter({ number: 1, title: 'Chapter One' }),
+        createTestChapter({ number: 2, title: 'Chapter Two' }),
+        createTestChapter({ number: 3, title: 'Chapter Three' }),
+      ];
+      const book = createTestBook({ chapters });
+      const converter = new HtmlConverter(book, {
+        enablePageBreaks: false,
+        includeToc: false // Disable TOC to avoid interference
+      });
+      const html = converter.convert();
+
+      // Should not contain page break divs
+      expect(html).not.toContain('book-page-break');
+    });
+
+    it('should not add page break before first chapter', () => {
+      const chapters = [
+        createTestChapter({ number: 1, title: 'Chapter One' }),
+        createTestChapter({ number: 2, title: 'Chapter Two' }),
+      ];
+      const book = createTestBook({ chapters });
+      const converter = new HtmlConverter(book, {
+        enablePageBreaks: true,
+        includeToc: false // Disable TOC to avoid interference
+      });
+      const html = converter.convert();
+
+      const chapter1Start = html.indexOf('<article');
+      const firstPageBreakIndex = html.indexOf('book-page-break');
+
+      // First page break should come after the first chapter starts
+      expect(firstPageBreakIndex).toBeGreaterThan(chapter1Start);
+    });
+
+    it('should handle single chapter without page breaks', () => {
+      const chapter = createTestChapter({ number: 1, title: 'Only Chapter' });
+      const book = createTestBook({ chapters: [chapter] });
+      const converter = new HtmlConverter(book, {
+        enablePageBreaks: true,
+        includeToc: false // Disable TOC to avoid interference
+      });
+      const html = converter.convert();
+
+      // Should not contain any page breaks with only one chapter
+      expect(html).not.toContain('book-page-break');
     });
   });
 

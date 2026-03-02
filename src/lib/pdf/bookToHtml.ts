@@ -1193,14 +1193,22 @@ ${bodyContent}
     }
 
     this.resetContextForSection('body-chapter');
-    const chaptersHtml = this.book.chapters
-      .map((chapter, index) => {
-        this.updateContext({ currentChapter: chapter, chapterIndex: index });
-        return this.convertSingleChapter(chapter, index);
-      })
-      .join('\n\n');
+    const chapterFragments: string[] = [];
 
-    return chaptersHtml;
+    this.book.chapters.forEach((chapter, index) => {
+      this.updateContext({ currentChapter: chapter, chapterIndex: index });
+
+      // Add page break before chapter (except for the first chapter)
+      if (index > 0 && this.options.enablePageBreaks) {
+        const classPrefix = this.options.classPrefix || 'book';
+        chapterFragments.push(generatePageBreak(classPrefix));
+      }
+
+      // Add the chapter content
+      chapterFragments.push(this.convertSingleChapter(chapter, index));
+    });
+
+    return chapterFragments.join('\n\n');
   }
 
   /**

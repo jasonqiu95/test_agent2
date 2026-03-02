@@ -44,3 +44,17 @@ export {
   createEmptyDocument,
   isDocumentEmpty,
 } from './serialization';
+
+// Command exports
+export {
+  setParagraph,
+  setHeading,
+  toggleParagraph,
+  toggleHeading,
+  canSetParagraph,
+  canSetHeading,
+  isParagraph,
+  isHeading,
+  getCurrentHeadingLevel,
+  convertSelectedBlocks,
+} from './commands';

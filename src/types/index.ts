@@ -15,3 +15,4 @@ export * from './epub';
 export * from './preferences';
 export * from './shortcuts';
 export * from './template';
+export * from './progress';

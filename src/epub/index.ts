@@ -2,7 +2,8 @@
  * EPUB 3 Module
  *
  * Provides utilities for creating EPUB 3 compliant documents and structures,
- * including XHTML templates, block element conversion, and inline formatting functions.
+ * including XHTML templates, block element conversion, inline formatting functions,
+ * and scene break conversion.
  */
 
 // XHTML Template exports
@@ -41,3 +42,13 @@ export {
   createLink,
   parseSimpleFormatting,
 } from './inline-converter';
+
+// Scene Break Converter exports
+export {
+  convertSceneBreakToHtml,
+  convertSceneBreaksToHtml,
+  generateSceneBreakCss,
+  isOrnamentalBreak,
+  type SceneBreakStyle,
+  type SceneBreakConverterOptions,
+} from './scene-break-converter';

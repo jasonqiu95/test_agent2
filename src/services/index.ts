@@ -52,3 +52,9 @@ export {
   resetPdfGeneratorService,
   PdfGeneratorError,
 } from './pdfGenerator'
+
+export { EpubGenerator, getEpubGenerator } from './EpubGenerator'
+export type {
+  EpubOptions,
+  EpubGenerationResult,
+} from './EpubGenerator'

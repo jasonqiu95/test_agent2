@@ -15,20 +15,40 @@ Before running E2E tests, ensure you have:
 npm run test:e2e
 ```
 
+### Run specific test file
+```bash
+# Run only import flow tests
+npx playwright test import-flow
+
+# Run only basic app tests
+npx playwright test app
+```
+
 ### Run tests with visible browser (headed mode)
 ```bash
 npm run test:e2e:headed
+
+# Or for specific tests
+npx playwright test import-flow --headed
 ```
 
 ### Debug tests interactively
 ```bash
 npm run test:e2e:debug
+
+# Or debug specific tests
+npx playwright test import-flow --debug
 ```
 
 ### View test report
 ```bash
 npm run test:e2e:report
 ```
+
+### View screenshots and videos
+After running tests, check:
+- `test-results/` - Screenshots captured during test execution
+- `playwright-report/` - HTML report with test results and artifacts
 
 ## Writing Tests
 
@@ -61,15 +81,53 @@ The `helpers/electron.ts` file provides utility functions for:
 ## Test Organization
 
 - `app.spec.ts`: Basic application lifecycle tests
-- Add more test files as needed (e.g., `features.spec.ts`, `ui.spec.ts`)
+- `import-flow.spec.ts`: Complete user flow for creating projects and importing DOCX files
+  - Tests new project creation
+  - DOCX file import with chapter detection
+  - Import preview dialog interactions
+  - Chapter verification in navigator
+  - Includes screenshots at each step
+- `helpers/`: Utility functions for test setup and teardown
+- `fixtures/`: Test data files (DOCX samples, etc.)
 
 ## Configuration
 
 The Playwright configuration is defined in `playwright.config.ts` at the project root. It includes:
 - Electron-specific launch options
 - HTML reporter for test results
-- Screenshot and video capture on failure
+- Screenshot and video capture on failure (with full-page screenshots)
+- Video recording at 1280x720 resolution
 - Test timeout and retry settings
+
+## Test Features
+
+### Import Flow Tests (`import-flow.spec.ts`)
+
+The import flow test suite comprehensively tests the complete user journey:
+
+1. **App Launch**: Verifies the Electron app starts successfully
+2. **Welcome Screen**: Validates UI elements and action buttons
+3. **New Project Creation**: Tests blank project initialization
+4. **Document Import**:
+   - File selection dialog handling
+   - DOCX parsing and chapter detection
+   - Import preview dialog with chapter cards
+5. **Preview Interactions**:
+   - Chapter selection/deselection
+   - Chapter content preview
+   - Import statistics display
+6. **Import Acceptance**: Completes the import and verifies success
+7. **Content Verification**: Validates chapters appear in editor/navigator
+
+**Screenshots**: The test captures 12+ screenshots at each major step, saved to `test-results/`
+
+**Coverage**:
+- ✅ Full user workflow end-to-end
+- ✅ UI state validation at each step
+- ✅ DOCX file parsing with real sample file
+- ✅ Chapter detection and preview
+- ✅ Import cancellation handling
+- ✅ Empty document handling
 
 ## Debugging
 

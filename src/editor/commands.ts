@@ -438,6 +438,82 @@ export function convertSelectedBlocks(
 }
 
 /**
+ * Insert a scene break at the current cursor position
+ * Scene breaks are used to separate scenes within a chapter
+ *
+ * @param symbol - The symbol to display (default: '* * *')
+ * @returns A ProseMirror command function
+ */
+export function insertSceneBreak(symbol: string = '* * *'): Command {
+  return (state, dispatch) => {
+    const sceneBreakType = state.schema.nodes[NodeType.SCENE_BREAK];
+    if (!sceneBreakType) {
+      return false;
+    }
+
+    const { $from } = state.selection;
+
+    // Create the scene break node
+    const sceneBreak = sceneBreakType.create({ symbol });
+
+    // Insert at the current position
+    if (dispatch) {
+      const tr = state.tr;
+      const pos = $from.after();
+      tr.insert(pos, sceneBreak);
+
+      // Move cursor after the scene break
+      const newPos = pos + sceneBreak.nodeSize;
+      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+
+      dispatch(tr);
+    }
+
+    return true;
+  };
+}
+
+/**
+ * Insert an ornamental break at the current cursor position
+ * Ornamental breaks are decorative section separators
+ *
+ * @param symbol - The decorative symbol to display (default: '❦')
+ * @param style - The style variant (default: 'default')
+ * @returns A ProseMirror command function
+ */
+export function insertOrnamentalBreak(
+  symbol: string = '❦',
+  style: string = 'default'
+): Command {
+  return (state, dispatch) => {
+    const ornamentalBreakType = state.schema.nodes[NodeType.ORNAMENTAL_BREAK];
+    if (!ornamentalBreakType) {
+      return false;
+    }
+
+    const { $from } = state.selection;
+
+    // Create the ornamental break node
+    const ornamentalBreak = ornamentalBreakType.create({ symbol, style });
+
+    // Insert at the current position
+    if (dispatch) {
+      const tr = state.tr;
+      const pos = $from.after();
+      tr.insert(pos, ornamentalBreak);
+
+      // Move cursor after the ornamental break
+      const newPos = pos + ornamentalBreak.nodeSize;
+      tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
+
+      dispatch(tr);
+    }
+
+    return true;
+  };
+}
+
+/**
  * Helper function to create all formatting commands for a schema
  *
  * @param schema - ProseMirror schema
@@ -458,5 +534,7 @@ export function createFormattingCommands(schema: Schema) {
     setHeading6: setHeading(6),
     setParagraph: setParagraph(),
     toggleBlockquote: toggleBlockquote(schema),
+    insertSceneBreak: insertSceneBreak,
+    insertOrnamentalBreak: insertOrnamentalBreak,
   };
 }

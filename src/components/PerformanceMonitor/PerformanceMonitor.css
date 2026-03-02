@@ -1,0 +1,367 @@
+/**
+ * Performance Monitor Styles
+ */
+
+.performance-monitor {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 12px;
+  z-index: 9999;
+  min-width: 320px;
+  max-width: 400px;
+  backdrop-filter: blur(10px);
+}
+
+/* Position variants */
+.performance-monitor--top-left {
+  top: 16px;
+  left: 16px;
+}
+
+.performance-monitor--top-right {
+  top: 16px;
+  right: 16px;
+}
+
+.performance-monitor--bottom-left {
+  bottom: 16px;
+  left: 16px;
+}
+
+.performance-monitor--bottom-right {
+  bottom: 16px;
+  right: 16px;
+}
+
+/* Header */
+.performance-monitor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: move;
+  user-select: none;
+}
+
+.performance-monitor--minimized .performance-monitor__header {
+  cursor: pointer;
+  border-bottom: none;
+}
+
+.performance-monitor__title {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.performance-monitor__header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.performance-monitor__button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.2s ease;
+}
+
+.performance-monitor__button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.performance-monitor__button--close {
+  padding: 2px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Tabs */
+.performance-monitor__tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.performance-monitor__tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.performance-monitor__tab:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.performance-monitor__tab--active {
+  color: #fff;
+  border-bottom-color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+/* Content */
+.performance-monitor__content {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.performance-monitor__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.performance-monitor__content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.performance-monitor__content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.performance-monitor__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Sections */
+.performance-monitor__section {
+  margin-bottom: 16px;
+}
+
+.performance-monitor__section:last-child {
+  margin-bottom: 0;
+}
+
+.performance-monitor__section-title {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+/* Metrics */
+.performance-monitor__metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.performance-monitor__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.performance-monitor__metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.performance-monitor__metric-row:last-child {
+  border-bottom: none;
+}
+
+.performance-monitor__metric-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+}
+
+.performance-monitor__metric-value {
+  font-weight: 600;
+  color: #4caf50;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Progress Bar */
+.performance-monitor__progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.performance-monitor__progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #81c784);
+  transition: width 0.3s ease;
+}
+
+/* Status */
+.performance-monitor__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.performance-monitor__status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+}
+
+.performance-monitor__status-indicator--active {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Timing */
+.performance-monitor__timing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.performance-monitor__timing-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.performance-monitor__timing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.performance-monitor__timing-name {
+  font-weight: 600;
+  color: #fff;
+  font-size: 12px;
+}
+
+.performance-monitor__timing-count {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.performance-monitor__timing-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.performance-monitor__timing-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.performance-monitor__timing-stat-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.performance-monitor__timing-stat-value {
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* No Data */
+.performance-monitor__no-data {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Actions */
+.performance-monitor__actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.performance-monitor__action-button {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.performance-monitor__action-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Minimized State */
+.performance-monitor--minimized {
+  min-width: auto;
+  width: auto;
+}
+
+/* Disabled State */
+.performance-monitor--disabled {
+  min-width: auto;
+  width: auto;
+  opacity: 0.7;
+}
+
+.performance-monitor--disabled .performance-monitor__header {
+  border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .performance-monitor {
+    min-width: 280px;
+    max-width: 320px;
+  }
+
+  .performance-monitor__content {
+    max-height: 300px;
+  }
+}

@@ -57,3 +57,29 @@ export {
 } from './lazy-loading';
 
 export type { LazyLoadOptions } from './lazy-loading';
+
+// Performance profiling
+export {
+  performanceManager,
+  performanceTimer,
+  memoryTracker,
+  reactProfiler,
+  startTiming,
+  endTiming,
+  measureAsync,
+  measureSync,
+  takeMemorySnapshot,
+  getCurrentMemory,
+  formatMemorySize,
+  createProfilerCallback,
+} from './performance';
+
+export type {
+  PerformanceConfig,
+  TimingResult,
+  TimingStats,
+  MemorySnapshot,
+  MemoryStats,
+  RenderMetric,
+  ComponentStats,
+} from './performance';

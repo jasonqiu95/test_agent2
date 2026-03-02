@@ -7,6 +7,7 @@ export { createBasePlugins } from './base';
 export { createHistoryPlugin, undo, redo } from './history';
 export { createKeymapPlugins } from './keymap';
 export { createNoteMarkersPlugin } from './noteMarkers';
+export { createImageDropPlugin, ImageDropPluginOptions } from './imageDrop';
 
 import { Plugin } from 'prosemirror-state';
 import { Schema } from 'prosemirror-model';
@@ -14,6 +15,7 @@ import { createBasePlugins } from './base';
 import { createHistoryPlugin } from './history';
 import { createKeymapPlugins } from './keymap';
 import { createNoteMarkersPlugin } from './noteMarkers';
+import { createImageDropPlugin } from './imageDrop';
 
 /**
  * Creates all default plugins for the editor
@@ -38,6 +40,9 @@ export function createDefaultPlugins(
 
     // Base plugins for cursor and drop functionality
     ...createBasePlugins(schema),
+
+    // Image drop plugin for drag-and-drop image uploads
+    createImageDropPlugin(schema),
 
     // Note markers plugin for footnote/endnote interactions
     createNoteMarkersPlugin(),

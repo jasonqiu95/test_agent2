@@ -9,6 +9,7 @@
 import { Element } from '../types/element';
 import { BookStyle } from '../types/style';
 import { transformElementToHtml, transformTextBlocks } from './contentTransformer';
+import { generateCSS as generateStyleCSS, CSSGeneratorOptions } from './styleGenerator';
 
 /**
  * Device type options for preview rendering
@@ -194,7 +195,7 @@ export function renderPreview(
  */
 function generateHTML(
   elementData: Element,
-  styleConfig: BookStyle,
+  _styleConfig: BookStyle,
   options: Required<RenderOptions>
 ): string {
   const { classPrefix, useInlineStyles } = options;
@@ -228,38 +229,34 @@ function generateCSS(
   deviceConfig: DeviceConfig,
   options: Required<RenderOptions>
 ): string {
-  // TODO: Implement CSS generation logic
-  // This will be implemented in subsequent tasks
+  const { classPrefix, printOptimized } = options;
 
-  const { classPrefix } = options;
-  const { fonts, colors, body, spacing } = styleConfig;
+  // Use the styleGenerator to create comprehensive CSS
+  const generatorOptions: CSSGeneratorOptions = {
+    classPrefix,
+    includePrintStyles: printOptimized,
+    deviceWidth: deviceConfig.pageWidth || deviceConfig.width,
+    minify: false,
+  };
 
-  return `
-    .${classPrefix}-container {
-      font-family: ${fonts.body}, ${fonts.fallback};
-      font-size: ${body.fontSize};
-      line-height: ${body.lineHeight};
-      color: ${colors.text};
-      max-width: ${deviceConfig.pageWidth}px;
-      margin: 0 auto;
-    }
+  const { css } = generateStyleCSS(styleConfig, generatorOptions);
 
-    .${classPrefix}-element {
-      padding: ${spacing.chapterSpacing};
-    }
+  // Add device-specific adjustments
+  const deviceSpecificCSS = `
+.${classPrefix}-container {
+  max-width: ${deviceConfig.pageWidth || deviceConfig.width}px;
+  margin: 0 auto;
+}
 
-    .${classPrefix}-title {
-      font-family: ${fonts.heading}, ${fonts.fallback};
-      font-size: ${styleConfig.headings.h1.fontSize};
-      font-weight: ${styleConfig.headings.h1.fontWeight || 'bold'};
-      color: ${colors.heading};
-      margin-bottom: ${styleConfig.headings.h1.marginBottom || '2rem'};
-    }
-
-    .${classPrefix}-content {
-      text-align: ${body.textAlign || 'left'};
-    }
+@media (max-width: ${deviceConfig.width}px) {
+  .${classPrefix}-container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}
   `.trim();
+
+  return `${css}\n\n${deviceSpecificCSS}`;
 }
 
 /**

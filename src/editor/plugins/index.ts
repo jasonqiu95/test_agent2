@@ -6,12 +6,14 @@
 export { createBasePlugins } from './base';
 export { createHistoryPlugin, undo, redo } from './history';
 export { createKeymapPlugins } from './keymap';
+export { createNoteMarkersPlugin } from './noteMarkers';
 
 import { Plugin } from 'prosemirror-state';
 import { Schema } from 'prosemirror-model';
 import { createBasePlugins } from './base';
 import { createHistoryPlugin } from './history';
 import { createKeymapPlugins } from './keymap';
+import { createNoteMarkersPlugin } from './noteMarkers';
 
 /**
  * Creates all default plugins for the editor
@@ -36,6 +38,9 @@ export function createDefaultPlugins(
 
     // Base plugins for cursor and drop functionality
     ...createBasePlugins(schema),
+
+    // Note markers plugin for footnote/endnote interactions
+    createNoteMarkersPlugin(),
 
     // Keymaps should be last to have lowest priority
     ...createKeymapPlugins(schema),

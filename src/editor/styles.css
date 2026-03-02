@@ -634,3 +634,133 @@
     border-width: 3px;
   }
 }
+
+/* Footnote and Endnote Marker Styles */
+.ProseMirror sup.footnote-marker,
+.ProseMirror sup.endnote-marker {
+  cursor: pointer;
+  color: #007bff;
+  font-weight: 600;
+  padding: 0 0.15em;
+  margin: 0 0.1em;
+  line-height: 1;
+  transition: all 0.2s ease;
+  border-radius: 2px;
+  user-select: none;
+}
+
+.ProseMirror sup.footnote-marker:hover,
+.ProseMirror sup.endnote-marker:hover {
+  background-color: #e7f3ff;
+  color: #0056b3;
+  transform: scale(1.1);
+}
+
+.ProseMirror sup.footnote-marker:active,
+.ProseMirror sup.endnote-marker:active {
+  background-color: #cce5ff;
+  transform: scale(0.95);
+}
+
+/* Selected marker */
+.ProseMirror sup.footnote-marker.ProseMirror-selectednode,
+.ProseMirror sup.endnote-marker.ProseMirror-selectednode {
+  background-color: #007bff;
+  color: white;
+  outline: 2px solid #007bff;
+  outline-offset: 1px;
+}
+
+/* Differentiate footnotes from endnotes with subtle styling */
+.ProseMirror sup.endnote-marker {
+  color: #6c757d;
+}
+
+.ProseMirror sup.endnote-marker:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+/* Dark mode support for markers */
+@media (prefers-color-scheme: dark) {
+  .ProseMirror sup.footnote-marker,
+  .ProseMirror sup.endnote-marker {
+    color: #4da6ff;
+  }
+
+  .ProseMirror sup.footnote-marker:hover,
+  .ProseMirror sup.endnote-marker:hover {
+    background-color: #1a3a52;
+    color: #66b3ff;
+  }
+
+  .ProseMirror sup.footnote-marker:active,
+  .ProseMirror sup.endnote-marker:active {
+    background-color: #0d2a42;
+  }
+
+  .ProseMirror sup.footnote-marker.ProseMirror-selectednode,
+  .ProseMirror sup.endnote-marker.ProseMirror-selectednode {
+    background-color: #4da6ff;
+    color: #000;
+    outline-color: #4da6ff;
+  }
+
+  .ProseMirror sup.endnote-marker {
+    color: #adb5bd;
+  }
+
+  .ProseMirror sup.endnote-marker:hover {
+    background-color: #2b2b2b;
+    color: #dee2e6;
+  }
+}
+
+/* Print styles for markers */
+@media print {
+  .ProseMirror sup.footnote-marker,
+  .ProseMirror sup.endnote-marker {
+    color: #000;
+    background-color: transparent !important;
+    padding: 0;
+    cursor: default;
+  }
+
+  .ProseMirror sup.footnote-marker:hover,
+  .ProseMirror sup.endnote-marker:hover {
+    transform: none;
+  }
+}
+
+/* Accessibility - High contrast mode */
+@media (prefers-contrast: high) {
+  .ProseMirror sup.footnote-marker,
+  .ProseMirror sup.endnote-marker {
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .ProseMirror sup.footnote-marker:hover,
+  .ProseMirror sup.endnote-marker:hover {
+    outline: 2px solid currentColor;
+  }
+}
+
+/* Tooltip styles (created by the noteMarkers plugin) */
+.note-marker-tooltip {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.4;
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ProseMirror sup.footnote-marker,
+  .ProseMirror sup.endnote-marker {
+    transition: none;
+  }
+
+  .ProseMirror sup.footnote-marker:hover,
+  .ProseMirror sup.endnote-marker:hover {
+    transform: none;
+  }
+}

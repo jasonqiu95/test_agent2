@@ -13,6 +13,8 @@ import {
   isVerseActive,
   insertFootnoteMarker,
   insertEndnoteMarker,
+  createInsertImageCommand,
+  canInsertImage,
 } from '../../editor/commands';
 
 export interface ToolbarProps {
@@ -233,6 +235,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
     }
   };
 
+  const handleInsertImage = async () => {
+    if (editorView) {
+      const insertCommand = createInsertImageCommand(editorView.state.schema);
+      const command = await insertCommand();
+      command(editorView.state, editorView.dispatch);
+      onFormat?.('insert-image');
+    }
+  };
+
   // Determine selected value for dropdown
   const getHeadingValue = () => {
     if (formatState.headingLevel === 0) return '0';
@@ -294,6 +305,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editorView, onFormat }) => {
         aria-pressed={formatState.code}
       >
         <code>&lt;/&gt;</code>
+      </button>
+
+      <button
+        className="toolbar-btn toolbar-btn-image"
+        onClick={handleInsertImage}
+        disabled={!editorView || (editorView && !canInsertImage(editorView.state))}
+        title="Insert Image"
+        data-testid="btn-image"
+      >
+        <span style={{ fontSize: '1.1em' }}>🖼️</span>
       </button>
 
       <div className="toolbar-divider" />

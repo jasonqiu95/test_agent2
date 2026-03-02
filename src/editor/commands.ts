@@ -939,3 +939,14 @@ export function createFormattingCommands(schema: Schema) {
     insertEndnoteMarker: insertEndnoteMarker,
   };
 }
+
+// Re-export image commands for easy access
+export {
+  insertImageNode,
+  insertImageFromUrl,
+  insertImageFromUpload,
+  insertImageWithPicker,
+  insertImageFromFile,
+  canInsertImage,
+  createInsertImageCommand,
+} from './commands/insertImage';

@@ -1,0 +1,134 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-field__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-field__control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field__hint {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.form-field__select {
+  padding: 8px 12px;
+  font-size: 0.9375rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  max-width: 300px;
+}
+
+.form-field__select:hover {
+  border-color: #9ca3af;
+}
+
+.form-field__select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-field__input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+}
+
+.form-field__input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.9375rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  transition: border-color 0.2s;
+}
+
+.form-field__input:hover {
+  border-color: #9ca3af;
+}
+
+.form-field__input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-field__unit {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 40px;
+}
+
+.form-field__radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+.form-field__radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.form-field__radio {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-field__label,
+  .form-field__radio-label {
+    color: #f9fafb;
+  }
+
+  .form-field__hint {
+    color: #9ca3af;
+  }
+
+  .form-field__select,
+  .form-field__input {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .form-field__select:hover,
+  .form-field__input:hover {
+    border-color: #6b7280;
+  }
+
+  .form-field__select:focus,
+  .form-field__input:focus {
+    border-color: #3b82f6;
+  }
+
+  .form-field__unit {
+    color: #9ca3af;
+  }
+}

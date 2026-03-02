@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BookStyle } from '../../types/style';
+import { BodyStyleSection } from './sections';
 import './StyleEditor.css';
 
 export interface StyleEditorProps {
@@ -26,7 +27,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
           <div className="style-editor__section">
             <h2 className="style-editor__section-title">Style Settings</h2>
             <div className="style-editor__section-content">
-              {/* Style configuration forms will go here */}
+              <BodyStyleSection
+                bookStyle={currentStyle}
+                onChange={handleStyleChange}
+              />
             </div>
           </div>
         </div>
